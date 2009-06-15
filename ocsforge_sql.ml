@@ -28,16 +28,16 @@ struct
   type task_arg = [ `Task ]
   type task = task_arg Opaque.int32_t
   type right_area_arg = [ `Right_area ]
-  type right_area = right_arg Opaque.int32_t
+  type right_area = right_area_arg Opaque.int32_t
   type task_history_arg = [ `Task_history ]
   type task_history = task_history_arg Opaque.int32_t
 
 
   (** Needed intermediary types. *)
   exception Not_a_percent
-  type percent = private int32
+  type percent = int32 (*TODO : hide type*)
   let percent_of_int32 (n : int32) =
-    if n <= 100 && n>= 0
+    if ( let m = Int32.to_int n in 100>=m && m>=0 )
     then (n : percent)
     else raise Not_a_percent
   let int32_of_percent (n : percent) = (n : int32) 
@@ -263,9 +263,7 @@ let new_area ~forum () =
    Sql.full_transaction_block
     (fun db ->
       PGSQL(db)
-       "INSERT INTO ocsforge_right_areas \
-          (forum_id)
-        VALUES ($forum)"
+       "INSERT INTO ocsforge_right_areas (forum_id) VALUES ($forum)"
      >>= fun () -> serial4 db "ocsforge_right_areas_id_seq"
      >>= fun i  -> Lwt.return (Types.right_area_of_sql i))
 
@@ -274,6 +272,7 @@ let new_area ~forum () =
 
 (** {5 getters for tasks} *)
 
+(*
 let get_task_by_id ?db ~task_id () =
   let task_id = Types.sql_of_task task_id in
   let f db =
@@ -337,7 +336,7 @@ let get_tasks_by_editor ?db ~editor () =
   in match db with
     | None    -> Sql.full_transaction_block f
     | Some db -> f db
-
+ *)
 (*TODO : more getter by attributes (version, time, progress...*)
 
 (** {5 getters for area} *)
@@ -345,21 +344,21 @@ let get_tasks_by_editor ?db ~editor () =
 let get_area_inheritance ~task_id () =
   Lwt_pool.use Sql.pool
     (fun db ->
-       (PGSQL(db)
-          "SELECT area_inheritance
+       PGSQL(db)
+         "SELECT area_inheritance
           FROM ocsforge_tasks
           WHERE id = $parent_id")
-
+(*
 let get_area_by_id ~area_id () =
   let area = Types.sql_of_right_area area_id in
     Lwt_pool.use Sql.pool
       (fun db ->
          PGSQL(db)
-           "SELECT ()
+           "SELECT (id, forum_id, version)
             FROM ocsforge_right_areas
             WHERE id = $area"
        >>= fun r -> Lwt.return (Types.get_right_area_info r))
-
+ *)
 
 (** {3 history management : to record changes } *)
 
@@ -372,12 +371,12 @@ let copy_in_history ~task_id () =
          (id, parent, edit_author, edit_time, edit_version, \
           length, progress, importance, deadline_time, deadline_version, kind, \
           area, area_inheritance)
-       SELECT (id, parent, edit_author, edit_time, edit_version, \
-               length, progress, importance, deadline_time, \
+       SELECT id, parent, edit_author, edit_time, edit_version, \
+              length, progress, importance, deadline_time, \
                                                        deadline_version, kind, \
-               area, area_inheritance)
-       FROM ocsforge_task
-       WHERE id = $task_id"
+              area, area_inheritance
+        FROM ocsforge_tasks
+        WHERE id = $task_id"
       >>= fun _ -> Lwt.return ())
 
 let stamp_edition ~task_id ~author =
@@ -486,7 +485,7 @@ let set_version ~area_id ~version () =
             SET version = $version
             WHERE id = $area")
 
-let set_kinds ~area_id ~kinds () = (*TODO*) (*problem with insertion of multiple values in the same statement*)
+let set_kinds ~area_id ~kinds () = () (*TODO*) (*problem with insertion of multiple values in the same statement*)
 
 
 (** {3 tree tamperer : change the atributtes of tasks in a whole (sub)tree } *)

@@ -47,7 +47,7 @@ CREATE TABLE ocsforge_tasks (
     length interval,
     progress integer DEFAULT NULL CHECK (progress >=0 AND progress <=100),
     importance integer DEFAULT 20 NOT NULL CHECK (importance >= 0 AND importance <= 100),
-    deadline_time date,
+    deadline_time timestamp,
     deadline_version text,
     kind text DEFAULT 'MISC' NOT NULL,
 
@@ -73,7 +73,7 @@ CREATE TABLE ocsforge_tasks_history (
     length interval,
     progress integer DEFAULT NULL CHECK (progress >=0 AND progress <=100),
     importance integer DEFAULT 0 NOT NULL CHECK (importance >= 0 AND importance <= 100),
-    deadline_time date,
+    deadline_time timestamp,
     deadline_version text,
     kind text DEFAULT 'MISC' NOT NULL,
 
