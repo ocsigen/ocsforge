@@ -74,7 +74,7 @@ type task_info = {
   t_edit_time    : CalendarLib.Calendar.t;
   t_edit_version : string;
 
-  t_length           : CalendarLib.Time.Period.t option;
+  t_length           : CalendarLib.Calendar.Period.t option;
   t_progress         : int32 option;
   t_importance       : int32;
   t_deadline_time    : CalendarLib.Calendar.t option;
@@ -101,7 +101,7 @@ type raw_task_info =
     (int32 * int32 *
      int32 *
      int32 * CalendarLib.Calendar.t * string *
-     CalendarLib.Time.Period.t option * int32 option * int32
+     CalendarLib.Calendar.Period.t option * int32 option * int32
      * CalendarLib.Calendar.t option * string option * string *
      int32 * int32)
 
@@ -143,7 +143,7 @@ type task_history_info = {
   th_edit_time    : CalendarLib.Calendar.t;
   th_edit_version : string;
 
-  th_length           : CalendarLib.Time.Period.t option;
+  th_length           : CalendarLib.Calendar.Period.t option;
   th_progress         : int32 option;
   th_importance       : int32;
   th_deadline_time    : CalendarLib.Calendar.t option;
@@ -167,7 +167,7 @@ let task_history_of_string s = (Opaque.int32_t (Int32.of_string s) : task)
 type raw_task_history_info =
     (int32 * int32 *
      int32 * CalendarLib.Calendar.t * string *
-     CalendarLib.Time.Period.t option * int32 option * int32
+     CalendarLib.Calendar.Period.t option * int32 option * int32
      * CalendarLib.Calendar.t option * string option * string *
      int32 * int32)
 
