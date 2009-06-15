@@ -1,3 +1,22 @@
+(* Ocsimore
+ * Copyright (C) 2005
+ * Laboratoire PPS - Université Paris Diderot - CNRS
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *)
+
 
 let apply_on_opted f = function
   | None   -> None
@@ -14,15 +33,6 @@ type right_area = right_area_arg Opaque.int32_t
 type task_history_arg = [ `Task_history ]
 type task_history = task_history_arg Opaque.int32_t
 
-
-(** Needed intermediary types. *)
-exception Not_a_percent
-type percent = int32 (*TODO : hide type*)
-let percent_of_int32 (n : int32) =
-  if ( let m = Int32.to_int n in 100>=m && m>=0 )
-  then (n : percent)
-  else raise Not_a_percent
-let int32_of_percent (n : percent) = (n : int32) 
 
 
 (** {3 For right tags : right management for project tree} *)
@@ -64,9 +74,9 @@ type task_info = {
   t_edit_time    : CalendarLib.Calendar.t;
   t_edit_version : string;
 
-  t_length           : Calendar.Period.t option;
-  t_progress         : percent option;
-  t_importance       : percent;
+  t_length           : CalendarLib.Time.Period.t option;
+  t_progress         : int32 option;
+  t_importance       : int32;
   t_deadline_time    : CalendarLib.Calendar.t option;
   t_deadline_version : string option;
   t_kind             : string;
@@ -91,7 +101,7 @@ type raw_task_info =
     (int32 * int32 *
      int32 *
      int32 * CalendarLib.Calendar.t * string *
-     CalendarLib.Period.t option * int32 option * int32
+     CalendarLib.Time.Period.t option * int32 option * int32
      * CalendarLib.Calendar.t option * string option * string *
      int32 * int32)
 
@@ -103,39 +113,39 @@ let get_task_info
        area,  area_inheritance)
       = 
   {
-    t_id        = task_of_sql id;
-    t_parent_id = task_of_sql parent_id;
+    t_id     = task_of_sql id;
+    t_parent = task_of_sql parent_id;
 
     t_message = Forum_sql.Types.message_of_sql message;
 
-    t_edit_author  = User_sql.Types.userid_from_sql editor_id;
-    t_edit_time    = datetime_edit;
+    t_edit_author  = User_sql.Types.userid_from_sql edit_author;
+    t_edit_time    = edit_time;
     t_edit_version = edit_version;
 
     t_length           = length;
-    t_progress         = aplly_on_opted percent_of_int32 progress;
-    t_importance       = percent_of_int32 importance;
+    t_progress         = progress;
+    t_importance       = importance;
     t_deadline_time    = deadline_time;
     t_deadline_version = deadline_version;
-    t_kind             = task_kind_of_string kind;
+    t_kind             = kind;
 
-    t_area             = right_area_of_sql right_tag;
-    t_area_inheritance = right_area_of_sql right_inheritance;
+    t_area             = right_area_of_sql area;
+    t_area_inheritance = right_area_of_sql area_inheritance;
   }
 
 
 (** {3 For tasks history} *)
 type task_history_info = {
-  th_id        : task;
-  th_parent_id : task;
+  th_id     : task_history;
+  th_parent : task;
 
   th_edit_author  : User_sql.Types.userid;
   th_edit_time    : CalendarLib.Calendar.t;
   th_edit_version : string;
 
-  th_length           : Calendar.Period.t option;
-  th_progress         : percent option;
-  th_importance       : percent;
+  th_length           : CalendarLib.Time.Period.t option;
+  th_progress         : int32 option;
+  th_importance       : int32;
   th_deadline_time    : CalendarLib.Calendar.t option;
   th_deadline_version : string option;
   th_kind             : string;
@@ -157,7 +167,7 @@ let task_history_of_string s = (Opaque.int32_t (Int32.of_string s) : task)
 type raw_task_history_info =
     (int32 * int32 *
      int32 * CalendarLib.Calendar.t * string *
-     CalendarLib.Period.t option * int32 option * int32
+     CalendarLib.Time.Period.t option * int32 option * int32
      * CalendarLib.Calendar.t option * string option * string *
      int32 * int32)
 
@@ -167,19 +177,19 @@ let get_task_history_info
        length, progress, importance, deadline_time, deadline_ver, kind, 
        right_zone, right_inheritance) =
   {
-    th_id        = task_history_of_sql id ;
-    th_parent_id = task_of_sql parent ;
+    th_id     = task_history_of_sql id ;
+    th_parent = task_of_sql parent ;
 
     th_edit_author  = User_sql.Types.userid_from_sql editor ;
-    th_edit_time    = datetime ;
+    th_edit_time    = time ;
     th_edit_version = edit_version ;
 
     th_length           = length ;
-    th_progress         = apply_on_opted percent_of_int32 progress ;
-    th_importance       = percent_of_int32 importance ;
+    th_progress         = progress ;
+    th_importance       = importance ;
     th_deadline_time    = deadline_time ;
     th_deadline_version = deadline_ver ;
-    th_kind             = kind_of_string kind ;
+    th_kind             = kind ;
 
     th_area             = right_area_of_sql right_zone ;
     th_area_inheritance = right_area_of_sql right_inheritance ;

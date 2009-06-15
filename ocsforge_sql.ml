@@ -24,7 +24,7 @@ module Types = Ocsforge_types
 
 module Defaults =
 struct
-  let importance = Types.percent_of_int32 (Int32.of_int 20)
+  let importance = Int32.of_int 20
   let kind = "MISC"
 end
 
@@ -38,39 +38,35 @@ end
 (** {5 make task } *)
 
 let new_task 
-      ~parent ~message ~creator
+      ~parent ~message ~creator ~version
       ?length ?progress
       ?(importance = Defaults.importance)
       ?deadline_time ?deadline_version
       ?(kind       = Defaults.kind      )
       ~area ?area_inheritance
       () =
-  let parent_id  = Types.sql_of_task parent in
-  let message_id = Forum_sql.Types.sql_of_message message in
-  let creator_id = User_sql.Types.sql_from_userid creator in
-  let area_id    = Types.sql_of_right_area area in
-  let now        = CalendarLib.Calendar.now () in
+  let parent_id   = Types.sql_of_task parent in
+  let message_id  = Forum_sql.Types.sql_of_message message in
+  let creator_id  = User_sql.Types.sql_from_userid creator in
+  let area_id     = Types.sql_of_right_area area in
+  let now         = CalendarLib.Calendar.now () in
   let area_inh_id = match area_inheritance with
-    | None -> area_id | Some a -> Types.sql_of_right_area a
+    | None   -> area_id
+    | Some a -> Types.sql_of_right_area a
   in
     Sql.full_transaction_block
       (fun db ->
-         PGSQL(db)
-           "SELECT (version)
-            FROM ocsforge_right_areas
-            WHERE id = $area_id"
-       >>= fun version ->
          PGSQL(db)
            "INSERT INTO ocsforge_tasks \
              (parent, message, edit_author, edit_time, edit_version, \
               length, progress, importance, \
               deadline_time, deadline_version, kind, \
               area, area_inheritance)
-            VALUES ($parent, $message, $creator_id, $now, $version, \
-                    $length, $progress, $importance, \
-                    $deadline_time, $deadline_version, $kind, \
+            VALUES ($parent_id, $message_id, $creator_id, $now, $version, \
+                    $?length, $?progress, $importance, \
+                    $?deadline_time, $?deadline_version, $kind, \
                     $area_id, $area_inh_id)"
-       >>= fun () -> serial4 db "ocsforge_task_id_seq"
+       >>= fun () -> Sql.PGOCaml.serial4 db "ocsforge_task_id_seq"
        >>= fun i -> Lwt.return (Types.task_of_sql i))
 
 (** {5 make area} *)
@@ -94,11 +90,11 @@ let get_task_by_id ?db ~task_id () =
   let task_id = Types.sql_of_task task_id in
   let f db =
          PGSQL(db)
-           "SELECT (id, parent, message, \
-                    edit_author, edit_time, edit_version, \
-                    length, progress, importance, \
-                    deadline_time, deadline_version, kind, \
-                    area, area_inheritance) \
+           "SELECT id, parent, message, \
+                   edit_author, edit_time, edit_version, \
+                   length, progress, importance, \
+                   deadline_time, deadline_version, kind, \
+                   area, area_inheritance \
             FROM ocsforge_tasks
             WHERE id = $task_id"
        >>= fun r -> Lwt.return (Types.get_task_info r)
@@ -111,10 +107,10 @@ let get_task_history_by_id ~task_id () =
     Sql.full_transaction_block
       (fun db ->
          PGSQL(db)
-           "SELECT (id, parent, edit_author, edit_time, edit_version, \
-                    length, progress, importance, \
-                    deadline_time, deadline_version, kind, \
-                    area, area_inheritance)
+           "SELECT id, parent, edit_author, edit_time, edit_version, \
+                   length, progress, importance, \
+                   deadline_time, deadline_version, kind, \
+                   area, area_inheritance
             FROM ocsforge_tasks_history
             WHERE id = $task_id"
       >>= fun history -> get_task_info_by_id ~db ~task_id
@@ -126,11 +122,11 @@ let get_tasks_by_parent ?db ~parent () =
   let parent = Types.sql_of_task parent in
   let f db =
     PGSQL(db)
-      "SELECT (id, parent, message, \
-               edit_author, edit_time, edit_version, \
-               length, progress, importance, \
-               deadline_time, deadline_version, kind, \
-               area, area_inheritance)
+      "SELECT id, parent, message, \
+              edit_author, edit_time, edit_version, \
+              length, progress, importance, \
+              deadline_time, deadline_version, kind, \
+              area, area_inheritance
        FROM ocsforge_tasks
        WHERE parent = $parent"
       >>= fun r -> Lwt.return (Lwt_util.map_serial Types.get_task_info r)
@@ -142,11 +138,11 @@ let get_tasks_by_editor ?db ~editor () =
   let editor = User_sql.Types.sql_from_userid editor in
   let f db =
     PGSQL(db)
-      "SELECT (id, parent, message, \
-               edit_author, edit_time, edit_version, \
-               length, progress, importance, \
-               deadline_time, deadline_version, kind, \
-               area, area_inheritance)
+      "SELECT id, parent, message, \
+              edit_author, edit_time, edit_version, \
+              length, progress, importance, \
+              deadline_time, deadline_version, kind, \
+              area, area_inheritance
        FROM ocsforge_tasks
        WHERE edit_author = $editor"
       >>=fun r -> Lwt.return (Lwt_util.map_serial Types.get_task_info r)
@@ -171,7 +167,7 @@ let get_area_by_id ~area_id () =
     Lwt_pool.use Sql.pool
       (fun db ->
          PGSQL(db)
-           "SELECT (id, forum_id, version)
+           "SELECT id, forum_id, version
             FROM ocsforge_right_areas
             WHERE id = $area"
        >>= fun r -> Lwt.return (Types.get_right_area_info r))
@@ -223,7 +219,7 @@ let set_length ~task_id ~length =
 
 let set_progress ~task_id ~progress =
   let task_id = Taypes.sql_of_task task_id in
-  let progress = Types.int32_of_percent progress in
+  let progress = progress in
     Lwt_pool.use Sql.pool
      (fun db ->
         PGSQL(db)
@@ -233,7 +229,7 @@ let set_progress ~task_id ~progress =
 
 let set_importance ~task_id ~importance =
   let task_id = Taypes.sql_of_task task_id in
-  let importance = Types.int32_of_percent importance in
+  let importance = importance in
     Lwt_pool.use Sql.pool
      (fun db ->
         PGSQL(db)
@@ -302,7 +298,7 @@ let set_version ~area_id ~version () =
             SET version = $version
             WHERE id = $area")
 
-let set_kinds ~area_id ~kinds () = () (*TODO*) (*problem with insertion of multiple values in the same statement*)
+(* let set_kinds ~area_id ~kinds () = () TODO : problem with insertion of multiple values in the same statement*)
 
 
 (** {3 tree tamperer : change the atributtes of tasks in a whole (sub)tree } *)

@@ -45,8 +45,8 @@ CREATE TABLE ocsforge_tasks (
     edit_version text NOT NULL,
 
     length interval,
-    progress integer DEFAULT NULL, 
-    importance integer DEFAULT 20 NOT NULL, 
+    progress integer DEFAULT NULL CHECK (progress >= 0 AND 100 >= progress), 
+    importance integer DEFAULT 20 NOT NULL CHECK (importance >= 0 AND 100 >= importance), 
     deadline_time timestamp,
     deadline_version text,
     kind text DEFAULT 'MISC' NOT NULL,
