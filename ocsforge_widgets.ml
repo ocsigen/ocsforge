@@ -20,7 +20,12 @@
 let (>>=) = Lwt.bind
 let (!!) = Lazy.force
 
+module Roles = Ocsforge_roles
+module Types = Ocsforge_types
+module Data  = Ocsforge_data
 
+(*examples :
+ *
 let select_example_result = register_new_service
                               ~path:["select"]
                               ~get_params:(string "s")
@@ -60,7 +65,7 @@ let select_example = register_new_service ["select"] unit
                               (html
                                  (head (title (pcdata "")) [])
                                  (body [f])))
-
+ *)
 
 class display_task_widget (*display (and propose edition for rightful users) a task*)
         (edit_task_service) =
@@ -119,25 +124,55 @@ object (self)
                     }}
             end
     in
-    let draw_rightfull_field ~right ~title ~value ~alternatives ~string_of_value () =
+    let draw_rightfull_field ~right ~title ~value ~alternatives ~string_of_value
+          () =
       if right
-      then draw_field_value ~title ~value ~alternatives:(!!alternatives) ~string_of_value ()
-      else draw_field_value ~title ~value ~string_of_value ()
+      then draw_field_value
+             ~title ~value ~alternatives:(!!alternatives) ~string_of_value ()
+      else draw_field_value
+             ~title ~value ~string_of_value ()
     in
-    Ocsforge_sql.get_task_by_id ~task_id:task >>= fun info ->
-    Ocsforge.get_user_task_rights ~sp ~task_id:task >>= fun role ->
-    !!(role.Ocsforge.task_reader) >>= b ->
+    Ocsforge_sql.get_task_by_id ~task_id:task    >>= fun info ->
+    Roles.get_user_task_rights ~sp ~task_id:task >>= fun role ->
+    !!(role.Roles.task_reader)                   >>= b ->
     if not b then {{ 'Permission denied' }} else
-    !!(role.Ocsforge.task_message_reader) >>= fun msg_reader ->
-    !!(role.Ocsforge.task_property_editor) >>= fun prop_editor ->
+    !!(role.Roles.task_message_reader)           >>= fun msg_reader ->
+    !!(role.Roles.task_property_editor)          >>= fun prop_editor ->
       {{
-        Forum_widget.display_message_widget#display_message ~sp ~message:info.Ocsforge_sql.Types.t_message
-        {: if !!(role.Ocsforge.task_message_reader)
-           then Forum_widget.display_message_widget#display_message ~sp ~message:info.Ocsforge_sql.Types.t_comments
+        Forum_widget.display_message_widget#display_message
+          ~sp ~message:info.Types.t_message
+        {: if msg_reader
+           then Forum_widget.display_message_widget#display_message
+                  ~sp ~message:info.Types.t_comments
+           else {{ }}
         :}
         <p>[
-          {: draw_rightfull_field ~right:prop_editor ~title:"kind" ~value:info.Ocsforge_sql.Types.kind ~alternatives:(lazy (Ocsforge_sql.get_kinds_by_area ~area_id:info.Ocsforge_sql.Types.t_area ())) (fun k -> k) ()
+          {: draw_rightfull_field
+               ~right:prop_editor ~title:"kind" ~value:info.Types.t_kind
+               ~alternatives:(
+                 lazy (Ocsforge_sql.get_kinds_by_area
+                         ~area_id:info.Ocsforge_sql.Types.t_area
+                         ()) )
+               ~string_of_value:(fun k -> k) ()
           :}
-          {: draw_rightfull_field ~right:prop_editor ~title:"progress" ~value:info.Ocsforge_sql.Types.progress ~alternatives:(lazy (OcsforgeLang.interval_list ~min:0 ~max:100 ~bump:5)) Int32.to_string ()
+          {: draw_rightfull_field
+               ~right:prop_editor ~title:"progress" ~value:info.Types.t_progress
+               ~alternatives:(
+                 lazy (Types.interval_list ~bump:5 ~min:0 ~max:100))
+               ~string_of_value:Int32.to_string ()
+          :}
+          {: draw_rightfull_field
+               ~right:prop_editor ~title:"importance"
+               ~value:info.Types.t_importance
+               ~alternatives:(
+                 lazy (Types.interval_list ~bump:5 ~min:0 ~max:100))
+               ~string_of_value:Int32.to_string ()
+          :}
+          {: draw_rightfull_field
+               ~right:prop_editor ~title:"deadline (time)"
+               ~value:info.Types.t_deadline_time
+               ~alternatives:(
+                 (*TODO*))
+               ~string_of_value:(*TODO*) ()
           :}]
       }}

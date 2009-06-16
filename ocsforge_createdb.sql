@@ -21,7 +21,8 @@
 CREATE TABLE ocsforge_right_areas (
 	id serial NOT NULL primary key,
 	forum_id integer NOT NULL REFERENCES forums(id),
-	version text NOT NULL
+	version text NOT NULL,
+	inheritance integer NOT NULL REFERENCES ocsforge_right_areas(id)
 );
 
 ALTER TABLE ocsforge_right_areas OWNER TO ocsimore;
@@ -46,13 +47,12 @@ CREATE TABLE ocsforge_tasks (
 
     length interval,
     progress integer DEFAULT NULL CHECK (progress >= 0 AND 100 >= progress), 
-    importance integer DEFAULT 20 NOT NULL CHECK (importance >= 0 AND 100 >= importance), 
+    importance integer DEFAULT NULL CHECK (importance >= 0 AND 100 >= importance), 
     deadline_time timestamp,
     deadline_version text,
     kind text DEFAULT 'MISC' NOT NULL,
 
     area integer NOT NULL REFERENCES ocsforge_right_areas(id),
-    area_inheritance integer NOT NULL REFERENCES ocsforge_right_areas(id),
 
     tree_min integer DEFAULT 1 NOT NULL,
     tree_max integer DEFAULT 2 NOT NULL
@@ -72,13 +72,12 @@ CREATE TABLE ocsforge_tasks_history (
 
     length interval,
     progress integer DEFAULT NULL CHECK (progress >=0 AND progress <=100),
-    importance integer DEFAULT 0 NOT NULL CHECK (importance >= 0 AND importance <= 100),
+    importance integer DEFAULT NULL CHECK (importance >= 0 AND importance <= 100),
     deadline_time timestamp,
     deadline_version text,
     kind text DEFAULT 'MISC' NOT NULL,
 
-    area integer NOT NULL REFERENCES ocsforge_right_areas(id),
-    area_inheritance integer NOT NULL REFERENCES ocsforge_right_areas(id)
+    area integer NOT NULL REFERENCES ocsforge_right_areas(id)
 );
 
 ALTER TABLE ocsforge_tasks_history OWNER TO ocsimore;

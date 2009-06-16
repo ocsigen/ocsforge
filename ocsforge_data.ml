@@ -129,46 +129,65 @@ let get_tasks_edited_by ~sp ~editor =
 
 let edit_task ~sp ~task
       ?length ?progress ?importance ?deadline_time ?deadline_version ?kind =
-  Ocsforge_sql.get_area ~task () >>= fun area ->
-  Roles.get_role sp area >>= fun role ->
-  !!(role.Roles.task_property_editor) >>= fun b ->
-  if not b
-  then
-    Lwt.fail Ocsimore_common.Permission_denied
+  if    length           = None
+     && progress         = None
+     && importance       = None
+     && deadline_time    = None
+     && deadline_version = None
+     && kind             = None
+  then Lwt.return ()
   else
     begin
-      let f db =
-        let task_id = task in
-        User.get_user_data sp >>= fun u ->
-        let author = u.User_sql.Types.user_id in
-        Ocsforge_sql.copy_in_history ~task_id db >>= fun () ->
-        Ocsforge_sql.stamp_edition ~task_id ~author db >>= fun () ->
-        (match length with
-           | None -> Lwt.return ()
-           | Some length ->
-               Ocsforge_sql.set_length ~task_id ~length db) >>= fun () ->
-        (match progress with
-           | None -> Lwt.return ()
-           | Some progress ->
-               Ocsforge_sql.set_progress ~task_id ~progress db) >>= fun () ->
-        (match importance with
-           | None -> Lwt.return ()
-           | Some importance ->
-               Ocsforge_sql.set_importance ~task_id ~importance db) >>= fun () ->
-        (match deadline_time with
-           | None -> Lwt.return ()
-           | Some deadline_time ->
-               Ocsforge_sql.set_deadline_time ~task_id ~deadline_time db) >>= fun () ->
-        (match deadline_version with
-           | None -> Lwt.return ()
-           | Some deadline_version ->
-               Ocsforge_sql.set_deadline_version
-                 ~task_id ~deadline_version db) >>= fun () ->
-        (match kind with
-           | None -> Lwt.return ()
-           | Some kind -> Ocsforge_sql.set_kind ~task_id ~kind db)
-      in
-        Sql.full_transaction_block f
+      Ocsforge_sql.get_area ~task () >>= fun area ->
+      Roles.get_role sp area >>= fun role ->
+      !!(role.Roles.task_property_editor) >>= fun b ->
+      if not b
+      then
+        Lwt.fail Ocsimore_common.Permission_denied
+      else
+        begin
+          let f db =
+            let task_id = task in
+            User.get_user_data sp >>= fun u ->
+            let author = u.User_sql.Types.user_id in
+            Ocsforge_sql.copy_in_history ~task_id db >>= fun () ->
+            Ocsforge_sql.stamp_edition ~task_id ~author db >>= fun () ->
+            (match length with
+               | None -> Lwt.return ()
+               | Some length ->
+                   Ocsforge_sql.set_length ~task_id ~length db) >>= fun () ->
+            (match progress with
+               | None -> Lwt.return ()
+               | Some progress ->
+                   Ocsforge_sql.set_progress ~task_id ~progress db) >>= fun () ->
+            (match importance with
+               | None -> Lwt.return ()
+               | Some importance ->
+                   Ocsforge_sql.set_importance ~task_id ~importance db) >>= fun () ->
+            (match deadline_time with
+               | None -> Lwt.return ()
+               | Some deadline_time ->
+                   Ocsforge_sql.set_deadline_time ~task_id ~deadline_time db) >>= fun () ->
+            (match deadline_version with
+               | None -> Lwt.return ()
+               | Some deadline_version ->
+                   Ocsforge_sql.set_deadline_version
+                     ~task_id ~deadline_version db) >>= fun () ->
+            (match kind with
+               | None -> Lwt.return ()
+               | Some kind -> Ocsforge_sql.set_kind ~task_id ~kind db)
+          in
+            Sql.full_transaction_block f
+        end
     end
 
+let move_task ~task ~parent ?area () =
+  let task_id = Types.sql_of_task task in
+  let parent_id = Types.sql_of_task parent in
+  match area with
+    | None -> (* do not detach *)
+        begin
 
+        end
+    | Some None -> (* detach in a new area *)
+    | Some Some a -> (* detach in a known area *)

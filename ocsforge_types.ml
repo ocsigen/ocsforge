@@ -22,6 +22,12 @@ let apply_on_opted f = function
   | None   -> None
   | Some v -> Some (f v)
 
+let interval_list ?(bump = 1) ~min ~max =
+  let rec aux accu current =
+    if current > max
+    then accu
+    else aux ( current::accu ) ( current + bump )
+  in aux [] min
 
 (* {2 Type conversion for database IO} *)
 
@@ -37,9 +43,10 @@ type task_history = task_history_arg Opaque.int32_t
 
 (** {3 For right tags : right management for project tree} *)
 type right_area_info = {
-  r_id      : right_area;
-  r_forum   : Forum_sql.Types.forum;
-  r_version : string;
+  r_id          : right_area ;
+  r_forum       : Forum_sql.Types.forum ;
+  r_version     : string ;
+  r_inheritance : right_area ;
 }
 
 let right_area_of_sql (u : int32) = (Opaque.int32_t u : right_area)
@@ -53,13 +60,14 @@ let string_of_right_area i = Int32.to_string (sql_of_right_area i)
 let right_area_of_string s = (Opaque.int32_t (Int32.of_string s) : right_area)
 
 type raw_right_area_info =
-    (int32 * int32)
+    (int32 * int32 * string * int32)
 
-let get_right_area_info (id, forum_id, ver) =
+let get_right_area_info (id, forum_id, ver, inh) =
   {
-    r_id      = right_area_of_sql id;
-    r_forum   = Forum_sql.Types.forum_of_sql forum_id;
-    r_version = ver
+    r_id          = right_area_of_sql id ;
+    r_forum       = Forum_sql.Types.forum_of_sql forum_id ;
+    r_version     = ver ;
+    r_inheritance = right_area_of_sql inh ;
   }
 
 
@@ -76,13 +84,12 @@ type task_info = {
 
   t_length           : CalendarLib.Calendar.Period.t option;
   t_progress         : int32 option;
-  t_importance       : int32;
+  t_importance       : int32 option;
   t_deadline_time    : CalendarLib.Calendar.t option;
   t_deadline_version : string option;
   t_kind             : string;
 
   t_area             : right_area;
-  t_area_inheritance : right_area;
 }
 
 
@@ -101,7 +108,7 @@ type raw_task_info =
     (int32 * int32 *
      int32 *
      int32 * CalendarLib.Calendar.t * string *
-     CalendarLib.Calendar.Period.t option * int32 option * int32
+     CalendarLib.Calendar.Period.t option * int32 option * int32 option
      * CalendarLib.Calendar.t option * string option * string *
      int32 * int32)
 
@@ -110,7 +117,7 @@ let get_task_info
        message,
        edit_author, edit_time, edit_version,
        length,  progress,  importance,  deadline_time, deadline_version,  kind,
-       area,  area_inheritance)
+       area)
       = 
   {
     t_id     = task_of_sql id;
@@ -130,7 +137,6 @@ let get_task_info
     t_kind             = kind;
 
     t_area             = right_area_of_sql area;
-    t_area_inheritance = right_area_of_sql area_inheritance;
   }
 
 
@@ -145,13 +151,12 @@ type task_history_info = {
 
   th_length           : CalendarLib.Calendar.Period.t option;
   th_progress         : int32 option;
-  th_importance       : int32;
+  th_importance       : int32 option;
   th_deadline_time    : CalendarLib.Calendar.t option;
   th_deadline_version : string option;
   th_kind             : string;
 
   th_area             : right_area;
-  th_area_inheritance : right_area;
 }
 
 let task_history_of_sql (u : int32) = (Opaque.int32_t u : task_history)
@@ -167,15 +172,15 @@ let task_history_of_string s = (Opaque.int32_t (Int32.of_string s) : task)
 type raw_task_history_info =
     (int32 * int32 *
      int32 * CalendarLib.Calendar.t * string *
-     CalendarLib.Calendar.Period.t option * int32 option * int32
+     CalendarLib.Calendar.Period.t option * int32 option * int32 option
      * CalendarLib.Calendar.t option * string option * string *
-     int32 * int32)
+     int32)
 
 let get_task_history_info
       (id, parent,
        editor, time, edit_version,
        length, progress, importance, deadline_time, deadline_ver, kind, 
-       right_zone, right_inheritance) =
+       right_zone) =
   {
     th_id     = task_history_of_sql id ;
     th_parent = task_of_sql parent ;
@@ -192,7 +197,6 @@ let get_task_history_info
     th_kind             = kind ;
 
     th_area             = right_area_of_sql right_zone ;
-    th_area_inheritance = right_area_of_sql right_inheritance ;
   }
 
 

@@ -25,8 +25,7 @@ module Types = Ocsforge_types
 
 module Defaults =
 struct
-  let importance = Int32.of_int 20
-  let kind = "MISC"
+  let kind = "UNSORTED"
 end
 
 (** {2 Database statement and queries.} *)
@@ -40,33 +39,43 @@ end
 
 let new_task 
       ~parent ~message ~creator ~version
-      ?length ?progress
-      ?(importance = Defaults.importance)
+      ?length ?progress ?importance
       ?deadline_time ?deadline_version
       ?(kind       = Defaults.kind      )
-      ~area ?area_inheritance
+      ~area
       () =
   let parent_id   = Types.sql_of_task parent in
   let message_id  = Forum_sql.Types.sql_of_message message in
   let creator_id  = User_sql.Types.sql_from_userid creator in
   let area_id     = Types.sql_of_right_area area in
   let now         = CalendarLib.Calendar.now () in
-  let area_inh_id = match area_inheritance with
-    | None   -> area_id
-    | Some a -> Types.sql_of_right_area a
-  in
     Sql.full_transaction_block
       (fun db ->
+         PGSQL(db)
+           "SELECT tree_max
+            FROM ocsforge_tasks
+            WHERE id = $parent_id"
+       >>= (function
+         | [] | _::_::_ -> failwith "Ocsforge_sql.new_task not one parent"
+         | [m] ->
+             PGSQL(db)
+               "UPDATE ocsforge_tasks \
+                SET tree_min = tree_min + 2 \
+                WHERE tree_min >= $m" >>= fun () ->
+             PGSQL(db)
+               "UPDATE ocsforge_tasks \
+                SET tree_max = tree_max + 2 \
+                WHERE tree_max >= $m") >>= fun () ->
          PGSQL(db)
            "INSERT INTO ocsforge_tasks \
              (parent, message, edit_author, edit_time, edit_version, \
               length, progress, importance, \
               deadline_time, deadline_version, kind, \
-              area, area_inheritance)
+              area)
             VALUES ($parent_id, $message_id, $creator_id, $now, $version, \
-                    $?length, $?progress, $importance, \
+                    $?length, $?progress, $?importance, \
                     $?deadline_time, $?deadline_version, $kind, \
-                    $area_id, $area_inh_id)"
+                    $area_id)"
        >>= fun () -> Sql.PGOCaml.serial4 db "ocsforge_task_id_seq"
        >>= fun i -> Lwt.return (Types.task_of_sql i))
 
@@ -76,11 +85,20 @@ let new_area ~forum ?(version = "0.0") () =
   let forum = Forum_sql.Types.sql_of_forum forum in
    Sql.full_transaction_block
     (fun db ->
-      PGSQL(db)
-       "INSERT INTO ocsforge_right_areas (forum_id) VALUES ($forum)"
+       PGSQL(db)
+         "SELECT NEXTVAL('ocsforge_right_areas_id_seq')"
+     >>= (function
+                 | [] | _::_::_ -> failwith "Ocsforge_sql.new_area not one nextval"
+                 | [Some inh] -> Lwt.return (Int64.to_int32 inh)
+                 | [None] -> failwith "Ocsforge_sql.new_area nextval returned None")
+     >>= fun inh ->
+       PGSQL(db)
+         "INSERT INTO ocsforge_right_areas \
+                 (forum_id, inheritance) \
+          VALUES ($forum,   $inh)"
      >>= fun () -> Sql.PGOCaml.serial4 db "ocsforge_right_areas_id_seq"
      >>= fun i  -> Lwt.return (Types.right_area_of_sql i))
-
+(* possible tweak : i = inh ! *)
 
 (** {3 getters : getting info } *)
 
@@ -95,7 +113,7 @@ let get_task_by_id ?db ~task_id () =
                    edit_author, edit_time, edit_version, \
                    length, progress, importance, \
                    deadline_time, deadline_version, kind, \
-                   area, area_inheritance \
+                   area \
             FROM ocsforge_tasks
             WHERE id = $task_id"
        >>= function
@@ -114,7 +132,7 @@ let get_task_history_by_id ~task_id () =
            "SELECT id, parent, edit_author, edit_time, edit_version, \
                    length, progress, importance, \
                    deadline_time, deadline_version, kind, \
-                   area, area_inheritance
+                   area
             FROM ocsforge_tasks_history
             WHERE id = $task"
       >>= fun history -> get_task_by_id ~db ~task_id ()
@@ -131,7 +149,7 @@ let get_tasks_by_parent ?db ~parent () =
               edit_author, edit_time, edit_version, \
               length, progress, importance, \
               deadline_time, deadline_version, kind, \
-              area, area_inheritance
+              area
        FROM ocsforge_tasks
        WHERE parent = $parent"
       >>= fun r -> (Lwt_util.map_serial
@@ -149,7 +167,7 @@ let get_tasks_by_editor ?db ~editor () =
               edit_author, edit_time, edit_version, \
               length, progress, importance, \
               deadline_time, deadline_version, kind, \
-              area, area_inheritance
+              area
        FROM ocsforge_tasks
        WHERE edit_author = $editor"
       >>=fun r -> (Lwt_util.map_serial
@@ -163,21 +181,21 @@ let get_tasks_by_editor ?db ~editor () =
 
 (** {5 getters for area} *)
 
-let get_area_inheritance ~task_id () =
-  let task = Types.sql_of_task task_id in
+let get_area_inheritance ~area_id () =
+  let id = Types.sql_of_right_area area_id in
   Lwt_pool.use Sql.pool
     (fun db ->
        PGSQL(db)
-         "SELECT area_inheritance
-          FROM ocsforge_tasks
-          WHERE id = $task"
+         "SELECT inheritance
+          FROM ocsforge_right_areas
+          WHERE id = $id"
     >>= function
       | [r] -> Lwt.return (Types.right_area_of_sql r)
       | []  -> Lwt.fail Not_found
       | _   -> failwith "Ocsforge_sql.get_area_inheritance, \
                   more than one result")
 
-let get_area ?db ~task_id () =
+let get_area_for_task ?db ~task_id () =
   let task = Types.sql_of_task task_id in
   let f db =
        PGSQL(db)
@@ -199,7 +217,7 @@ let get_area_by_id ~area_id () =
     Lwt_pool.use Sql.pool
       (fun db ->
          PGSQL(db)
-           "SELECT id, forum_id, version
+           "SELECT id, forum_id, version, inheritance
             FROM ocsforge_right_areas
             WHERE id = $area"
        >>= function
@@ -231,11 +249,11 @@ let copy_in_history ~task_id db =
       "INSERT INTO ocsforge_tasks_history \
          (id, parent, edit_author, edit_time, edit_version, \
           length, progress, importance, deadline_time, deadline_version, kind, \
-          area, area_inheritance)
+          area)
        SELECT id, parent, edit_author, edit_time, edit_version, \
               length, progress, importance, deadline_time, \
                                                        deadline_version, kind, \
-              area, area_inheritance
+              area
         FROM ocsforge_tasks
         WHERE id = $task_id"
 
@@ -243,7 +261,7 @@ let stamp_edition ~task_id ~author db =
   let task = Types.sql_of_task task_id in
   let editor = User_sql.Types.sql_from_userid author in
   let now = CalendarLib.Calendar.now () in
-    get_area ~db ~task_id () >>= fun area_id ->
+    get_area_for_task ~db ~task_id () >>= fun area_id ->
     get_area_version ~db ~area_id () >>= fun ver ->
       PGSQL(db)
         "UPDATE ocsforge_tasks \
@@ -315,15 +333,15 @@ let set_area ~task_id ~area =
              SET area = $area
              WHERE id = $task_id")
 
-let set_area_inheritance ~task_id ~area =
-  let task_id = Types.sql_of_task task_id in
-  let area = Types.sql_of_right_area area in
+let set_area_inheritance ~area_id ~area_inheritance =
+  let area_inh = Types.sql_of_right_area area_inheritance in
+  let area_id = Types.sql_of_right_area area_id in
     Lwt_pool.use Sql.pool
       (fun db -> 
           PGSQL(db)
-            "UPDATE ocsforge_tasks
-             SET area_inheritance = $area
-             WHERE id = $task_id")
+            "UPDATE ocsforge_right_areas
+             SET inheritance = $area_inh
+             WHERE id = $area_id")
 
 (*TODO : multiple field tamprers *)
 
@@ -344,4 +362,43 @@ let set_version ~area_id ~version () =
 (** {3 tree tamperer : change the atributtes of tasks in a whole (sub)tree } *)
 (*TODO*)
 
+let move_task ~task_id ~parent_id ~area_id =
+  let task     = Types.sql_of_task task_id in
+  let parent   = Types.sql_of_task parent_id in
+  let area     = Types.sql_of_right_area area_id in
+  Sql.full_transaction_block
+    (fun db ->
+       PGSQL(db)
+       "SELECT tree_min, tree_max
+        FROM ocsforge_tasks
+        WHERE id = $task"
+     >>= (function
+            | [] | _::_::_ -> failwith "Ocsforge_sql.move_task not one task"
+            | [(mi,ma)] -> Lwt.return (mi,ma))
+     >>= fun (mi,ma) ->
+       PGSQL(db)
+         "SELECT tree_max
+          FROM ocsforge_tasks
+          WHERE id = $parent"
+     >>= (function
+            | [] | _::_::_ -> failwith "Ocsforge_sql.move_task not one parent"
+            | [m] -> Lwt.return m)
+     >>= fun m ->
+       let size = Int32.sub ma mi in
+       let dist = Int32.sub m ma  in
+         PGSQL(db)
+           "UPDATE ocsforge_tasks
+            SET tree_min = tree_min + $dist, tree_max = tree_max + $dist
+            WHERE tree_min >= $mi AND tree_max <= $ma"
+     >>= fun () ->
+         PGSQL(db)
+           "UPDATE ocsforge_tasks
+            SET tree_min = tree_min - $size, tree_max = tree_max - $size
+            WHERE tree_min > $ma AND tree_max < $m"
+     >>= fun () ->
+         PGSQL(db)
+           "UPDATE ocsforge_tasks
+            SET parent = $parent, area = $area
+            WHERE id = $task"
+    )
 
