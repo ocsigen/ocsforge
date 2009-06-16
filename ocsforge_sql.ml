@@ -81,24 +81,35 @@ let new_task
 
 (** {5 make area} *)
 
-let new_area ~forum ?(version = "0.0") () =
+let new_area ?id ~forum ?(version = "0.0") () =
   let forum = Forum_sql.Types.sql_of_forum forum in
    Sql.full_transaction_block
     (fun db ->
-       PGSQL(db)
-         "SELECT NEXTVAL('ocsforge_right_areas_id_seq')"
-     >>= (function
-                 | [] | _::_::_ -> failwith "Ocsforge_sql.new_area not one nextval"
-                 | [Some inh] -> Lwt.return (Int64.to_int32 inh)
-                 | [None] -> failwith "Ocsforge_sql.new_area nextval returned None")
-     >>= fun inh ->
-       PGSQL(db)
-         "INSERT INTO ocsforge_right_areas \
-                 (forum_id, inheritance) \
-          VALUES ($forum,   $inh)"
-     >>= fun () -> Sql.PGOCaml.serial4 db "ocsforge_right_areas_id_seq"
-     >>= fun i  -> Lwt.return (Types.right_area_of_sql i))
-(* possible tweak : i = inh ! *)
+       (match id with
+         | None ->
+             begin
+               PGSQL(db)
+                 "SELECT NEXTVAL('ocsforge_right_areas_id_seq')"
+               >>= (function
+                      | [] | _::_::_ -> failwith "Ocsforge_sql.new_area not one nextval"
+                      | [Some id] -> Lwt.return (Int64.to_int32 id)
+                      | [None] -> failwith "Ocsforge_sql.new_area nextval returned None")
+               >>= fun id ->
+                 PGSQL(db)
+                   "INSERT INTO ocsforge_right_areas \
+                           ( id,  forum_id, inheritance) \
+                    VALUES ($id, $forum,   $id)"
+              >>= fun () -> Lwt.return id
+             end
+         | Some id ->
+             let id = Types.sql_of_right_area id in
+             PGSQL(db)
+               "INSERT INTO ocsforge_right_areas \
+                       ( id,  forum_id, inheritance) \
+                VALUES ($id, $forum,   $id)"
+             >>= fun () -> Lwt.return id
+       )
+     >>= fun i -> Lwt.return (Types.right_area_of_sql i))
 
 (** {3 getters : getting info } *)
 
