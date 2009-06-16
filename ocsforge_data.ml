@@ -33,19 +33,7 @@ let blunt_create_task ~parent ~message ~creator
       ~area () =
   Ocsforge_sql.new_task ~parent ~message ~creator
     ~length ~progress ~importance ~deadline_time ~deadline_version ~kind
-    ~area () >>= fun id ->
-      User_sql.add_to_group
-        ~user:(Roles.task_creator $ area) ~group:(Roles.task_message_editor_if_author $ id)
-      >>= fun () ->
-      User_sql.add_to_group
-        ~user:(Roles.task_mover_from $ area) ~group:(Roles.task_property_editor $ id)
-      >>= fun () ->
-      User_sql.add_to_group
-        ~user:(Roles.task_mover_to $ area) ~group:(Roles.task_property_editor $ id)
-      >>= fun () ->
-      User_sql.add_to_group
-        ~user:(Roles.kinds_setter $ area) ~group:(Roles.task_property_editor $ id)
-      >>= fun () -> Lwt.return id
+    ~area ()
 
 let blunt_create_area ~forum () =
   Ocsforge_sql.new_area ~forum (*TODO: use kinds !*)
@@ -57,7 +45,7 @@ let new_task ~sp ~parent ~subject ~text ~creator
 
     | Some None -> (* detach into a new zone *)
         get_area ~task_id:parent () >>= fun parent_area ->
-        Roles.get_area_role sp parent_area >>= fun role ->
+        Roles.get_role sp parent_area >>= fun role ->
         !!(role.Roles.subarea_creator) >>= fun b ->
         if b then
         begin
@@ -84,7 +72,7 @@ let new_task ~sp ~parent ~subject ~text ~creator
 
     | None -> (* do not detach *)
         get_area_inheritance ~task_id:parent () >>= fun area_inh ->
-        Roles.get_area_role sp area_inh >>= fun role ->
+        Roles.get_role sp area_inh >>= fun role ->
         !!(role.Roles.task_creator) >>= fun b ->
         if b
         then
@@ -94,7 +82,7 @@ let new_task ~sp ~parent ~subject ~text ~creator
         else Lwt.fail Ocsimore_common.Permission_denied
 
     | Some Some area -> (* detach into a already existing zone *)
-         Roles.get_area_role sp area >>= fun role ->
+         Roles.get_role sp area >>= fun role ->
          !!(role.Roles.task_creator) >>= fun b ->
          if b
          then
@@ -105,7 +93,8 @@ let new_task ~sp ~parent ~subject ~text ~creator
                    
 
 let get_task ~sp ~task =
-  Roles.get_task_role sp task >>= fun role ->
+  Ocsforge_sql.get_area ~task () >>= fun area ->
+  Roles.get_role sp area >>= fun role ->
   !!(role.Roles.task_reader) >>= fun b ->
   if b
   then
@@ -113,13 +102,73 @@ let get_task ~sp ~task =
   else Lwt.fail Ocsimore_common.Permission_denied
 
 let get_task_history ~sp ~task =
-  Roles.get_task_role sp task >>= fun role ->
+  Ocsforge_sql.get_area ~task () >>= fun area ->
+  Roles.get_role sp area >>= fun role ->
   !!(role.Roles.task_reader) >>= fun b ->
   if b
   then
     Ocsforge_sql.get_task_history_by_id ~task_id:task ()
   else Lwt.fail Ocsimore_common.Permission_denied
 
-let get_tasks_by_parent ~sp ~parent =
-  () (* needs many role verification... Maybe, task_reader should be a zone property ! maybe zone properties are the only relevant information...*)
+let filter_task_list_for_reading sp tl =
+  Lwt_util.map_serial
+    (fun t -> Lwt.return (Roles.get_role sp t.Types.t_area)) tl
+    >>= fun tl_roles ->
+  Lwt_util.map_serial
+    (fun r -> Lwt.return !!(r.Roles.task_reader)) tl_roles
+    >>= fun tl_reader ->
+  List.map fst (List.filter (fun (_,r) -> r) (List.combine tl tl_reader))
+
+let get_sub_tasks ~sp ~parent =
+  Ocsforge_sql.get_tasks_by_parent ~parent ()
+    >>= (filter_task_list_for_reading sp)
+
+let get_tasks_edited_by ~sp ~editor =
+  Ocsforge_sql.get_tasks_by_editor ~editor ()
+    >>= (filter_task_list_for_reading sp)
+
+let edit_task ~sp ~task
+      ?length ?progress ?importance ?deadline_time ?deadline_version ?kind =
+  Ocsforge_sql.get_area ~task () >>= fun area ->
+  Roles.get_role sp area >>= fun role ->
+  !!(role.Roles.task_property_editor) >>= fun b ->
+  if not b
+  then
+    Lwt.fail Ocsimore_common.Permission_denied
+  else
+    begin
+      let f db =
+        let task_id = task in
+        User.get_user_data sp >>= fun u ->
+        let author = u.User_sql.Types.user_id in
+        Ocsforge_sql.copy_in_history ~task_id db >>= fun () ->
+        Ocsforge_sql.stamp_edition ~task_id ~author db >>= fun () ->
+        (match length with
+           | None -> Lwt.return ()
+           | Some length ->
+               Ocsforge_sql.set_length ~task_id ~length db) >>= fun () ->
+        (match progress with
+           | None -> Lwt.return ()
+           | Some progress ->
+               Ocsforge_sql.set_progress ~task_id ~progress db) >>= fun () ->
+        (match importance with
+           | None -> Lwt.return ()
+           | Some importance ->
+               Ocsforge_sql.set_importance ~task_id ~importance db) >>= fun () ->
+        (match deadline_time with
+           | None -> Lwt.return ()
+           | Some deadline_time ->
+               Ocsforge_sql.set_deadline_time ~task_id ~deadline_time db) >>= fun () ->
+        (match deadline_version with
+           | None -> Lwt.return ()
+           | Some deadline_version ->
+               Ocsforge_sql.set_deadline_version
+                 ~task_id ~deadline_version db) >>= fun () ->
+        (match kind with
+           | None -> Lwt.return ()
+           | Some kind -> Ocsforge_sql.set_kind ~task_id ~kind db)
+      in
+        Sql.full_transaction_block f
+    end
+
 

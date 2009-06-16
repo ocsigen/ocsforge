@@ -225,11 +225,9 @@ let get_area_version ?db ~area_id () =
 
 (** {3 history management : to record changes } *)
 
-let copy_in_history ~task_id () =
+let copy_in_history ~task_id db =
   let task_id = Types.sql_of_task task_id in
-  Lwt_pool.use Sql.pool
-   (fun db -> 
-      PGSQL(db)
+    PGSQL(db)
       "INSERT INTO ocsforge_tasks_history \
          (id, parent, edit_author, edit_time, edit_version, \
           length, progress, importance, deadline_time, deadline_version, kind, \
@@ -240,23 +238,18 @@ let copy_in_history ~task_id () =
               area, area_inheritance
         FROM ocsforge_tasks
         WHERE id = $task_id"
-      >>= fun _ -> Lwt.return ())
 
-let stamp_edition ~task_id ~author =
+let stamp_edition ~task_id ~author db =
   let task = Types.sql_of_task task_id in
   let editor = User_sql.Types.sql_from_userid author in
   let now = CalendarLib.Calendar.now () in
-    Lwt_pool.use Sql.pool
-     (fun db ->
-        get_area ~db ~task_id ()
-        >>= fun area_id ->
-        get_area_version ~db ~area_id ()
-        >>= fun ver ->
-        PGSQL(db)
-          "UPDATE ocsforge_tasks \
-           SET (edit_author, edit_time, edit_version) = \
-               ($editor, $now, $ver) \
-           WHERE id = $task")
+    get_area ~db ~task_id () >>= fun area_id ->
+    get_area_version ~db ~area_id () >>= fun ver ->
+      PGSQL(db)
+        "UPDATE ocsforge_tasks \
+         SET (edit_author, edit_time, edit_version) = \
+             ($editor, $now, $ver) \
+         WHERE id = $task"
  
 (** {3 setters : to tamper recorded tuples } *)
 
@@ -264,7 +257,6 @@ let stamp_edition ~task_id ~author =
 
 let set_length ~task_id ~length =
   let task_id = Types.sql_of_task task_id in
-    Lwt_pool.use Sql.pool
      (fun db ->
         PGSQL(db)
           "UPDATE ocsforge_tasks
@@ -274,7 +266,6 @@ let set_length ~task_id ~length =
 let set_progress ~task_id ~progress =
   let task_id = Types.sql_of_task task_id in
   let progress = progress in
-    Lwt_pool.use Sql.pool
      (fun db ->
         PGSQL(db)
           "UPDATE ocsforge_tasks
@@ -284,7 +275,6 @@ let set_progress ~task_id ~progress =
 let set_importance ~task_id ~importance =
   let task_id = Types.sql_of_task task_id in
   let importance = importance in
-    Lwt_pool.use Sql.pool
      (fun db ->
         PGSQL(db)
           "UPDATE ocsforge_tasks
@@ -293,7 +283,6 @@ let set_importance ~task_id ~importance =
 
 let set_deadline_time ~task_id ~deadline_time =
   let task_id = Types.sql_of_task task_id in
-    Lwt_pool.use Sql.pool
       (fun db -> 
           PGSQL(db)
             "UPDATE ocsforge_tasks
@@ -302,7 +291,6 @@ let set_deadline_time ~task_id ~deadline_time =
 
 let set_deadline_version ~task_id ~deadline_version =
   let task_id = Types.sql_of_task task_id in
-    Lwt_pool.use Sql.pool
       (fun db -> 
           PGSQL(db)
             "UPDATE ocsforge_tasks
@@ -311,7 +299,6 @@ let set_deadline_version ~task_id ~deadline_version =
 
 let set_kind ~task_id ~kind =
   let task_id = Types.sql_of_task task_id in
-    Lwt_pool.use Sql.pool
       (fun db -> 
           PGSQL(db)
             "UPDATE ocsforge_tasks

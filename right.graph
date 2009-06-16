@@ -1,0 +1,62 @@
+(* tasks related groups *)
+
+
+/!\ il y a ici une hiérarchie des droits (plus haut, plus de droit). Les inclusions sont : superset en bas, subset en haut ! /!\
+                                    sub_area_creator
+                                   /                \
+                                  /                 task_mover
+                  _______________/                  /         \
+                 /                                 /           \
+            task_creator                task_mover_from       task_mover_to
+               \                                   \           /
+                \         kinds_setter              \         /
+                 \              \                    task_admin
+       _______..  \  ..______..  \  .._______________/        \______________________________________________________
+      /            \   /          \   /                                \           \                \                \ 
+    task_          task_          task_                               task_       task_            task_            task_
+     message_       msg_            property_                           comment_    comment_         comment_         comment_
+       editor_       editor_         editor          version_setter      sticky_     deletor_        writer_           moderator
+          \         if_author          \                  \               setter      (if_author)     (not_moderated)    /
+           \___________\________________\                  \           ____/____________/_________________/_____________/
+                                         \________________  \         /
+                                                          \  \    task_comment_reader
+                                                           \  \     /
+                                                           task_reader
+
+task_admin : possède tout les droits sur la tache
+task_comment_* : peut * les commentaires sur la tache (EQUIV : forum_commeter_*)
+task_editor : peut editer tout les champs de la tache
+task_message_editor : peut éditer le message de la tache (EQUIV : forum_message_editor)
+task_*_editor : peut éditer le champ * de la tache
+task_reader : peut lire la tache
+
+
+
+
+(* exemple de projet *)
+
+                                      Ocsigen
+         ________________________________|_______________________________________________
+        /                  /                        \                     \              \
+    Server              Eliom                     Ocsimore             Oborowser         etc.
+     /   \                |                     _____|_________            |
+APACHE   etc.            etc.                  /     |         \          etc. 
+   |                                         Wiki   Forum     Forge
+  etc.                                        |      |          |
+                                             etc.   etc.     ___|_____
+                                                            /   |     \
+                                                           db  droit  wiget
+
+___________________________________________________
+            |        |            |           
+zone type   |  zone  |  heritage  |  membres
+____________|________|____________|___________________________
+            |        |            |
+ FORGE      |   -1   |   SPE      |
+ ADMIN  1   |   0    |    1       |    Ocsigen
+ DEFAUT 1   |   1    |    1       |    Server, Eliom, Ocsimore, Wiki, Forum, Obrowser, etc.
+ DETACH 1.1 |   2    |    2       |    Forge, db, droit, widget
+ DETACH 1.2 |   3    |    3       |    APACHE
+____________|________|____________|_________________________
+
+La zone FORGE est la racine de tout l'arbre de tache. Les sous taches créées sont du type ADMIN
