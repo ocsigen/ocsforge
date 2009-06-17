@@ -18,17 +18,6 @@
  *)
 
 
-let apply_on_opted f = function
-  | None   -> None
-  | Some v -> Some (f v)
-
-let interval_list ?(bump = 1) ~min ~max =
-  let rec aux accu current =
-    if current > max
-    then accu
-    else aux ( current::accu ) ( current + bump )
-  in aux [] min
-
 (* {2 Type conversion for database IO} *)
 
 (** {3 Semi-abstract type for a task, a right tag and a task history} *)
