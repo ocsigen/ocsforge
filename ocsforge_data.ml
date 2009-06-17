@@ -237,9 +237,9 @@ let move_task ~sp ~task ~parent ?area () =
            Ocsforge_sql.stamp_edition ~task_id:task ~author db >>= fun () ->
 
          (* move message *)
-           Ocsforge_sql.get_task_by_id ~db ~task_id:task () >>= fun tinfo ->
   (*FIXME*)Lwt.return ()
-  (*FIXME: Forum_data.move_message
+  (*FIXME: Ocsforge_sql.get_task_by_id ~db ~task_id:task () >>= fun tinfo ->
+           Forum_data.move_message
             ~sp ~message:(tinfo.Types.t_message) ~forum ~creator_id:author ()*)
          >>= fun _ ->
            Ocsforge_sql.set_area ~task_id:task ~area db >>= fun () ->
@@ -273,9 +273,9 @@ let detach_task ~sp ~task ?parent () =
         >>= fun _ -> (* the result can't be anything but [c] *)
 
        (* move message *)
-          Ocsforge_sql.get_task_by_id ~db ~task_id:task () >>= fun tinfo ->
- (*FIXME*)Lwt.return ()
- (*FIXME: Forum_data.move_message
+  (*FIXME*)Lwt.return ()
+  (*FIXME: Ocsforge_sql.get_task_by_id ~db ~task_id:task () >>= fun tinfo ->
+           Forum_data.move_message
             ~sp ~message:(tinfo.Types.t_message) ~forum ~creator_id:author ()*)
         >>= fun _ ->
 

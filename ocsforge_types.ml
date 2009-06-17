@@ -110,7 +110,7 @@ type raw_task_info =
      int32 * CalendarLib.Calendar.t * string *
      CalendarLib.Calendar.Period.t option * int32 option * int32 option
      * CalendarLib.Calendar.t option * string option * string *
-     int32 * int32)
+     int32)
 
 let get_task_info
       (id,  parent_id,
