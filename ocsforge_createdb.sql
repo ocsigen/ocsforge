@@ -54,8 +54,8 @@ CREATE TABLE ocsforge_tasks (
 
     area integer NOT NULL REFERENCES ocsforge_right_areas(id),
 
-    tree_min integer DEFAULT 1 NOT NULL,
-    tree_max integer DEFAULT 2 NOT NULL
+    tree_min integer DEFAULT 0 NOT NULL,
+    tree_max integer DEFAULT 1 NOT NULL
 );
 
 

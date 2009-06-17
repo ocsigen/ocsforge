@@ -79,6 +79,9 @@ type task_info = {
   t_kind             : string;
 
   t_area             : right_area;
+
+  t_tree_min         : int32;
+  t_tree_max         : int32;
 }
 
 
@@ -99,14 +102,14 @@ type raw_task_info =
      int32 * CalendarLib.Calendar.t * string *
      CalendarLib.Calendar.Period.t option * int32 option * int32 option
      * CalendarLib.Calendar.t option * string option * string *
-     int32)
+     int32 * int32 * int32)
 
 let get_task_info
       (id,  parent_id,
        message,
        edit_author, edit_time, edit_version,
        length,  progress,  importance,  deadline_time, deadline_version,  kind,
-       area)
+       area, tmin, tmax)
       = 
   {
     t_id     = task_of_sql id;
@@ -126,6 +129,9 @@ let get_task_info
     t_kind             = kind;
 
     t_area             = right_area_of_sql area;
+
+    t_tree_max         = tmin;
+    t_tree_min         = tmax;
   }
 
 

@@ -27,9 +27,40 @@ let (!!) = Lazy.force
 let ($) = User_sql.Types.apply_parameterized_group
 
 
+(** Local functions *)
+
+let infer_progress ~task =
+  Ocsforge_sql.get_tasks_by_parent ~parent:task ()
+  >>= (function
+    | [] -> failwith "Ocsforge_data.infer_progress can't infer on leaf"
+    | tasks  ->
+        begin
+          Lwt_util.map_serial
+            (fun {Types.t_progress = progress ;
+                  Types.t_tree_min = tmin ;
+                  Types.t_tree_max = tmax }
+              -> Lwt.return (progress, (Int32.sub tmax tmin)))
+            tasks                                     >>= fun tasks ->
+          Lwt_util.fold_left
+            (fun (total, curr, nones) (value,weight)
+              -> match value with
+                | None ->
+                    (Lwt.return (Int32.add total weight) >>= fun total ->
+                     Lwt.return (total, curr, Int32.succ nones))
+                | Some value ->
+                    (Lwt.return (Int32.add total weight) >>= fun total ->
+                     Lwt.return
+                       (Int32.add curr (Int32.mul value weight)) >>= fun curr ->
+                     Lwt.return (total, curr, nones)))
+            (Int32.zero, Int32.zero, Int32.zero) tasks
+        end)
+
+
+
+
 (** {2 Database access with verification of permissions} *)
 
-(** {2 Task and Area creation } *)
+(** {4 Task and Area creation } *)
 
 let new_task ~sp ~parent ~subject ~text
       ?length ?progress ?importance ?deadline_time ?deadline_version ?kind

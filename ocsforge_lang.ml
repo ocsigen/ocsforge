@@ -22,6 +22,11 @@ let apply_on_opted f = function
   | None   -> None
   | Some v -> Some (f v)
 
+let unopt ?default v =
+  match (v,default) with
+    | (Some x, _) -> x
+    | (_, Some x) -> x
+    | _           -> failwith "Can't unopt None"
 
 (* auto list generation *)
 

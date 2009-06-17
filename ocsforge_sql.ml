@@ -52,30 +52,30 @@ let new_task
     Sql.full_transaction_block
       (fun db ->
          PGSQL(db)
-           "SELECT tree_max
+           "SELECT tree_min, tree_max
             FROM ocsforge_tasks
             WHERE id = $parent_id"
        >>= (function
          | [] | _::_::_ -> failwith "Ocsforge_sql.new_task not one parent"
-         | [m] ->
+         | [(tmin,tmax)] ->
              PGSQL(db)
                "UPDATE ocsforge_tasks \
                 SET tree_min = tree_min + 2 \
-                WHERE tree_min >= $m" >>= fun () ->
+                WHERE tree_min >= $tmax" >>= fun () ->
              PGSQL(db)
                "UPDATE ocsforge_tasks \
                 SET tree_max = tree_max + 2 \
-                WHERE tree_max >= $m") >>= fun () ->
-         PGSQL(db)
-           "INSERT INTO ocsforge_tasks \
-             (parent, message, edit_author, edit_time, edit_version, \
-              length, progress, importance, \
-              deadline_time, deadline_version, kind, \
-              area)
-            VALUES ($parent_id, $message_id, $creator_id, $now, $version, \
-                    $?length, $?progress, $?importance, \
-                    $?deadline_time, $?deadline_version, $kind, \
-                    $area_id)"
+                WHERE tree_max >= $tmax" >>= fun () ->
+             PGSQL(db)
+               "INSERT INTO ocsforge_tasks \
+                 (parent, message, edit_author, edit_time, edit_version, \
+                  length, progress, importance, \
+                  deadline_time, deadline_version, kind, \
+                  area, tree_min, tree_max)
+                VALUES ($parent_id, $message_id, $creator_id, $now, $version, \
+                        $?length, $?progress, $?importance, \
+                        $?deadline_time, $?deadline_version, $kind, \
+                        $area_id, $tmin, $tmax)")
        >>= fun () -> Sql.PGOCaml.serial4 db "ocsforge_task_id_seq"
        >>= fun i -> Lwt.return (Types.task_of_sql i))
 
@@ -136,7 +136,7 @@ let get_task_by_id ?db ~task_id () =
                    edit_author, edit_time, edit_version, \
                    length, progress, importance, \
                    deadline_time, deadline_version, kind, \
-                   area \
+                   area, tree_min, tree_max \
             FROM ocsforge_tasks
             WHERE id = $task_id"
        >>= function
@@ -172,7 +172,7 @@ let get_tasks_by_parent ?db ~parent () =
               edit_author, edit_time, edit_version, \
               length, progress, importance, \
               deadline_time, deadline_version, kind, \
-              area
+              area, tree_min, tree_max
        FROM ocsforge_tasks
        WHERE parent = $parent"
       >>= fun r -> (Lwt_util.map_serial
@@ -190,7 +190,7 @@ let get_tasks_by_editor ?db ~editor () =
               edit_author, edit_time, edit_version, \
               length, progress, importance, \
               deadline_time, deadline_version, kind, \
-              area
+              area, tree_min, tree_max
        FROM ocsforge_tasks
        WHERE edit_author = $editor"
       >>=fun r -> (Lwt_util.map_serial
