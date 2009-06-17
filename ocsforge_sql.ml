@@ -204,9 +204,8 @@ let get_tasks_by_editor ?db ~editor () =
 
 (** {5 getters for area} *)
 
-let get_area_inheritance ~area_id () =
+let get_area_inheritance ~area_id =
   let id = Types.sql_of_right_area area_id in
-  Lwt_pool.use Sql.pool
     (fun db ->
        PGSQL(db)
          "SELECT inheritance
@@ -349,17 +348,24 @@ let set_kind ~task_id ~kind =
 let set_area ~task_id ~area =
   let task_id = Types.sql_of_task task_id in
   let area = Types.sql_of_right_area area in
-    Lwt_pool.use Sql.pool
       (fun db -> 
           PGSQL(db)
             "UPDATE ocsforge_tasks
              SET area = $area
              WHERE id = $task_id")
 
+let set_parent ~task_id ~parent =
+  let task_id = Types.sql_of_task task_id in
+  let parent = Types.sql_of_task parent in
+      (fun db -> 
+          PGSQL(db)
+            "UPDATE ocsforge_tasks
+             SET parent = $parent
+             WHERE id = $task_id")
+
 let set_area_inheritance ~area_id ~area_inheritance =
   let area_inh = Types.sql_of_right_area area_inheritance in
   let area_id = Types.sql_of_right_area area_id in
-    Lwt_pool.use Sql.pool
       (fun db -> 
           PGSQL(db)
             "UPDATE ocsforge_right_areas
@@ -385,11 +391,9 @@ let set_version ~area_id ~version () =
 (** {3 tree tamperer : change the atributtes of tasks in a whole (sub)tree } *)
 (*TODO*)
 
-let move_task ~task_id ~parent_id ~area_id =
+let change_tree_marks ~task_id ~parent_id =
   let task     = Types.sql_of_task task_id in
   let parent   = Types.sql_of_task parent_id in
-  let area     = Types.sql_of_right_area area_id in
-  Sql.full_transaction_block
     (fun db ->
        PGSQL(db)
        "SELECT tree_min, tree_max
@@ -418,10 +422,5 @@ let move_task ~task_id ~parent_id ~area_id =
            "UPDATE ocsforge_tasks
             SET tree_min = tree_min - $size, tree_max = tree_max - $size
             WHERE tree_min > $ma AND tree_max < $m"
-     >>= fun () ->
-         PGSQL(db)
-           "UPDATE ocsforge_tasks
-            SET parent = $parent, area = $area
-            WHERE id = $task"
     )
 
