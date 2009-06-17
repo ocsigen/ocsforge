@@ -24,57 +24,38 @@ module Roles = Ocsforge_roles
 module Types = Ocsforge_types
 module Data  = Ocsforge_data
 
-(*examples :
- *
-let select_example_result = register_new_service
-                              ~path:["select"]
-                              ~get_params:(string "s")
-                                       (fun sp g () ->
-                                          return
-                                            (html
-                                               (head (title (pcdata "")) [])
-                                               (body [p [pcdata "You selected: ";
-                                                         strong [pcdata g]]])))
 
-let create_select_form =
-  (fun select_name ->
-     [p [pcdata "Select something: ";
-         Eliom_predefmod.Xhtml.string_select ~name:select_name
-           (Eliom_predefmod.Xhtml.Option ([] (* attributes *),
-                                          "Bob" (* value *),
-                                          None (* Content, if different from value *),
-                                          false (* not selected *))) (* first line *)
-           [Eliom_predefmod.Xhtml.Option ([], "Marc", None, false);
-            (Eliom_predefmod.Xhtml.Optgroup
-               ([],
-                "Girls",
-                ([], "Karin", None, false),
-                [([a_disabled `Disabled], "Juliette", None, false);
-                 ([], "Alice", None, true);
-                 ([], "Germaine", Some (pcdata "Bob's mother"), false)]))]
-           ;
-         Eliom_predefmod.Xhtml.string_input ~input_type:`Submit ~value:"Send" ()]])
+class add_task_widget (add_task_service) =
+object (self)
 
-let select_example = register_new_service ["select"] unit
-                       (fun sp () () ->
-                          let f =
-                            Eliom_predefmod.Xhtml.get_form
-                              select_example_result sp create_select_form
-                          in
-                            return
-                              (html
-                                 (head (title (pcdata "")) [])
-                                 (body [f])))
- *)
+  val add_task_classe = "ocsforge_add_task_form"
 
+  method display ~sp ~parent ?(rows = 5) ?(cols = 50) () =
+    let draw_form (*args ?*) =
+      {{ 'Title :'
+         {:Eliom_duce.Xhtml.string_input ~input_type:{: "text" :}
+             ~name:(*TODO*) () :}
+         'Description :'
+         {:Eliom_duce.Xhtml.textarea ~name(*TODO*) ~rows ~cols () :}
+
+      }}
+    in
+      Eliom_duce.Xhtml.get_form
+        ~service:add_task_service
+        ~sp draw_form ()
+end
+
+
+
+(*
 class display_task_widget (*display (and propose edition for rightful users) a task*)
         (edit_task_service) =
 object (self)
 
-  (* val *_class = ??? *)
+  val task_class = "ocsforge_task_class"
 
   method display
-    ~sp ?task () =
+    ~sp ~task () =
     let rec draw_field_value ~title ~value ?alternatives ~string_of_value () =
       let title_ = title ^ " : " in
       match value with
@@ -136,22 +117,20 @@ object (self)
     Roles.get_user_task_rights ~sp ~task_id:task >>= fun role ->
     !!(role.Roles.task_reader)                   >>= b ->
     if not b then {{ 'Permission denied' }} else
-    !!(role.Roles.task_message_reader)           >>= fun msg_reader ->
+    !!(role.Roles.task_comment_reader)           >>= fun comment_reader ->
     !!(role.Roles.task_property_editor)          >>= fun prop_editor ->
       {{
         Forum_widget.display_message_widget#display_message
           ~sp ~message:info.Types.t_message
-        {: if msg_reader
-           then Forum_widget.display_message_widget#display_message
+        {: Forum_widget.display_message_widget#display_message
                   ~sp ~message:info.Types.t_comments
-           else {{ }}
         :}
         <p>[
           {: draw_rightfull_field
                ~right:prop_editor ~title:"kind" ~value:info.Types.t_kind
                ~alternatives:(
                  lazy (Ocsforge_sql.get_kinds_by_area
-                         ~area_id:info.Ocsforge_sql.Types.t_area
+                         ~area_id:info.Types.t_area
                          ()) )
                ~string_of_value:(fun k -> k) ()
           :}
@@ -168,11 +147,20 @@ object (self)
                  lazy (Types.interval_list ~bump:5 ~min:0 ~max:100))
                ~string_of_value:Int32.to_string ()
           :}
-          {: draw_rightfull_field
+(*          {: draw_rightfull_field
                ~right:prop_editor ~title:"deadline (time)"
                ~value:info.Types.t_deadline_time
                ~alternatives:(
                  (*TODO*))
                ~string_of_value:(*TODO*) ()
-          :}]
+          :}
+          {: draw_rightfull_field
+               ~right:prop_editor ~title:"deadline (version)"
+               ~value:info.Types.t_deadline_version
+               ~alternatives:(
+                 (*TODO*))
+               ~string_of_value:(*TODO*) ()
+          :}*)
+        ]
       }}
+ *)

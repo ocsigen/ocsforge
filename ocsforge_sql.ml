@@ -79,6 +79,7 @@ let new_task
        >>= fun () -> Sql.PGOCaml.serial4 db "ocsforge_task_id_seq"
        >>= fun i -> Lwt.return (Types.task_of_sql i))
 
+
 (** {5 make area} *)
 
 let new_area ?id ~forum ?(version = "0.0") () =
@@ -111,6 +112,17 @@ let new_area ?id ~forum ?(version = "0.0") () =
        )
      >>= fun i -> Lwt.return (Types.right_area_of_sql i))
 
+let next_right_area_id ~db =
+    PGSQL(db)
+      "SELECT NEXTVAL('ocsforge_right_areas_id_seq')"
+    >>= (function
+           | [] | _::_::_ ->
+              failwith "Ocsforge_data.new_task not one nextval"
+           | [ None ] ->
+               failwith "Ocsforge_data.new_task nextval returned None"
+           | [Some c] ->
+               Lwt.return (Types.right_area_of_sql (Int64.to_int32 c)))
+ 
 (** {3 getters : getting info } *)
 
 (** {5 getters for tasks} *)

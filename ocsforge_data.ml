@@ -34,7 +34,7 @@ let new_task ~sp ~parent ~subject ~text
       ?length ?progress ?importance ?deadline_time ?deadline_version ?kind
       ?area () =
   User.get_user_id ~sp >>= fun creator ->
-  let f db = match area with
+    match area with
 
     | Some None -> (* detach into a new zone *)
         Ocsforge_sql.get_area_for_task ~task_id:parent () >>= fun parent_area ->
@@ -42,47 +42,44 @@ let new_task ~sp ~parent ~subject ~text
         !!(role.Roles.subarea_creator) >>= fun b ->
         if b
         then
-          begin
-            (*get area code*)
-            PGSQL(db)
-             "SELECT NEXTVAL('ocsforge_right_areas_id_seq')"
-            >>= (function
-                   | [] | _::_::_ ->
-                       failwith "Ocsforge_data.new_task not one nextval"
-                   | [ None ] ->
-                       failwith "Ocsforge_data.new_task nextval returned None"
-                   | [Some c] -> Lwt.return (Types.right_area_of_sql (Int64.to_int32 c)))
-            >>= fun c ->
+          Sql.full_transaction_block
+          (fun db ->
+           begin
 
-            (* create forum *)
-            Forum.create_forum
+(*get area code*)
+             Ocsforge_sql.next_right_area_id ~db
+          >>= fun c ->
+
+(* create forum *)
+            Forum.create_forum (*TODO: use Forum_data.new_forum ? *)
               ~wiki_model:Ocsisite.wikicreole_model (*TODO : give the real wiki model*)
-              ~title:("Ocsforge area"
-                      ^(Types.string_of_right_area c)
-                      ^" forum")
+              ~title:("Ocsforge area"^(Types.string_of_right_area c)^" forum")
               ~descr:("Messages about tasks in the area"
-                      ^(Types.string_of_right_area c))
+                      ^ (Types.string_of_right_area c))
               ()
-            >>= fun finfo ->
-            FTypes.sql_of_forum finfo.FTypes.f_id ()
-            >>= fun forum ->
 
-            (* create area *)
+          >>= fun finfo ->
+            FTypes.sql_of_forum finfo.FTypes.f_id ()
+          >>= fun forum ->
+
+(* create area *)
             Ocsforge_sql.new_area
               ~id:c ~forum ()
-            >>= fun area ->
+          >>= fun area ->
 
-            (* create message *)
+(* create message *)
             Forum_data.new_message
-             ~sp ~forum ~creator_id:creator ~subject ~text ()
-            >>= fun message ->
+              ~sp ~forum ~creator_id:creator ~subject ~text ()
+          >>= fun message ->
 
-            (* create task *)
+(* create task *)
             Ocsforge_sql.new_task ~parent ~message ~creator ~version:"0.0"
-              ?length ?progress ?importance ?deadline_time ?deadline_version ?kind
+              ?length ?progress ?importance
+              ?deadline_time ?deadline_version ?kind
               ~area:c ()
-          end
-        else Lwt.fail Ocsimore_common.Permission_denied
+          end)
+
+       else Lwt.fail Ocsimore_common.Permission_denied
 
     | None -> (* do not detach *)
         get_area_for_task ~task_id:parent () >>= fun area_parent ->
@@ -91,14 +88,16 @@ let new_task ~sp ~parent ~subject ~text
         !!(role.Roles.task_creator) >>= fun b ->
         if b
         then
-          Ocsforge_sql.get_area_by_id ~db ~area_id:area_inh >>= fun ainfo ->
-          ainfo.Types.r_version >>= fun version ->
-          ainfo.Types.r_forum   >>= fun forum ->
-          Forum_data.new_message ~sp ~forum ~creator_id:creator ~subject ~text ()
-          >>= fun message ->
-          Ocsforge_sql.new_task ~parent ~message ~creator ~version
-            ?length ?progress ?importance ?deadline_time ?deadline_version ?kind
-            ~area ()
+          Sql.full_transaction_block
+          (fun db ->
+            Ocsforge_sql.get_area_by_id ~db ~area_id:area_inh >>= fun ainfo ->
+            ainfo.Types.r_version >>= fun version ->
+            ainfo.Types.r_forum   >>= fun forum ->
+            Forum_data.new_message ~sp ~forum ~creator_id:creator ~subject ~text ()
+            >>= fun message ->
+            Ocsforge_sql.new_task ~parent ~message ~creator ~version
+              ?length ?progress ?importance ?deadline_time ?deadline_version ?kind
+              ~area ())
         else Lwt.fail Ocsimore_common.Permission_denied
 
     | Some Some area -> (* detach into a already existing zone *)
@@ -106,16 +105,17 @@ let new_task ~sp ~parent ~subject ~text
          !!(role.Roles.task_creator) >>= fun b ->
          if b
          then
-          Ocsforge_sql.get_area_by_id ~db ~area_id:area_inh >>= fun ainfo ->
-          ainfo.Types.r_version >>= fun version ->
-          ainfo.Types.r_forum   >>= fun forum ->
-          Forum_data.new_message ~sp ~forum ~creator_id:creator ~subject ~text ()
-          >>= fun message ->
-          Ocsforge_sql.new_task ~parent ~message ~creator ~version
-            ?length ?progress ?importance ?deadline_time ?deadline_version ?kind
-            ~area ()
+          Sql.full_transaction_block
+          (fun db ->
+            Ocsforge_sql.get_area_by_id ~db ~area_id:area_inh >>= fun ainfo ->
+            ainfo.Types.r_version >>= fun version ->
+            ainfo.Types.r_forum   >>= fun forum ->
+            Forum_data.new_message ~sp ~forum ~creator_id:creator ~subject ~text ()
+            >>= fun message ->
+            Ocsforge_sql.new_task ~parent ~message ~creator ~version
+              ?length ?progress ?importance ?deadline_time ?deadline_version ?kind
+              ~area ())
         else Lwt.fail Ocsimore_common.Permission_denied
-  in Sql.full_transaction_block f
 
 let get_task ~sp ~task =
   Ocsforge_sql.get_area ~task () >>= fun area ->
