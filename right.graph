@@ -23,12 +23,16 @@
                                                            \  \     /
                                                            task_reader
 
-task_admin : possède tout les droits sur la tache
-task_comment_* : peut * les commentaires sur la tache (EQUIV : forum_commeter_*)
-task_editor : peut editer tout les champs de la tache
+/!\ Mises à jour à faire :
+     task_creator -> task_msg_editor_if_author (et non plus <-) (change pas mal de chose)
+     task_property_editor -> task_comment_reader
+
+
+task_admin : possède tout les droits sur les taches
+task_comment_* : peut * les commentaires sur les taches (EQUIV : forum_commeter_*)
+task_editor : peut editer tout les champs des taches
 task_message_editor : peut éditer le message de la tache (EQUIV : forum_message_editor)
-task_*_editor : peut éditer le champ * de la tache
-task_reader : peut lire la tache
+task_reader : peut voir les champs des taches
 
 
 

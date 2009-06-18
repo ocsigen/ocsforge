@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 
-
+(*Working with options*)
 let apply_on_opted f = function
   | None   -> None
   | Some v -> Some (f v)
@@ -28,8 +28,9 @@ let unopt ?default v =
     | (_, Some x) -> x
     | _           -> failwith "Can't unopt None"
 
-(* auto list generation *)
 
+
+(* auto list generation *)
 let interval_list ?(comp = compare) ~bump ~min ~max () =
   let rec aux accu curr =
     if compare curr max > 0
@@ -54,6 +55,8 @@ let period_interval_list ?(bump = CalendarLib.Calendar.Period.lmake ~hour:1 ())
     ~bump:(CalendarLib.Calendar.Period.add bump)
     ~min ~max ()
 
+
+(*rougthly print period values*)
 let string_of_period p =
   let h = int_of_float
             (CalendarLib.Time.Period.to_hours

@@ -140,6 +140,8 @@ val detach_task :
   * sp
   * area : the area identifier
   * kinds : a list of string that will be added/deleted/set
+  * in del_kinds kinds contain optional alternative values for deleted kinds. It
+  * is useful to avoid letting tasks with old kinds.
   * *)
 val add_kinds :
   sp:Eliom_sessions.server_params ->
@@ -149,10 +151,28 @@ val add_kinds :
 val del_kinds :
   sp:Eliom_sessions.server_params ->
   area:Ocsforge_types.right_area ->
-  kinds:string list -> unit Lwt.t
+  kinds:(string * string option) list -> unit Lwt.t
 
 val set_kinds :
   sp:Eliom_sessions.server_params ->
   area:Ocsforge_types.right_area ->
   kinds:string list -> unit Lwt.t
+
+val swap_kinds :
+  sp:Eliom_sessions.server_params ->
+  area:Ocsforge_types.right_area ->
+  kinds:(string * string) list -> unit Lwt.t
+
+
+
+
+
+
+
+
+
+
+
+
+
 

@@ -467,3 +467,12 @@ let set_kinds ~sp ~area ~kinds =
     Sql.full_transaction_block
       (fun db -> Ocsforge_sql.set_kinds_for_area ~area_id:area ~kinds db)
   else Lwt.fail Ocsimore_common.Permission_denied
+
+let swap_kinds ~sp ~area ~kinds =
+  Roles.get_area_role ~sp area >>= fun role ->
+  !!(role.Roles.kinds_setter)  >>= fun b ->
+  if b
+  then
+    Sql.full_transaction_block
+      (fun db -> Ocsforge_sql.swap_kinds_for_area ~area_id:area ~kinds db)
+  else Lwt.fail Ocsimore_common.Permission_denied

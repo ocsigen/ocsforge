@@ -439,7 +439,15 @@ let add_kinds_for_area ~area_id ~kinds =
 let del_kinds_for_area ~area_id ~kinds =
   let area = Types.sql_of_right_area area_id in
   (fun db ->
-     let f k =
+     let f (k,alt) =
+       (match alt with
+         | None -> Lwt.return ()
+         | Some a ->
+             PGSQL(db)
+               "UPDATE ocsforge_tasks
+                SET kind = $a
+                WHERE kind = $k AND area = $area")
+         >>= fun () ->
        PGSQL(db)
          "DELETE FROM ocsforge_task_kinds
           WHERE kind = $k AND right_area = $area"
@@ -453,3 +461,13 @@ let set_kinds_for_area ~area_id ~kinds =
        "DELETE FROM ocsforge_task_kinds
         WHERE right_area = $area" >>= fun () ->
      add_kinds_for_area ~area_id ~kinds db)
+
+let swap_kinds_for_area ~area_id ~kinds =
+  let area = Types.sql_of_right_area area_id in
+  (fun db ->
+     let f (old,nu) =
+       PGSQL(db)
+         "UPDATE ocsforge_tasks
+          SET kind = $nu
+          WHERE kind = $old AND area = $area"
+     in Lwt_util.iter_serial f kinds)
