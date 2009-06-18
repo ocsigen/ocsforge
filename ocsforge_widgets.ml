@@ -24,6 +24,47 @@ module Roles = Ocsforge_roles
 module Types = Ocsforge_types
 module Data  = Ocsforge_data
 
+let draw_opt_field ~title ~name ~value ?alternatives ~string_of_t () =
+  match (value,alternatives) with
+    | (None, None) ->
+        {{ {: title :} ' : none' }}
+    | (Some v, None) ->
+        {{ {: title :} ' : ' {: string_of_t v :} }}
+    | (None, Some l) ->
+        {{ {: title :} ' : '
+           {:Eliom_duce.Xhtml.user_type_select ~name
+              (Eliom_duce.Xhtml.Option ([], None, None, true)) 
+              (List.map (fun a -> ([], Some a, None, false)) l)
+              (function
+                 | None -> "None"
+                 | Some v -> "\"" ^ (string_of_t v) ^ "\""):}
+        }}
+    | (Some v, Some l) ->
+        {{ {: title :} ' : '
+           {:Eliom_duce.Xhtml.user_type_select ~name
+              (Eliom_duce.Xhtml.Option ([], Some v, None, true))
+              ( (List.map (fun a -> ([], Some a, None, false)) l)
+               @([], None, None, false))
+              (function
+                 | None -> "None"
+                 | Some v -> "\"" ^ (string_of_t v) ^ "\"")
+           :}
+        }}
+let draw_field ~title ?name ~value ?alternatives ~string_of_t () =
+  match (value,alternatives) with
+    | (v, None) ->
+        {{ {: title :} ' : ' {: string_of_t v :} }}
+    | (v, Some l) ->
+        {{ {: title :} ' : '
+           {:Eliom_duce.Xhtml.user_type_select ~name
+              (Eliom_duce.Xhtml.Option ([], v, None, true))
+              (List.map (fun a -> ([], a, None, false)) l)
+              string_of_t
+           :}
+        }}
+
+
+
 
 class add_task_widget (add_task_service) =
 object (self)
@@ -31,134 +72,174 @@ object (self)
   val add_task_classe = "ocsforge_add_task_form"
 
   method display ~sp ~parent ?(rows = 5) ?(cols = 50) () =
-    let draw_form (*args ?*) =
-      {{ 'Title :'
-         {:Eliom_duce.Xhtml.string_input ~input_type:{: "text" :}
-             ~name:(*TODO*) () :}
-         'Description :'
-         {:Eliom_duce.Xhtml.textarea ~name(*TODO*) ~rows ~cols () :}
+    Ocsforge_sql.get_area_for_task ~task_id:task >>= fun a_info ->
+    Roles.get_area_role ~sp a_info.Types.r_id    >>= fun role ->
+    !!(role.Roles.task_creator)                  >>= fun right ->
+    if right
+    then
+      let draw_form (progress_name,
+                     (importance_name,
+                      (kind_name,
+                       (deadline_t_name,
+                        (deadline_v_name,
+                         (length_name,
+                          detach_name     )))))) =
+        {{ (*TODO: show the message and comment depending on user rights*)
+          (*'Title :'
+           {:Eliom_duce.Xhtml.string_input ~input_type:{: "text" :}
+               ~name:(*TODO*) () :}
+           'Description :'
+           {:Eliom_duce.Xhtml.textarea ~name:(*TODO*) ~rows ~cols () :}*)
+        <p>[
+          {: draw_opt_field
+               ~title:"kind" ~name:kind_name ~value:None
+               ~alternatives:(Ocsforge_sql.get_kinds_by_area
+                               ~area_id:info.Types.t_area ())
+               ~string_of_t:(fun k -> k) ()
+          :}
+          {: draw_opt_field
+               ~title:"progress" ~name:progress_name ~value:None
+               ~alternatives:(Ocsforge_lang.int_interval_list
+                                ~bump:5 ~min:0 ~max:100)
+               ~string_of_t:Int32.to_string ()
+          :}
+          {: draw_opt_field
+               ~title:"importance" ~name:importance_name ~value:None
+               ~alternatives:(Ocsforge_lang.int_interval_list
+                                ~bump:5 ~min:0 ~max:100)
+               ~string_of_t:Int32.to_string ()
+          :}
+          {: draw_opt_field
+               ~title:"deadline (time)" ~name:deadline_t_name ~value:None
+               ~alternatives:(
+                  (Ocsforge_lang.date_interval_list ~min:1 ~max:7)
+                 @(Ocsforge_lang.date_interval_list
+                    ~bump:(CalendarLib.Calendar.Period.lmake ~day:7 ())
+                    ~min:1 ~max:(7 * 4)))
+               ~string_of_t:CalendarLib.Printer.Calendar.to_string ()
+          :}
+          {: {{ {: "deadline (version) : " :}
+                (Eliom_duce.Xhtml.string_input
+                   ~name:deadline_v_name
+                   ~input_type:{: "text" :}
+                   ~value:info.Types.t_deadline_version
+                   () )
+             }}
+          :}
+          {: draw_opt_field
+               ~title:"length" ~name:length_name ~value:None
+               ~alternatives:(
+                   (Ocsforge_lang.period_interval_list ~min:1 ~max:6)
+                  @(Ocsforge_lang.period_interval_list
+                      ~bump:(CalendarLib.Calendar.Period.lmake ~hour:12 ())
+                      ~min:12 ~max:24)
+                  @(Ocsforge_lang.period_interval_list
+                      ~bump:(CalendarLib.Calendar.Period.lmake ~hour:24 ())
+                      ~min:48 ~max:96))
+               ~string_of_t:Ocsforge_lang.string_of_period ()
+          :}
+        ]
+ 
+        }}
+      in
+        Eliom_duce.Xhtml.get_form
+          ~service:add_task_service
+          ~sp draw_form ()
 
-      }}
-    in
-      Eliom_duce.Xhtml.get_form
-        ~service:add_task_service
-        ~sp draw_form ()
+    else {{ 'Permission denied' }}
 end
 
 
 
-class display_task_widget (*display (and propose edition for rightful users) a task*)
-        (edit_task_service) =
+class display_task_for_editing_widget
+  (*display (and propose edition for granted users) a task*)
+  (edit_task_service) =
 object (self)
 
   val task_class = "ocsforge_task_class"
 
   method display
     ~sp ~task () =
-    let rec draw_field_value ~title ~value ?alternatives ~string_of_value () =
-      let title_ = title ^ " : " in
-      match value with
-        | None ->
-            begin
-              match alternatives with
-                | None | Some [] -> {{ }}
-                | Some [alt] ->
-                    {{
-                       title_
-                         {: Eliom_duce.Xhtml.user_type_select ~name:(*??*)
-                         (Eliom_duce.Xhtml.Option ([], alt, None, false)) 
-                         []
-                         string_of_value :}
-                    }}
-                | Some alt_hd::alt_tl ->
-                    {{
-                      title_
-                         {: Eliom_duce.Xhtml.user_type_select ~name:(*??*)
-                         (Eliom_duce.Xhtml.Option ([], alt_hd, None, false)) 
-                         (List.map (fun a -> ([],a,None,false)) alt_tl)
-                         string_of_value :}
-                    }}
-            end
-        | Some value ->
-            begin
-              match alternatives with
-                | None | Some [] -> {{ title_ value }}
-                | Some [alt] ->
-                    {{ title_
-                         {: Eliom_duce.Xhtml.user_type_select ~name:(*??*)
-                         (Eliom_duce.Xhtml.Option ([], value, None, true)) 
-                         [(Eliom_duce.Xhtml.Optgroup
-                             ([], "Alternative",
-                              ([], a, None, false), []))]
-                         string_of_value :}
-                    }}
-                | Some alt_hd::alt_tl ->
-                    {{ title_
-                         {: Eliom_duce.Xhtml.user_type_select ~name:(*??*)
-                         (Eliom_duce.Xhtml.Option ([], value, None, true))
-                         [(Eliom_duce.Xhtml.Optgroup
-                             ([], "Alternatives",
-                              ([], alt_hd, None, false),
-                              (List.map (fun a -> ([],a,None,false)) alt_tl)))]
-                         string_of_value :}
-                    }}
-            end
-    in
-    let draw_rightfull_field ~right ~title ~value ~alternatives ~string_of_value
-          () =
-      if right
-      then draw_field_value
-             ~title ~value ~alternatives:(!!alternatives) ~string_of_value ()
-      else draw_field_value
-             ~title ~value ~string_of_value ()
-    in
-    Ocsforge_sql.get_task_by_id ~task_id:task    >>= fun info ->
-    Roles.get_user_task_rights ~sp ~task_id:task >>= fun role ->
-    !!(role.Roles.task_reader)                   >>= b ->
-    if not b then {{ 'Permission denied' }} else
-    !!(role.Roles.task_comment_reader)           >>= fun comment_reader ->
+    Ocsforge_sql.get_area_for_task ~task_id:task >>= fun a_info ->
+    Roles.get_area_role ~sp a_info.Types.r_id    >>= fun role ->
     !!(role.Roles.task_property_editor)          >>= fun prop_editor ->
+    if not b then {{ 'Permission denied' }} else
+      let draw_form (id_name,
+                     (progress_name,
+                      (importance_name,
+                       (kind_name,
+                        (deadline_t_name,
+                         (deadline_v_name,
+                          (length_name,
+                           detach_name     ))))))) =
       {{
-        Forum_widget.display_message_widget#display_message
+        (*TODO:display message (and comments for granted user)*)
+        (*Forum_widget.display_message_widget#display_message (*FIXME: need new*)
           ~sp ~message:info.Types.t_message
-        {: Forum_widget.display_message_widget#display_message
+        {:if comment_reader
+          then Forum_widget.display_message_widget#display_message
                   ~sp ~message:info.Types.t_comments
+         else ''*)
         :}
         <p>[
-          {: draw_rightfull_field
-               ~right:prop_editor ~title:"kind" ~value:info.Types.t_kind
-               ~alternatives:(
-                 lazy (Ocsforge_sql.get_kinds_by_area
-                         ~area_id:info.Types.t_area
-                         ()) )
-               ~string_of_value:(fun k -> k) ()
+          {: draw_opt_field
+               ~title:"kind" ~name:kind_name ~value:info.Types.t_kind
+               ~alternatives:(Ocsforge_sql.get_kinds_by_area
+                                ~area_id:info.Types.t_area ())
+               ~string_of_t:(fun k -> k) ()
           :}
-          {: draw_rightfull_field
-               ~right:prop_editor ~title:"progress" ~value:info.Types.t_progress
-               ~alternatives:(
-                 lazy (Types.interval_list ~bump:5 ~min:0 ~max:100))
-               ~string_of_value:Int32.to_string ()
+          {: draw_opt_field
+               ~title:"progress" ~name:progress_name
+               ~value:info.Types.t_progress
+               ~alternatives:(Ocsforge_lang.int_interval_list
+                                ~bump:5 ~min:0 ~max:100)
+               ~string_of_t:Int32.to_string ()
           :}
-          {: draw_rightfull_field
-               ~right:prop_editor ~title:"importance"
+          {: draw_opt_field
+               ~title:"importance" ~name:importance_name
                ~value:info.Types.t_importance
                ~alternatives:(
-                 lazy (Types.interval_list ~bump:5 ~min:0 ~max:100))
-               ~string_of_value:Int32.to_string ()
+                 lazy (Ocsforge_lang.int_interval_list ~bump:5 ~min:0 ~max:100))
+               ~string_of_t:Int32.to_string ()
           :}
-(*          {: draw_rightfull_field
-               ~right:prop_editor ~title:"deadline (time)"
+          {: draw_opt_field
+               ~title:"deadline (time)" ~name:deadline_t_name
                ~value:info.Types.t_deadline_time
-               ~alternatives:(
-                 (*TODO*))
-               ~string_of_value:(*TODO*) ()
+               ~alternatives:((Ocsforge_lang.date_interval_list ~min:1 ~max:7)
+                             @(Ocsforge_lang.date_interval_list
+                                ~bump:(CalendarLib.Calendar.Period.lmake
+                                         ~day:7 ())
+                                ~min:1 ~max:(7 * 4)))
+               ~string_of_t:CalendarLib.Printer.Calendar.to_string ()
           :}
-          {: draw_rightfull_field
-               ~right:prop_editor ~title:"deadline (version)"
-               ~value:info.Types.t_deadline_version
-               ~alternatives:(
-                 (*TODO*))
-               ~string_of_value:(*TODO*) ()
-          :}*)
+          {: {{ {: "deadline (version) : " :}
+                (Eliom_duce.Xhtml.string_input
+                   ~input_type:{: "text" :}
+                   ~value:info.Types.t_deadline_version)
+                   ~name:deadline_v_name
+             }}
+          :}
+          {: draw_opt_field
+               ~title:"length" ~name:length_name
+               ~value:info.Types.length
+               ~alternatives:(lazy (
+                 ( (Ocsforge_lang.period_interval_list ~min:1 ~max:6)
+                  @(Ocsforge_lang.period_interval_list
+                      ~bump:(CalendarLib.Calendar.Period.lmake ~hour:12 ())
+                      ~min:12 ~max:24)
+                  @(Ocsforge_lang.period_interval_list
+                      ~bump:(CalendarLib.Calendar.Period.lmake ~hour:24 ())
+                      ~min:48 ~max:96))))
+               ~string_of_t:(Ocsforge_lang.string_of_period) ()
+          :}
+          {: {{ {: "Detach : " :}
+                Eliom_duce.Xhtml.bool_checkbox ~name:detach_name ()
+             }}
+          :}
         ]
       }}
+      in Eliom_duce.Xhtml.get_form
+           ~service:edit_task
+           ~sp draw_form ()
+
+end

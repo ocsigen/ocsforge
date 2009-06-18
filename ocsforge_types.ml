@@ -89,6 +89,8 @@ type task_info = {
 let task_of_sql (u : int32) = (Opaque.int32_t u : task)
 let sql_of_task (u : task) = Opaque.t_int32 u
 
+let task_of_int (u : int) : task = Opaque.int32_t (Int32.of_int u)
+
 let task_of_sql_option (u : int32 option) = 
   (Opaque.int32_t_option u : task option)
 let sql_of_task_option (u : task option) = Opaque.t_int32_option u

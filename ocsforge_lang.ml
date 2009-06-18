@@ -54,4 +54,14 @@ let period_interval_list ?(bump = CalendarLib.Calendar.Period.lmake ~hour:1 ())
     ~bump:(CalendarLib.Calendar.Period.add bump)
     ~min ~max ()
 
-
+let string_of_period p =
+  let h = int_of_float
+            (CalendarLib.Time.Period.to_hours
+               (CalendarLib.Calendar.Period.to_time p))
+  in
+  if h > 24
+  then
+    let d = CalendarLib.Date.Period.nb_days
+              (CalendarLib.Calendar.Period.to_date p)
+    in Printf.sprintf "%i days and %i hours" d (h mod 24)
+  else Printf.sprintf "%i hours" h

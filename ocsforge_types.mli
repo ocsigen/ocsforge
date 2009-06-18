@@ -83,6 +83,8 @@ val task_of_sql_option : int32 option -> task option
 val sql_of_task_option : task option -> int32 option
 val string_of_task : task -> string
 val task_of_string : string -> task
+val task_of_int : int -> task
+
 
 (* NOT TO BE USED BUT IN ocsforge_sql *)
 type raw_task_info =
