@@ -32,11 +32,17 @@ let ($) = User_sql.Types.apply_parameterized_group
 (**[infer_progress ~task] evaluates as [(m,n)] where :
   * [n] is the number of subtasks with progress unset (being [None])
   * [m] is the mean of subtasks' progress (when not being [None])*)
-let infer_progress ~task =
-  Ocsforge_sql.get_tasks_by_parent ~parent:task ()
-  >>= (function
-    | [] -> failwith "Ocsforge_data.infer_progress can't infer on leaf"
-    | tasks  ->
+let infer_progress ~sp ~task =
+  Ocsforge_sql.get_area_for_task~task_id:task () >>= fun area ->
+  Roles.get_area_role sp area >>= fun role ->
+  !!(role.Roles.subarea_creator) >>= fun b ->
+  if b
+  then
+    begin
+      Ocsforge_sql.get_tasks_by_parent ~parent:task ()
+      >>= (function
+        | [] -> failwith "Ocsforge_data.infer_progress can't infer on leaf"
+        | tasks  ->
         begin
           Lwt_util.map_serial
             (fun {Types.t_progress = progress ;
@@ -56,13 +62,14 @@ let infer_progress ~task =
                      Lwt.return (total, curr, nones)))
             (Int32.zero, Int32.zero, Int32.zero) tasks
         end)
-    >>= fun (t,c,n) -> 
-      Lwt.catch
-      (fun () -> Lwt.return ((Int32.div c t),n))
-      (function
-         | Division_by_zero -> Lwt.return (Int32.zero,n)
-         | exc -> Lwt.fail exc)
-
+        >>= fun (t,c,n) -> 
+          Lwt.catch
+            (fun () -> Lwt.return ((Int32.div c t),n))
+            (function
+               | Division_by_zero -> Lwt.return (Int32.zero,n)
+               | exc -> Lwt.fail exc)
+    end
+  else Lwt.fail Ocsimore_common.Permission_denied
 
 
 

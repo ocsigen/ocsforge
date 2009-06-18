@@ -243,3 +243,9 @@ object (self)
            ~sp draw_form ()
 
 end
+
+class view_task = object end
+class view_tasks = object end
+class view_tree = object end
+class edit_area = object end
+class view_task_history = object end
