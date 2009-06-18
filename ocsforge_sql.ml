@@ -385,8 +385,6 @@ let set_version ~area_id ~version () =
             SET version = $version
             WHERE id = $area")
 
-(* let set_kinds ~area_id ~kinds () = () TODO : problem with insertion of multiple values in the same statement*)
-
 
 (** {3 tree tamperer : change the atributtes of tasks in a whole (sub)tree } *)
 (*TODO*)
@@ -424,3 +422,34 @@ let change_tree_marks ~task_id ~parent_id =
             WHERE tree_min > $ma AND tree_max < $m"
     )
 
+
+(** {3 Managing Kinds} *)
+
+let add_kinds_for_area ~area_id ~kinds =
+  let area = Types.sql_of_right_area area_id in
+  (fun db ->
+     let f k =
+       PGSQL(db)
+         "INSERT INTO ocsforge_task_kinds (right_area, kind) 
+          VALUES ($area, $k)"
+     in Lwt_util.iter_serial f kinds)
+
+
+
+let del_kinds_for_area ~area_id ~kinds =
+  let area = Types.sql_of_right_area area_id in
+  (fun db ->
+     let f k =
+       PGSQL(db)
+         "DELETE FROM ocsforge_task_kinds
+          WHERE kind = $k AND right_area = $area"
+     in Lwt_util.iter_serial f kinds)
+
+
+let set_kinds_for_area ~area_id ~kinds =
+  let area = Types.sql_of_right_area area_id in
+  (fun db ->
+     PGSQL(db)
+       "DELETE FROM ocsforge_task_kinds
+        WHERE right_area = $area" >>= fun () ->
+     add_kinds_for_area ~area_id ~kinds db)

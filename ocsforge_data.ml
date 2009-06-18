@@ -438,3 +438,32 @@ let detach_task ~sp ~task ?parent () =
               ]
     ))
 
+
+(** Tampering with kinds *)
+
+let add_kinds ~sp ~area ~kinds =
+  Roles.get_area_role ~sp area >>= fun role ->
+  !!(role.Roles.kinds_setter)  >>= fun b ->
+  if b
+  then
+    Sql.full_transaction_block
+      (fun db -> Ocsforge_sql.add_kinds_for_area ~area_id:area ~kinds db)
+  else Lwt.fail Ocsimore_common.Permission_denied
+
+let del_kinds ~sp ~area ~kinds =
+  Roles.get_area_role ~sp area >>= fun role ->
+  !!(role.Roles.kinds_setter)  >>= fun b ->
+  if b
+  then
+    Sql.full_transaction_block
+      (fun db -> Ocsforge_sql.del_kinds_for_area ~area_id:area ~kinds db)
+  else Lwt.fail Ocsimore_common.Permission_denied
+
+let set_kinds ~sp ~area ~kinds =
+  Roles.get_area_role ~sp area >>= fun role ->
+  !!(role.Roles.kinds_setter)  >>= fun b ->
+  if b
+  then
+    Sql.full_transaction_block
+      (fun db -> Ocsforge_sql.set_kinds_for_area ~area_id:area ~kinds db)
+  else Lwt.fail Ocsimore_common.Permission_denied

@@ -140,10 +140,20 @@ val change_tree_marks :
   parent_id:Ocsforge_types.task -> Sql.db_t -> unit Lwt.t
 
 
+val add_kinds_for_area :
+  area_id:Ocsforge_types.right_area ->
+  kinds:string list ->
+  Sql.db_t -> unit Lwt.t
 
+val del_kinds_for_area :
+  area_id:Ocsforge_types.right_area ->
+  kinds:string list ->
+  Sql.db_t -> unit Lwt.t
 
-
-
+val set_kinds_for_area :
+  area_id:Ocsforge_types.right_area ->
+  kinds:string list ->
+  Sql.db_t -> unit Lwt.t
 
 
 

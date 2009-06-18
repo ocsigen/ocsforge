@@ -47,7 +47,6 @@ end
 
 
 
-(*
 class display_task_widget (*display (and propose edition for rightful users) a task*)
         (edit_task_service) =
 object (self)
@@ -163,4 +162,3 @@ object (self)
           :}*)
         ]
       }}
- *)

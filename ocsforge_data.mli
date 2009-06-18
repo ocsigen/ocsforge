@@ -132,3 +132,27 @@ val detach_task :
   ?parent:Ocsforge_types.task ->
   unit -> unit Lwt.t
 
+
+
+(** Adding, Deleting or Setting (aka wiping-out-then-adding) kinds.
+  *
+  * Parameters are :
+  * sp
+  * area : the area identifier
+  * kinds : a list of string that will be added/deleted/set
+  * *)
+val add_kinds :
+  sp:Eliom_sessions.server_params ->
+  area:Ocsforge_types.right_area ->
+  kinds:string list -> unit Lwt.t
+
+val del_kinds :
+  sp:Eliom_sessions.server_params ->
+  area:Ocsforge_types.right_area ->
+  kinds:string list -> unit Lwt.t
+
+val set_kinds :
+  sp:Eliom_sessions.server_params ->
+  area:Ocsforge_types.right_area ->
+  kinds:string list -> unit Lwt.t
+
