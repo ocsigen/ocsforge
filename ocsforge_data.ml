@@ -17,10 +17,18 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 
+(* TODO :
+ * use the real forum wiki_model
+ * adapt forum rights (non generic inclusions)*)
+
+
+
+
 module Roles = Ocsforge_roles
 module Types = Ocsforge_types
 (*Can't compile without*)open Sql
 module FTypes = Forum_sql.Types
+module FRoles = Forum
 
 let (>>=) = Lwt.bind
 let (!!) = Lazy.force
@@ -107,11 +115,37 @@ let new_task ~sp ~parent ~subject ~text
 
           >>= fun finfo ->
           let forum = finfo.FTypes.f_id in
+          let mwiki = finfo.FTypes.f_messages_wiki in
+          let cwiki = finfo.Ftypes.f_comments_wiki in
 
           (* create area *)
             Ocsforge_sql.new_area
               ~id:c ~forum ()
           >>= fun _ -> (* the result can't be anything but [c] *)
+
+(* link rights on area and rights on forum... Needs modifications on forum.ml
+         Lwt_util.iter_serial
+           (fun (ar,fr) -> User.add_to_group ~user:(ar $ c) ~group:(fr $ cwiki))
+           [(task_comment_sticky_setter, FRoles.message_sticky_makers);
+            (task_comment_reader, FRoles.message_readers);
+            (task_comment_moderator, FRoles.message_moderators);
+            (task_comment_deletor, FRoles.message_deletors);
+            (task_comment_writer, FRoles.message_creator);
+            (task_comment_writer_not_moderated, FRoles.message_creators_notmod);
+           ] 
+         >>= fun () ->
+         Lwt_util.iter_serial
+           (fun (ar,fr) -> User.add_to_group ~user:(ar $ c) ~group:(fr $ mwiki))
+           [(task_message_editor_if_author, FRoles.message_editor_if_creator);
+            (task_message_editor, FRoles.message_editors);
+            (task_creator, FRoles.message_creators);
+           ]
+         >>= fun () ->
+
+         User.add_to_group ~user:(task_admin $ c) ~group:(forum_admin $ forum)
+         >>= fun () ->
+
+*)
 
           (* create message *)
             Forum_data.new_message
@@ -129,7 +163,7 @@ let new_task ~sp ~parent ~subject ~text
             Ocsforge_sql.get_area_inheritance ~area_id:c db
           >>= fun inh ->
             Lwt_util.iter_serial
-              (fun a -> User_sql.add_to_group ~user:(a $ c) ~group:(a $ inh))
+              (fun a -> User.add_to_group ~user:(a $ c) ~group:(a $ inh))
               [Roles.task_reader ;
                Roles.task_comment_reader ;
                Roles.task_comment_moderator ;
