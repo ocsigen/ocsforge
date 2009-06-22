@@ -3,4 +3,4 @@
 <**/*.ml*> : pkg_threads, pkg_ocsigen, pkg_ocsimore, pkg_ocsimore.users, pkg_ocsimore.forum, dtypes, warn_Y, warn_Z
 <sql.ml*> : pkg_calendar, pkg_pgocaml
 <**/*_client*> : pkg_obrowser, pkg_ocsigen.eliom_obrowser_client, -pkg_ocsigen
-
+<**/*.ml> : annot

@@ -253,6 +253,9 @@ let get_task_history ~sp ~task =
   then Ocsforge_sql.get_task_history_by_id ~task_id:task ()
   else Lwt.fail Ocsimore_common.Permission_denied
 
+let get_area ~sp:_ ~area =
+  Ocsforge_sql.get_area_by_id ~area_id:area ()
+
 let get_inheritance ~sp:_ ~area =
   Sql.full_transaction_block
   (Ocsforge_sql.get_area_inheritance ~area_id:area)

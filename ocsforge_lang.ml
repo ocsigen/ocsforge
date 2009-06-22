@@ -17,6 +17,9 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 
+open CalendarLib
+
+
 (*Working with options*)
 let apply_on_opted f = function
   | None   -> None
@@ -54,30 +57,30 @@ let int_interval_list ?(bump = 1) ~min ~max () =
 let int32_interval_list ?(bump = Int32.one) ~min ~max () =
   interval_list ~bump:(Int32.add bump) ~min ~max ()
 
-let date_interval_list ?(bump = CalendarLib.Calendar.Period.lmake ~day:1 ())
+let date_interval_list ?(bump = Calendar.Period.lmake ~day:1 ())
     ~min ~max () =
   interval_list
-    ~comp:(CalendarLib.Calendar.compare)
-    ~bump:(fun d -> CalendarLib.Calendar.add d bump)
+    ~comp:(Calendar.compare)
+    ~bump:(fun d -> Calendar.add d bump)
     ~min ~max ()
 
-let period_interval_list ?(bump = CalendarLib.Calendar.Period.lmake ~hour:1 ())
+let period_interval_list ?(bump = Calendar.Period.lmake ~hour:1 ())
     ~min ~max () =
   interval_list
-    ~comp:(CalendarLib.Calendar.Period.compare)
-    ~bump:(CalendarLib.Calendar.Period.add bump)
+    ~comp:(Calendar.Period.compare)
+    ~bump:(Calendar.Period.add bump)
     ~min ~max ()
 
 
 (*rougthly print period values*)
 let string_of_period p =
   let h = int_of_float
-            (CalendarLib.Time.Period.to_hours
-               (CalendarLib.Calendar.Period.to_time p))
+            (Time.Period.to_hours
+               (Calendar.Period.to_time p))
   in
   if h > 24
   then
-    let d = CalendarLib.Date.Period.nb_days
-              (CalendarLib.Calendar.Period.to_date p)
+    let d = Date.Period.nb_days
+              (Calendar.Period.to_date p)
     in Printf.sprintf "%i days and %i hours" d (h mod 24)
   else Printf.sprintf "%i hours" h

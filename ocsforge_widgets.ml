@@ -24,7 +24,6 @@ module Roles = Ocsforge_roles
 module Types = Ocsforge_types
 module Data  = Ocsforge_data
 module FWidgets = Forum_widgets
-module Lang = Ocsforge_lang
 
 open CalendarLib
 
@@ -36,14 +35,15 @@ let draw_opt_field ?title ~name ~value ?alternatives ~string_of_t () =
     | None -> ""
     | Some t -> t ^ " : "
   in
+  let t = Ocamlduce.Utf8.make (print_opt_title title) in
   match (value,alternatives) with
     | (None, None) | (None, Some []) ->
-        {{ [ {: print_opt_title title :} {: "none" :} ] }}
+        {{ [  !t !{: Ocamlduce.Utf8.make "none" :} ] }}
     | (Some v, None) | (Some v, Some [])->
-        {{ [ {: print_opt_title title :} {: string_of_t v :} ] }}
+        {{ [ !t !{: Ocamlduce.Utf8.make (string_of_t v) :} ] }}
     | (None, Some l) ->
         {{ 
-          [ {: print_opt_title title :}
+          [ !t
             {:Eliom_duce.Xhtml.user_type_select
                (function
                   | None -> "None"
@@ -58,32 +58,33 @@ let draw_opt_field ?title ~name ~value ?alternatives ~string_of_t () =
         }}
     | (Some v, Some l) ->
         {{ 
-          [{: print_opt_title title :}
-           {:Eliom_duce.Xhtml.user_type_select
-             (function
-                 | None -> "None"
-                 | Some v -> "\"" ^ (string_of_t v) ^ "\"")
-              ~name
-              (Eliom_duce.Xhtml.Option ({{ { } }}, Some v, None, true))
-              ( (List.map
-                   (fun a ->
-                      Eliom_duce.Xhtml.Option ({{ { } }}, Some a, None, false))
-                   l)
-               @ [Eliom_duce.Xhtml.Option ({{ { } }}, None, None, false)])
+          [ !t
+            {:Eliom_duce.Xhtml.user_type_select
+              (function
+                  | None -> "None"
+                  | Some v -> "\"" ^ (string_of_t v) ^ "\"")
+               ~name
+               (Eliom_duce.Xhtml.Option ({{ { } }}, Some v, None, true))
+               ( (List.map
+                    (fun a ->
+                       Eliom_duce.Xhtml.Option ({{ { } }}, Some a, None, false))
+                    l)
+                @ [Eliom_duce.Xhtml.Option ({{ { } }}, None, None, false)])
               
-           :}]
+            :}]
         }}
 let draw_field ?title ~name ~value ?alternatives ~string_of_t () =
   let print_opt_title = function
     | None -> ""
     | Some t -> t ^ " : "
   in
+  let t = Ocamlduce.Utf8.make (print_opt_title title) in
   match (value,alternatives) with
     | (v, None) ->
-        {{ [{: print_opt_title title :} ' : ' {: string_of_t v :}] }}
+        {{ [ !t !{: Ocamlduce.Utf8.make (string_of_t v) :}] }}
     | (v, Some l) ->
         {{
-          [{: print_opt_title title :} ' : '
+          [ !t
            {:Eliom_duce.Xhtml.user_type_select
               string_of_t
               ~name
@@ -97,116 +98,131 @@ let draw_field ?title ~name ~value ?alternatives ~string_of_t () =
 
 let draw_simple_field ~name ~value ?alternatives ~string_of_t () =
          {{ <td>[
-              {: draw_opt_field ~name ~value ?alternatives ~string_of_t :}
+              !{: draw_opt_field ~name ~value ?alternatives ~string_of_t () :}
             ]
          }}
 
+(*
 class add_task_widget (add_task_service) =
 object (self)
 
   val add_task_classe = "ocsforge_add_task_form"
+  val fields_class = "ocsforge_task_fields"
+  val message_class = "ocsforge_task_message"
 
-  method display ~sp ~parent ?(rows = 5) ?(cols = 50) () =
+  method display ~sp ~parent
+           ~(add_message_widget:Forum_widgets.add_message_widget) () =
     Ocsforge_data.get_task ~sp ~task:parent >>= fun t_info ->
-    Ocsforge_data.get_inheritance ~sp ~area:t_info.Types.t_area >>= fun inh ->
-      let draw_form (progress_name,
-                     (importance_name,
-                      (kind_name,
-                       (deadline_t_name,
-                        (deadline_v_name,
-                         (length_name,
-                          detach_name     )))))) =
-        Ocsforge_data.get_kinds ~sp ~area:inh >>= fun altk ->
+    Ocsforge_data.get_area ~sp ~area:t_info.Types.t_area >>= fun a_info ->
+      let draw_form (subject_name,
+                     (text_name,
+                      (progress_name,
+                       (importance_name,
+                        (kind_name,
+                         (deadline_t_name,
+                          (deadline_v_name,
+                           (length_name,
+                            detach_name     )))))))) =
+        Ocsforge_data.get_kinds ~sp ~area:a_info.Types.r_inheritance >>= fun altk ->
         Lwt.return
-        {{ (*TODO: show the message and comment depending on user rights*)
-          (*'Title :'
-           {:Eliom_duce.Xhtml.string_input ~input_type:{: "text" :}
-               ~name:(*TODO*) () :}
-           'Description :'
-           {:Eliom_duce.Xhtml.textarea ~name:(*TODO*) ~rows ~cols () :}*)
-        [
-          {: 
-             draw_opt_field
-               ~title:"kind" ~name:kind_name ~value:None
-               ~alternatives:altk
-               ~string_of_t:(fun k -> k) ()
-          :}
-          {: draw_opt_field
-               ~title:"progress" ~name:progress_name ~value:None
-               ~alternatives:(Ocsforge_lang.int32_interval_list
-                                ~bump:(Int32.of_int 5)
-                                ~min:Int32.zero
-                                ~max:(Int32.of_int 100)
-                                ())
-               ~string_of_t:Int32.to_string ()
-          :}
-          {: draw_opt_field
-               ~title:"importance" ~name:importance_name ~value:None
-               ~alternatives:(Ocsforge_lang.int32_interval_list
-                                ~bump:(Int32.of_int 5)
-                                ~min:Int32.zero
-                                ~max:(Int32.of_int 100)
-                                ())
-               ~string_of_t:Int32.to_string ()
-          :}
-          {: draw_opt_field
-               ~title:"deadline (time)" ~name:deadline_t_name ~value:None
-               ~alternatives:(
-                  (Ocsforge_lang.date_interval_list
-                     ~min:(Calendar.now ())
-                     ~max:(Calendar.add
-                             (Calendar.now ())
-                             (Calendar.Period.lmake ~day:7 ()))
-                     () )
-                 @(Ocsforge_lang.date_interval_list
-                    ~bump:(Calendar.Period.lmake ~day:7 ())
-                    ~min:(Calendar.add
-                             (Calendar.now ())
-                             (Calendar.Period.lmake ~day:7 ()))
-                    ~max:(Calendar.add
-                             (Calendar.now ())
-                             (Calendar.Period.lmake ~month:1 ()))
-                    ()
-                  ))
-               ~string_of_t:Printer.Calendar.to_string ()
-          :}
-          {: {{ [
-                {: "deadline (version) : " :}
-                {: (Eliom_duce.Xhtml.string_input
-                     ~name:deadline_v_name
-                     ~input_type:{: "text" :}
-                     () ) :}
-                ]
-             }}
-          :}
-          {: draw_opt_field
-               ~title:"length" ~name:length_name ~value:None
-               ~alternatives:(
-                   (Ocsforge_lang.period_interval_list
-                      ~min:(Calendar.Period.lmake ~hour:1 ())
-                      ~max:(Calendar.Period.lmake ~hour:6 ())
-                      ())
-                  @(Ocsforge_lang.period_interval_list
-                      ~bump:(Calendar.Period.lmake ~hour:12 ())
-                      ~min:(Calendar.Period.lmake ~hour:12 ())
-                      ~max:(Calendar.Period.lmake ~hour:24 ())
-                      ())
-                  @(Ocsforge_lang.period_interval_list
-                      ~bump:(Calendar.Period.lmake ~hour:24 ())
-                      ~min:(Calendar.Period.lmake ~hour:48 ())
-                      ~max:(Calendar.Period.lmake ~hour:96 ())
-                      ()))
-               ~string_of_t:Ocsforge_lang.string_of_period ()
-          :}
-        ]
- 
+        {{
+          <div class={: add_task_classe :}>[
+            <div class={: message_class :}>[
+               'Title:'
+               {: Eliom_duce.Xhtml.string_input ~input_type:{: "text" :}
+                    ~name:subject_name () :}
+               <br>[]
+               {: Eliom_duce.Xhtml.textarea ~name:text_name
+                    ~rows:5 ~cols:50 () :}
+            ]
+           
+            <div class={: fields_class :}>[
+            {: draw_opt_field
+                 ~title:"kind" ~name:kind_name ~value:None
+                 ~alternatives:altk
+                 ~string_of_t:(fun k -> k) ()
+            :}
+               <br>[]
+            {: draw_opt_field
+                 ~title:"progress" ~name:progress_name ~value:None
+                 ~alternatives:(Ocsforge_lang.int32_interval_list
+                                  ~bump:(Int32.of_int 5)
+                                  ~min:Int32.zero
+                                  ~max:(Int32.of_int 100)
+                                  ())
+                 ~string_of_t:Int32.to_string ()
+            :}
+               <br>[]
+            {: draw_opt_field
+                 ~title:"importance" ~name:importance_name ~value:None
+                 ~alternatives:(Ocsforge_lang.int32_interval_list
+                                  ~bump:(Int32.of_int 5)
+                                  ~min:Int32.zero
+                                  ~max:(Int32.of_int 100)
+                                  ())
+                 ~string_of_t:Int32.to_string ()
+            :}
+               <br>[]
+            {: draw_opt_field
+                 ~title:"deadline (time)" ~name:deadline_t_name ~value:None
+                 ~alternatives:(
+                    (Ocsforge_lang.date_interval_list
+                       ~min:(Calendar.now ())
+                       ~max:(Calendar.add
+                               (Calendar.now ())
+                               (Calendar.Period.lmake ~day:7 ()))
+                       () )
+                   @(Ocsforge_lang.date_interval_list
+                      ~bump:(Calendar.Period.lmake ~day:7 ())
+                      ~min:(Calendar.add
+                               (Calendar.now ())
+                               (Calendar.Period.lmake ~day:7 ()))
+                      ~max:(Calendar.add
+                               (Calendar.now ())
+                               (Calendar.Period.lmake ~month:1 ()))
+                      ()
+                    ))
+                 ~string_of_t:Printer.Calendar.to_string ()
+            :}
+               <br>[]
+            {: {{ [
+                  'deadline (version) : '
+                  {: (Eliom_duce.Xhtml.string_input
+                       ~name:deadline_v_name
+                       ~input_type:{: "text" :}
+                       () ) :}
+                  ]
+               }}
+            :}
+               <br>[]
+            {: draw_opt_field
+                 ~title:"length" ~name:length_name ~value:None
+                 ~alternatives:(
+                     (Ocsforge_lang.period_interval_list
+                        ~min:(Calendar.Period.lmake ~hour:1 ())
+                        ~max:(Calendar.Period.lmake ~hour:6 ())
+                        ())
+                    @(Ocsforge_lang.period_interval_list
+                        ~bump:(Calendar.Period.lmake ~hour:12 ())
+                        ~min:(Calendar.Period.lmake ~hour:12 ())
+                        ~max:(Calendar.Period.lmake ~hour:24 ())
+                        ())
+                    @(Ocsforge_lang.period_interval_list
+                        ~bump:(Calendar.Period.lmake ~hour:24 ())
+                        ~min:(Calendar.Period.lmake ~hour:48 ())
+                        ~max:(Calendar.Period.lmake ~hour:96 ())
+                        ()))
+                 ~string_of_t:Ocsforge_lang.string_of_period ()
+            :}
+            ]
+          ] 
         }}
       in
-        Eliom_duce.Xhtml.lwt_get_form
+        Eliom_duce.Xhtml.lwt_post_form
           ~service:add_task_service
-          ~sp draw_form
-
+          ~sp draw_form ()
 end
+ *)
 
 
 class tree_widget =
@@ -216,108 +232,145 @@ object (self)
 
   method private task_snippet ~sp ~width ~depth ~message =
     Forum_data.get_message ~sp ~message_id:message >>= fun msg ->
-    Lwt.return (Lang.unopt ~default:"\"NONE\"" msg.Forum_sql.Types.m_subject)
+    Lwt.return (Ocsforge_lang.unopt ~default:"\"NONE\"" msg.Forum_sql.Types.m_subject)
 
   method display ~sp ~root_task ~fields ?(width = 600) ?(padding = 10)
-           (progress_name,
-            (importance_name,
-             (kind_name,
-              (deadline_t_name,
-               (deadline_v_name,
-                (length_name,
-                 detach_name     ))))))=
+           ((progress_name :
+                [ `One of int32 option ] Eliom_parameters.param_name),
+             ((importance_name :
+                 [ `One of int32 option ] Eliom_parameters.param_name),
+              ((kind_name :
+                  [ `One of string ] Eliom_parameters.param_name),
+               ((deadline_t_name :
+                   [ `One of CalendarLib.Printer.Calendar.t option ]
+                       Eliom_parameters.param_name),
+                ((deadline_v_name :
+                    [ `Radio of string ]
+                        Eliom_parameters.param_name),
+                 (length_name :
+                    [ `One of CalendarLib.Calendar.Period.t option ]
+                        Eliom_parameters.param_name)
+                ))))) =
     Data.get_tree ~sp ~root:root_task >>= fun tree ->
-    let rec aux ~width ~depth =
-    (function
-       | Data.Nil -> Lwt.return {{ [] }} (*TODO: print "no task"*)
-       | Data.Node (t, l) -> (
-           self#task_snippet ~sp ~width ~depth
-             ~message:t.Types.t_message >>= fun snip ->
-           Data.get_kinds ~sp ~area:t.Types.t_area >>= fun alt_k -> Lwt.return
-           {{ <tr>[
-                <th>[ {: snip :} ]
-                {: List.map
-                     (function
-                        | "progress" ->
-                            draw_simple_field ~name:progress_name
-                              ~value:t.Types.t_progress
-                              ~alternatives:(Lang.int32_interval_list
-                                               ~bump:(Int32.of_int 5)
-                                               ~min:Int32.zero
-                                               ~max(Int32.of_int 100) ())
-                              ~string_of_t:Int32.to_string
-                        | "importance" ->
-                            draw_simple_field ~name:importance_name
-                              ~value:t.Types.t_importance
-                              ~alternatives:(Lang.int32_interval_list
-                                               ~bump:(Int32.of_int 5)
-                                               ~min:Int32.zero
-                                               ~max(Int32.of_int 100) ())
-                              ~string_of_t:Int32.to_string
-                        | "kind" ->
-                            draw_simple_field ~name:kind_name
-                              ~value:t.Types.t_kind
-                              ~alternatives:alt_k
-                              ~string_of_t:(fun k -> k)
-                        | "deadline_time" ->
-                            draw_simple_field ~name:deadline_t_name
-                              ~value:t.Types.t_deadline_time
-                              ~alternatives:(
-                                (Ocsforge_lang.date_interval_list
-                                   ~min:(Calendar.now ())
-                                   ~max:(Calendar.add
-                                           (Calendar.now ())
-                                           (Calendar.Period.lmake ~day:7 ()))
-                                           () )
-                                @(Ocsforge_lang.date_interval_list
-                                    ~bump:(Calendar.Period.lmake ~day:7 ())
-                                    ~min:(Calendar.add
-                                            (Calendar.now ())
-                                            (Calendar.Period.lmake ~day:7 ()))
+      let show_line ~width ~depth ~task:t =
+        self#task_snippet ~sp ~width ~depth ~message:t.Types.t_message
+                                                               >>= fun snip ->
+        let snip = Ocamlduce.Utf8.make snip in
+        Data.get_kinds ~sp ~area:t.Types.t_area                >>= fun alt_k ->
+          Lwt.return
+            {{ <tr>[
+                 <th>[ <div>[ !snip ] (*TODO: add some attrs to show tree structure*)
+                 ]
+                 !{: 
+                     List.map
+                      (function
+                         | "progress" ->
+                             draw_simple_field ~name:progress_name
+                               ~value:t.Types.t_progress
+                               ~alternatives:(Ocsforge_lang.int32_interval_list
+                                                ~bump:(Int32.of_int 5)
+                                                ~min:Int32.zero
+                                                ~max:(Int32.of_int 100) ())
+                               ~string_of_t:Int32.to_string
+                               ()
+                         | "importance" ->
+                             draw_simple_field ~name:importance_name
+                               ~value:t.Types.t_importance
+                               ~alternatives:(Ocsforge_lang.int32_interval_list
+                                                ~bump:(Int32.of_int 5)
+                                                ~min:Int32.zero
+                                                ~max:(Int32.of_int 100) ())
+                               ~string_of_t:Int32.to_string
+                               ()
+                         | "kind" ->
+                             {{ <td>[
+                                  !{: let k = t.Types.t_kind in
+                                     draw_field
+                                       ~name:kind_name
+                                       ~value:k
+                                       ~alternatives:alt_k
+                                       ~string_of_t:(fun k -> k) () :}
+                                ]
+                             }}
+                         | "deadline_time" ->
+                             draw_simple_field ~name:deadline_t_name
+                               ~value:t.Types.t_deadline_time
+                               ~alternatives:(
+                                 (Ocsforge_lang.date_interval_list
+                                    ~min:(Calendar.now ())
                                     ~max:(Calendar.add
                                             (Calendar.now ())
-                                            (Calendar.Period.lmake ~month:1 ()))
-                                               ()
-                                ))
-                              ~string_of_t:Printer.Calendar.to_string ()
-                        | "deadline_version" ->
-                            {{ <td>[
-                                 {: (Eliom_duce.Xhtml.string_input
-                                       ~name:deadline_v_name
-                                       ~input_type:{: "text" :}
-                                       ?value:t.Types.t_deadline_version
-                                 () ) :} ] }}
-                        | "length" ->
-                            draw_simple_field ~name:length_name
-                              ~value:t.Types.t_length
-                              ~alternatives:(
-                                (Ocsforge_lang.period_interval_list
-                                   ~min:(Calendar.Period.lmake ~hour:1 ())
-                                   ~max:(Calendar.Period.lmake ~hour:6 ())
-                                           ())
-                                @(Ocsforge_lang.period_interval_list
-                                    ~bump:(Calendar.Period.lmake ~hour:12 ())
-                                    ~min:(Calendar.Period.lmake ~hour:12 ())
-                                    ~max:(Calendar.Period.lmake ~hour:24 ())
-                                            ())
-                                @(Ocsforge_lang.period_interval_list
-                                    ~bump:(Calendar.Period.lmake ~hour:24 ())
-                                    ~min:(Calendar.Period.lmake ~hour:48 ())
-                                    ~max:(Calendar.Period.lmake ~hour:96 ())
-                                            ()))
-                              ~string_of_t:Lang.string_of_period ()
-                     )
-                     fields
-                :}
-              ]
+                                            (Calendar.Period.lmake ~day:7 ()))
+                                    () )
+                                 @(Ocsforge_lang.date_interval_list
+                                     ~bump:(Calendar.Period.lmake ~day:7 ())
+                                     ~min:(Calendar.add
+                                             (Calendar.now ())
+                                             (Calendar.Period.lmake ~day:7 ()))
+                                     ~max:(Calendar.add
+                                             (Calendar.now ())
+                                             (Calendar.Period.lmake ~month:1 ()))
+                                     ()
+                                 ))
+                               ~string_of_t:Printer.Calendar.to_string
+                               ()
+                         | "deadline_version" ->
+                             {{ <td>[
+                                  {: (Eliom_duce.Xhtml.string_input
+                                        ~name:deadline_v_name
+                                        ~input_type:{: "text" :}
+                                        ?value:t.Types.t_deadline_version
+                                        () ) :} ] }}
+                         | "length" ->
+                             draw_simple_field ~name:length_name
+                               ~value:t.Types.t_length
+                               ~alternatives:(
+                                  (Ocsforge_lang.period_interval_list
+                                    ~min:(Calendar.Period.lmake ~hour:1 ())
+                                    ~max:(Calendar.Period.lmake ~hour:6 ())
+                                    ())
+                                 @(Ocsforge_lang.period_interval_list
+                                     ~bump:(Calendar.Period.lmake ~hour:12 ())
+                                     ~min:(Calendar.Period.lmake ~hour:12 ())
+                                     ~max:(Calendar.Period.lmake ~hour:24 ())
+                                     ())
+                                 @(Ocsforge_lang.period_interval_list
+                                     ~bump:(Calendar.Period.lmake ~hour:24 ())
+                                     ~min:(Calendar.Period.lmake ~hour:48 ())
+                                     ~max:(Calendar.Period.lmake ~hour:96 ())
+                                     ()) )
+                               ~string_of_t:Ocsforge_lang.string_of_period
+                               ()
+                         | f ->
+                             let f = Ocamlduce.Utf8.make
+                                       ( "unknown field " ^ f)
+                             in
+                             {{ <td>[ !f ] }}
+                      )
+                      fields
+                 :}
+               ]
 
-           }}
-         )
-
-
-    ) in aux ~width ~depth:0 tree
- 
-
+            }}
+      in
+      let rec show_tree ~width ~depth ~tree:t = match t with
+        | Data.Nil ->
+            let err = Ocamlduce.Utf8.make "Undefined task id." in
+            Lwt.return  {{ [ <tr>[ <td>err ] ] }}
+        | Data.Node (t,l) ->
+            (show_line ~width ~depth ~task:t
+               >>= fun a ->
+             Lwt_util.map_serial
+               (fun tree -> show_tree ~width ~depth:(succ depth) ~tree)
+               l
+               >>= fun b ->
+             let b = List.fold_left
+                       (fun (e1 : {{ [ Xhtmltypes_duce.tr* ] }})
+                              (e2 : {{ [ Xhtmltypes_duce.tr* ] }}) ->
+                          {{ [ !e1 !e2 ] }} )
+                       ({{ [ ] }} : {{ [ Xhtmltypes_duce.tr* ] }}) b in
+             Lwt.return ({{ [ a !{: b :} ] }} : {{ [ Xhtmltypes_duce.tr* ] }}))
+      in show_tree ~width ~depth:0 ~tree
 
 end
 

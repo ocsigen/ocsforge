@@ -77,6 +77,10 @@ val get_task_history :
   task:Ocsforge_types.task ->
   (Ocsforge_types.task_info * Ocsforge_types.task_history_info list) Lwt.t
 
+val get_area :
+  sp:Eliom_sessions.server_params ->
+  area:Ocsforge_types.right_area -> Ocsforge_types.right_area_info Lwt.t
+
 val get_inheritance :
   sp:Eliom_sessions.server_params ->
   area:Ocsforge_types.right_area ->
