@@ -230,11 +230,22 @@ object (self)
 
   val task_text_class = "ocsforge_task_text"
 
-  method private task_snippet ~sp ~width ~depth ~message =
+  method private task_snippet ~sp ~width ~depth ~padding ~char_size ~message =
     Forum_data.get_message ~sp ~message_id:message >>= fun msg ->
-    Lwt.return (Ocsforge_lang.unopt ~default:"\"NONE\"" msg.Forum_sql.Types.m_subject)
+    let shorten str dep wid pad siz =
+      let max_size = (wid - (dep * pad)) / siz in
+      if String.length str > max_size
+      then String.sub str 0 max_size
+      else str
+    in
+    let res =
+      shorten
+        (Ocsforge_lang.unopt ~default:"\"NONE\"" msg.Forum_sql.Types.m_subject)
+        depth width padding char_size
+    in
+    Lwt.return res
 
-  method display ~sp ~root_task ~fields ?(width = 600) ?(padding = 10)
+  method display ~sp ~root_task ~fields ?(width = 600) ?(padding = 10) ?(char_size = 12)
            ((progress_name :
                 [ `One of int32 option ] Eliom_parameters.param_name),
              ((importance_name :
@@ -253,13 +264,16 @@ object (self)
                 ))))) =
     Data.get_tree ~sp ~root:root_task >>= fun tree ->
       let show_line ~width ~depth ~task:t =
-        self#task_snippet ~sp ~width ~depth ~message:t.Types.t_message
+        self#task_snippet ~sp
+          ~width ~depth ~padding ~char_size ~message:t.Types.t_message
                                                                >>= fun snip ->
         let snip = Ocamlduce.Utf8.make snip in
         Data.get_kinds ~sp ~area:t.Types.t_area                >>= fun alt_k ->
           Lwt.return
             {{ <tr>[
-                 <th>[ <div>[ !snip ] (*TODO: add some attrs to show tree structure*)
+                 <th>[ <div class={:"depth" ^ (string_of_int depth):}>[
+                         !snip
+                       ] (*TODO: add some attrs to show tree structure*)
                  ]
                  !{: 
                      List.map
@@ -365,10 +379,14 @@ object (self)
                l
                >>= fun b ->
              let b = List.fold_left
-                       (fun (e1 : {{ [ Xhtmltypes_duce.tr* ] }})
-                              (e2 : {{ [ Xhtmltypes_duce.tr* ] }}) ->
-                          {{ [ !e1 !e2 ] }} )
-                       ({{ [ ] }} : {{ [ Xhtmltypes_duce.tr* ] }}) b in
+                       (fun
+                          (e1 : {{ [ Xhtmltypes_duce.tr* ] }})
+                          (e2 : {{ [ Xhtmltypes_duce.tr* ] }})
+                          -> {{ [ !e1 !e2 ] }}
+                       )
+                       ({{ [ ] }} : {{ [ Xhtmltypes_duce.tr* ] }})
+                       b
+             in
              Lwt.return ({{ [ a !{: b :} ] }} : {{ [ Xhtmltypes_duce.tr* ] }}))
       in show_tree ~width ~depth:0 ~tree
 
