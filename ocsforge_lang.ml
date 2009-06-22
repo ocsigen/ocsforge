@@ -28,28 +28,41 @@ let unopt ?default v =
     | (_, Some x) -> x
     | _           -> failwith "Can't unopt None"
 
+(*List functions*)
+let assoc_all k l =
+  let rec aux accu = function
+    | [] -> accu
+    | (a,b)::t ->
+        if a = k
+        then aux (b::accu) t
+        else aux accu t
+  in aux [] l
+
 
 
 (* auto list generation *)
 let interval_list ?(comp = compare) ~bump ~min ~max () =
   let rec aux accu curr =
-    if compare curr max > 0
+    if (comp curr max) > 0
     then accu
     else aux (curr::accu) (bump curr)
   in aux [] min
 
-let int_interval_list ?(bump = 1) ~min ~max =
+let int_interval_list ?(bump = 1) ~min ~max () =
   interval_list ~bump:((+) bump) ~min ~max ()
 
+let int32_interval_list ?(bump = Int32.one) ~min ~max () =
+  interval_list ~bump:(Int32.add bump) ~min ~max ()
+
 let date_interval_list ?(bump = CalendarLib.Calendar.Period.lmake ~day:1 ())
-    ~min ~max =
+    ~min ~max () =
   interval_list
     ~comp:(CalendarLib.Calendar.compare)
     ~bump:(fun d -> CalendarLib.Calendar.add d bump)
     ~min ~max ()
 
 let period_interval_list ?(bump = CalendarLib.Calendar.Period.lmake ~hour:1 ())
-    ~min ~max =
+    ~min ~max () =
   interval_list
     ~comp:(CalendarLib.Calendar.Period.compare)
     ~bump:(CalendarLib.Calendar.Period.add bump)

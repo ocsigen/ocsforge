@@ -2,34 +2,36 @@
 
 
 /!\ il y a ici une hiérarchie des droits (plus haut, plus de droit). Les inclusions sont : superset en bas, subset en haut ! /!\
-                                    sub_area_creator
-                                   /                \
-                                  /                 task_mover
-                  _______________/                  /         \
-                 /                                 /           \
-            task_creator                task_mover_from       task_mover_to
-               \                                   \           /
-                \         kinds_setter              \         /
-                 \              \                    task_admin
-       _______..  \  ..______..  \  .._______________/        \______________________________________________________
-      /            \   /          \   /                                \           \                \                \ 
-    task_          task_          task_                               task_       task_            task_            task_
-     message_       msg_            property_                           comment_    comment_         comment_         comment_
-       editor_       editor_         editor          version_setter      sticky_     deletor_        writer_           moderator
-          \         if_author          \                  \               setter      (if_author)     (not_moderated)    /
-           \___________\________________\                  \           ____/____________/_________________/_____________/
-                                         \________________  \         /
-                                                          \  \    task_comment_reader
-                                                           \  \     /
-                                                           task_reader
 
-/!\ Mises à jour à faire :
-     task_creator -> task_msg_editor_if_author (et non plus <-) (change pas mal de chose)
-     task_property_editor -> task_comment_reader
+
+
+                                         sub_area_creator
+                                               |
+                                           task_mover
+                                           /        \
+                               task_mover_to        task_mover_from
+                                           \        /
+                                           task_admin
+           ________________________________/        \_____________________________________________
+          /                               /                 \          \           \              \
+        task_                            /                 task_      task_       task_          task_ 
+         message_          kinds_       /                   comment_   comment_    comment_       comment_
+          editor            setter     /                     sticky_    moderator   writer_        deletor
+            \                     \   /                       setter       \         not_moderated    \
+           task_                   task_                         \          \           \            task_
+            message_              property_                       \          \         task_          comment_
+             editor_             editor/                           \          \         comment_      deletor_
+              if_author  _________/       version_setter            \          \         writer      if_author
+                 \      /                      |                     \__________\___________\_________/
+                task_creator                   |                                     |
+                     \                         |                          task_comment_reader
+                      \________________________|____________________________________/
+                                               |
+                                          task_reader 
 
 
 task_admin : possède tout les droits sur les taches
-task_comment_* : peut * les commentaires sur les taches (EQUIV : forum_commeter_*)
+task_comment_* : peut * les commentaires sur les taches (EQUIV : forum_message_* $ comments_wiki)
 task_editor : peut editer tout les champs des taches
 task_message_editor : peut éditer le message de la tache (EQUIV : forum_message_editor)
 task_reader : peut voir les champs des taches
@@ -63,4 +65,4 @@ ____________|________|____________|___________________________
  DETACH 1.2 |   3    |    3       |    APACHE
 ____________|________|____________|_________________________
 
-La zone FORGE est la racine de tout l'arbre de tache. Les sous taches créées sont du type ADMIN
+La zone FORGE est la racine de tout l'arbre de tache. Les sous taches créées sont du type ADMIN. La zone d'héritage est incrémentale.

@@ -182,6 +182,27 @@ let get_tasks_by_parent ?db ~parent () =
     | None    -> Sql.full_transaction_block f
     | Some db -> f db
 
+let get_tasks_in_tree ~root db =
+  let root = Types.sql_of_task root in
+  PGSQL(db)
+    "SELECT tree_min, tree_max
+     FROM ocsforge_tasks
+     WHERE id = $root"
+    >>= (function
+           | [] | _::_::_ -> failwith "Ocsforge_sql.get_task_in_tree not unique id"
+           | [(tmin, tmax)] ->
+  PGSQL(db)
+      "SELECT id, parent, message, \
+              edit_author, edit_time, edit_version, \
+              length, progress, importance, \
+              deadline_time, deadline_version, kind, \
+              area, tree_min, tree_max
+       FROM ocsforge_tasks
+       WHERE tree_min > $tmin AND tree_max < $tmax")
+    >>= fun r -> (Lwt_util.map_serial
+                    (fun t -> Lwt.return (Types.get_task_info t))
+                    r)
+
 let get_tasks_by_editor ?db ~editor () =
   let editor = User_sql.Types.sql_from_userid editor in
   let f db =
@@ -424,6 +445,15 @@ let change_tree_marks ~task_id ~parent_id =
 
 
 (** {3 Managing Kinds} *)
+
+let get_kinds_for_area ~area_id =
+  let area = Types.sql_of_right_area area_id in
+  (fun db ->
+     PGSQL(db)
+       "SELECT kind
+        FROM ocsforge_task_kinds
+        WHERE right_area = $area")
+
 
 let add_kinds_for_area ~area_id ~kinds =
   let area = Types.sql_of_right_area area_id in

@@ -115,9 +115,9 @@ let new_task ~sp ~parent ~subject ~text
 
           >>= fun finfo ->
           let forum = finfo.FTypes.f_id in
-          let mwiki = finfo.FTypes.f_messages_wiki in
-          let cwiki = finfo.Ftypes.f_comments_wiki in
-
+(*          let mwiki = finfo.FTypes.f_messages_wiki in
+          let cwiki = finfo.FTypes.f_comments_wiki in
+ *)
           (* create area *)
             Ocsforge_sql.new_area
               ~id:c ~forum ()
@@ -181,8 +181,7 @@ let new_task ~sp ~parent ~subject ~text
                Roles.task_mover_to ;
                Roles.subarea_creator ;
                Roles.kinds_setter ;
-               Roles.version_setter ;
-              ]
+               Roles.version_setter ; ]
           >>= fun () -> Lwt.return task             
 
           end)
@@ -235,6 +234,8 @@ let new_task ~sp ~parent ~subject ~text
         else Lwt.fail Ocsimore_common.Permission_denied
 
 
+
+
 let get_task ~sp ~task =
   Ocsforge_sql.get_area_for_task ~task_id:task ()  >>= fun area ->
   Roles.get_area_role sp area                      >>= fun role ->
@@ -252,6 +253,10 @@ let get_task_history ~sp ~task =
   then Ocsforge_sql.get_task_history_by_id ~task_id:task ()
   else Lwt.fail Ocsimore_common.Permission_denied
 
+let get_inheritance ~sp:_ ~area =
+  Sql.full_transaction_block
+  (Ocsforge_sql.get_area_inheritance ~area_id:area)
+
 let filter_aux sp t =
   Roles.get_area_role sp t.Types.t_area >>= fun role ->
   !!(role.Roles.task_reader)
@@ -260,6 +265,32 @@ let filter_task_list_for_reading sp tl =
  Ocsimore_lib.lwt_filter
   (filter_aux sp)
   tl
+
+type 'a tree = Node of 'a * 'a tree list | Nil
+
+(*TODO : more efficient function*)
+let rec insert ~tree ~element ~is_parent =
+  match tree with
+    | Nil -> Node (element, [])
+    | Node (t, l) ->
+        if is_parent t element
+        then Node (t, (Node (element, []))::l)
+        else Node (t,
+                   (List.map (fun tree -> insert ~tree ~element ~is_parent) l))
+
+let get_tree ~sp ~root =
+  Sql.full_transaction_block (Ocsforge_sql.get_tasks_in_tree ~root)
+    >>= (filter_task_list_for_reading sp)
+    >>= fun tl ->
+      let rec aux tree = function
+        | [] -> Lwt.return tree
+        | h::t ->
+            aux
+              (insert ~tree ~element:h
+                 ~is_parent:(fun p e ->
+                               e.Types.t_parent = p.Types.t_id))
+              t
+      in aux Nil tl
 
 
 let get_sub_tasks ~sp ~parent =
@@ -432,6 +463,29 @@ let detach_task ~sp ~task ?parent () =
             ~id:c ~forum ()
         >>= fun _ -> (* the result can't be anything but [c] *)
 
+(* link rights on area and rights on forum... Needs modifications on forum.ml
+         Lwt_util.iter_serial
+           (fun (ar,fr) -> User.add_to_group ~user:(ar $ c) ~group:(fr $ cwiki))
+           [(task_comment_sticky_setter, FRoles.message_sticky_makers);
+            (task_comment_reader, FRoles.message_readers);
+            (task_comment_moderator, FRoles.message_moderators);
+            (task_comment_deletor, FRoles.message_deletors);
+            (task_comment_writer, FRoles.message_creator);
+            (task_comment_writer_not_moderated, FRoles.message_creators_notmod);
+           ] 
+         >>= fun () ->
+         Lwt_util.iter_serial
+           (fun (ar,fr) -> User.add_to_group ~user:(ar $ c) ~group:(fr $ mwiki))
+           [(task_message_editor_if_author, FRoles.message_editor_if_creator);
+            (task_message_editor, FRoles.message_editors);
+            (task_creator, FRoles.message_creators);
+           ]
+         >>= fun () ->
+
+         User.add_to_group ~user:(task_admin $ c) ~group:(forum_admin $ forum)
+         >>= fun () ->
+
+*)
         (* move message *)
  (*FIXME*)Lwt.return ()
  (*FIXME: Ocsforge_sql.get_task_by_id ~db ~task_id:task () >>= fun tinfo ->
@@ -481,6 +535,10 @@ let detach_task ~sp ~task ?parent () =
 
 
 (** Tampering with kinds *)
+
+let get_kinds ~sp:_ ~area =
+  Sql.full_transaction_block
+  (Ocsforge_sql.get_kinds_for_area ~area_id:area)
 
 let add_kinds ~sp ~area ~kinds =
   Roles.get_area_role ~sp area >>= fun role ->

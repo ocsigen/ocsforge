@@ -68,6 +68,14 @@ val get_tasks_by_parent :
   parent:Ocsforge_types.task ->
   unit -> Ocsforge_types.task_info list Lwt.t
 
+(** Get every task in a subtree*)
+val get_tasks_in_tree :
+  root:Ocsforge_types.task ->
+  Sql.db_t -> Ocsforge_types.task_info list Lwt.t
+
+
+
+
 (** Get every task having the given editor.*)
 val get_tasks_by_editor :
   ?db:Sql.db_t ->
@@ -156,6 +164,12 @@ val change_tree_marks :
 *
 * eg : del ~area ~kinds:(["BUG";"RFE";"RFF"],["Bug", Some "Feature", None]) db
 * replaces instances of "BUG" with "Bug" and "RFE" with "Feature"*)
+val get_kinds_for_area :
+  area_id:Ocsforge_types.right_area ->
+  Sql.db_t -> string list Lwt.t
+
+
+
 val add_kinds_for_area :
   area_id:Ocsforge_types.right_area ->
   kinds:string list ->

@@ -77,12 +77,24 @@ val get_task_history :
   task:Ocsforge_types.task ->
   (Ocsforge_types.task_info * Ocsforge_types.task_history_info list) Lwt.t
 
+val get_inheritance :
+  sp:Eliom_sessions.server_params ->
+  area:Ocsforge_types.right_area ->
+  Ocsforge_types.right_area Lwt.t
+
 
 (** Get tasks with a specified parent.
   * [get_sub_tasks sp parent] result in the list of desired tasks. *)
 val get_sub_tasks :
   sp:Eliom_sessions.server_params ->
   parent:Ocsforge_types.task -> Ocsforge_types.task_info list Lwt.t
+
+type 'a tree = Node of 'a * 'a tree list | Nil
+
+val get_tree :
+  sp:Eliom_sessions.server_params ->
+  root:Ocsforge_types.task -> Ocsforge_types.task_info tree Lwt.t
+
 
 
 (** Get tasks sharing a common editor.
@@ -133,6 +145,12 @@ val detach_task :
   unit -> unit Lwt.t
 
 
+
+(** Getting kinds usable within the area *)
+val get_kinds :
+  sp:Eliom_sessions.server_params ->
+  area:Ocsforge_types.right_area ->
+  string list Lwt.t
 
 (** Adding, Deleting or Setting (aka wiping-out-then-adding) kinds.
   *
