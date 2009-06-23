@@ -51,6 +51,11 @@ val new_area :
 val next_right_area_id :
   db:Sql.db_t -> Ocsforge_types.right_area Lwt.t
 
+(** Get the nextval of the task_id_seq. For bootstraping purpose*)
+val next_task_id :
+  Sql.db_t -> Ocsforge_types.task Lwt.t
+
+
 (** Get the task information based on identifier*)
 val get_task_by_id :
   ?db:Sql.db_t ->
@@ -193,9 +198,9 @@ val swap_kinds_for_area :
 
 
 
-
-
-
-
-
+(**/**)
+val bootstrap_task :
+  area:Ocsforge_types.right_area ->
+  message:Forum_sql.Types.message ->
+  unit Lwt.t
 

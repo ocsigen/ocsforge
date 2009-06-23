@@ -117,11 +117,21 @@ let next_right_area_id ~db =
       "SELECT NEXTVAL('ocsforge_right_areas_id_seq')"
     >>= (function
            | [] | _::_::_ ->
-              failwith "Ocsforge_data.new_task not one nextval"
+              failwith "Ocsforge_sql.next_right_area_id not one nextval"
            | [ None ] ->
-               failwith "Ocsforge_data.new_task nextval returned None"
+               failwith "Ocsforge_sql.next_right_area_id nextval returned None"
            | [Some c] ->
                Lwt.return (Types.right_area_of_sql (Int64.to_int32 c)))
+
+let next_task_id db =
+  PGSQL (db)
+    "SELECT NEXTVAL('ocsforge_tasks_id_seq')"
+  >>= (function
+         | [] | _::_::_ ->
+             failwith "Ocsforge_sql.next_task_id not one nextval"
+         | [ None ] ->
+             failwith "Ocsforge_sql.next_task_id nextval returned None"
+         | [Some c] -> Lwt.return (Types.task_of_sql (Int64.to_int32 c)))
  
 (** {3 getters : getting info } *)
 
@@ -501,3 +511,28 @@ let swap_kinds_for_area ~area_id ~kinds =
           SET kind = $nu
           WHERE kind = $old AND area = $area"
      in Lwt_util.iter_serial f kinds)
+
+
+
+(**/**)
+let bootstrap_task ~area ~message =
+  Sql.full_transaction_block
+    (fun db ->
+       next_task_id db >>= fun id ->
+       let id = Types.sql_of_task id in
+       let message = Forum_sql.Types.sql_of_message message in
+       let area = Types.sql_of_right_area area in
+       let version = "0" in
+       let kind = "Forge" in
+       let now = CalendarLib.Calendar.now () in
+       let author = User_sql.Types.sql_from_userid User.admin in
+       let tmin = Int32.zero in
+       let tmax = Int32.one in
+       PGSQL(db)
+        "INSERT INTO ocsforge_tasks \
+          (id, parent, message, edit_author, edit_time, edit_version, \
+           kind, area, tree_min, tree_max)
+         VALUES ($id, $id, $message, $author, $now, $version, \
+                 $kind, $area, $tmin, $tmax)")
+
+
