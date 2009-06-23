@@ -31,6 +31,11 @@ let unopt ?default v =
     | (_, Some x) -> x
     | _           -> failwith "Can't unopt None"
 
+let string_of_t_opt ?none string_of_t =
+  function
+    | None -> (match none with | None -> "None" | Some n -> n)
+    | Some s -> "\"" ^ (string_of_t s) ^ "\""
+
 (*List functions*)
 let assoc_all k l =
   let rec aux accu = function
