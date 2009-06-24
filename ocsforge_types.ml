@@ -197,3 +197,26 @@ let get_task_history_info
   }
 
 
+module Tree =
+struct
+  type 'a tree = Node of 'a * 'a tree list | Nil
+
+  (*TODO : more efficient functions*)
+
+  let rec insert ~tree ~element ~is_parent =
+    match tree with
+      | Nil -> Node (element, [])
+      | Node (t, l) ->
+          if is_parent t element
+          then Node (t, (Node (element, []))::l)
+          else Node (t,
+                     (List.map (fun tree -> insert ~tree ~element ~is_parent) l)
+                    )
+
+  let flatten =
+    let rec aux accu = function
+      | Nil -> accu
+      | Node (t, l) -> t::(aux [] l)
+    in
+    aux []
+end

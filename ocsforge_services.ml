@@ -21,7 +21,9 @@ let ( ** ) = Eliom_parameters.prod
 let ( >>= ) = Lwt.bind
 module Params = Eliom_parameters
 module Data = Ocsforge_data
+module Types = Ocsforge_types
 
+(*
 (** Making services for a project.*)
 let register_services_for_project ~name =
   let edit_task =
@@ -95,3 +97,67 @@ let register_services_for_project ~name =
   (* returning the services *)
   (edit_task, add_task)
 
+  *)
+
+let make_batch_edit_parameters ~tasks =
+
+    let param_names_for_task id =
+      let stamp s = s ^ (Types.string_of_task id) in
+       ( (opt_opt_param string_of_int int_of_string (stamp "progress")) **
+        ( (opt_opt_param string_of_int int_of_string (stamp "importance")) **
+         ( (Params.opt (Params.string (stamp "kind"))) **
+          ( (opt_opt_param
+               Printer.Calendar.of_string
+               Printer.Calendar.to_string
+               (stamp "deadline_t")) **
+           ( (Params.opt (Params.string (stamp "deadline_v"))) **
+             (opt_opt_param
+                Ocsforge_lang.string_of_period
+                Ocsforge_lang.period_of_string
+                (stamp "length"))
+           )))))
+    in
+
+    let param_names_assoc =
+      List.map (fun id -> (id, param_names_for_task id)) tasks
+    in
+    let param_names =
+      let flattened = List.flatten (snd (List.split param_names_assoc)) in
+        List.fold_right
+          (fun (prog, (imp, (kind, (dl_t, (dl_v, len))))) n ->
+             (prog ** (imp ** (kind ** (dl_t ** (dl_v ** (len ** n)))))) )
+          flattened (Params.unit "unit")
+    in (param_names_assoc, param_names)
+
+
+let register_batch_edit_service ~tasks ~params =
+  (* /!\ to be used only with non empty lists *)
+  if tasks = []
+  then failwith "Ocsforge_service.register_batch_edit_service"
+  else
+
+    let opt_opt_param string_of_t t_of_string name =
+      Params.opt
+        (Params.user_type
+           (Ocsforge_lang.string_of_t_opt string_of_t)
+           (Ocsforge_lang.t_opt_of_string t_of_string)
+           name)
+    in
+
+    (* creating *)
+    let batch_edit =
+      Eliom_services.new_post_coservice'
+        (* post because URI's might end up quite looooooooooong*)
+        ~max_use:1
+        ~fallback
+        ~post_params:params
+    in
+
+  (* registering *)
+  Eliom_predefmod.Action.register ~sp
+    ~service:batch_edit
+    (fun sp _ posted ->
+       () (*TODO*)
+    ) ;
+
+  batch_edit

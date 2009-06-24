@@ -331,7 +331,7 @@ let set_length ~task_id ~length =
      (fun db ->
         PGSQL(db)
           "UPDATE ocsforge_tasks
-           SET length = $length
+           SET length = $?length
            WHERE id = $task_id")
 
 let set_progress ~task_id ~progress =
@@ -340,7 +340,7 @@ let set_progress ~task_id ~progress =
      (fun db ->
         PGSQL(db)
           "UPDATE ocsforge_tasks
-           SET progress = $progress
+           SET progress = $?progress
            WHERE id = $task_id")
 
 let set_importance ~task_id ~importance =
@@ -349,7 +349,7 @@ let set_importance ~task_id ~importance =
      (fun db ->
         PGSQL(db)
           "UPDATE ocsforge_tasks
-           SET importance = $importance
+           SET importance = $?importance
            WHERE id = $task_id")
 
 let set_deadline_time ~task_id ~deadline_time =
@@ -357,7 +357,7 @@ let set_deadline_time ~task_id ~deadline_time =
       (fun db -> 
           PGSQL(db)
             "UPDATE ocsforge_tasks
-             SET deadline_time = $deadline_time
+             SET deadline_time = $?deadline_time
              WHERE id = $task_id")
 
 let set_deadline_version ~task_id ~deadline_version =
@@ -365,7 +365,7 @@ let set_deadline_version ~task_id ~deadline_version =
       (fun db -> 
           PGSQL(db)
             "UPDATE ocsforge_tasks
-             SET deadline_version = $deadline_version
+             SET deadline_version = $?deadline_version
              WHERE id = $task_id")
 
 let set_kind ~task_id ~kind =

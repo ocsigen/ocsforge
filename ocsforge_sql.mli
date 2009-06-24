@@ -125,23 +125,23 @@ val stamp_edition :
 
 val set_length :
   task_id:Ocsforge_types.task ->
-  length:CalendarLib.Calendar.Period.t ->
+  length:CalendarLib.Calendar.Period.t option ->
   Sql.db_t -> unit Lwt.t
 val set_progress :
   task_id:Ocsforge_types.task ->
-  progress:int32 ->
+  progress:int32 option ->
   Sql.db_t -> unit Lwt.t
 val set_importance :
   task_id:Ocsforge_types.task ->
-  importance:int32 ->
+  importance:int32 option ->
   Sql.db_t -> unit Lwt.t
 val set_deadline_time :
   task_id:Ocsforge_types.task ->
-  deadline_time:CalendarLib.Calendar.t ->
+  deadline_time:CalendarLib.Calendar.t option ->
   Sql.db_t -> unit Lwt.t
 val set_deadline_version :
   task_id:Ocsforge_types.task ->
-  deadline_version:string ->
+  deadline_version:string option ->
   Sql.db_t -> unit Lwt.t
 val set_kind :
   task_id:Ocsforge_types.task ->

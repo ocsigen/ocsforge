@@ -128,3 +128,16 @@ type raw_task_history_info =
     CalendarLib.Calendar.t option * string option * string * int32
 val get_task_history_info : raw_task_history_info -> task_history_info
 
+
+module Tree :
+sig
+  type 'a tree = Node of 'a * 'a tree list | Nil
+
+  val insert :
+    tree:'a tree ->
+    element:'a ->
+    'a tree
+
+  val flatten :
+    'a tree -> 'a list
+end

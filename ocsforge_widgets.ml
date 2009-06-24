@@ -296,58 +296,76 @@ object (self)
     in
     Lwt.return res
 
-  method private show_fields ~editor ~field ~task:t alt_k
-  (*  ((progress_name :
-        [ `One of int32 option ] Eliom_parameters.param_name),
-     ((importance_name :
-         [ `One of int32 option ] Eliom_parameters.param_name),
-      ((kind_name :
-          [ `One of string ] Eliom_parameters.param_name),
-       ((deadline_t_name :
-           [ `One of CalendarLib.Printer.Calendar.t option ]
-                Eliom_parameters.param_name),
-        ((deadline_v_name :
-            [ `Radio of string ] Eliom_parameters.param_name),
-         (length_name :
-             [ `One of CalendarLib.Calendar.Period.t option ]
-                        Eliom_parameters.param_name)
-                ))))) *)
-      = match field with 
+  method private show_static_field ~field ~task:t = match field with
     | "progress" ->
-(*      if editor
-      then
-        draw_simple_field ~name:progress_name
-          ~value:t.Types.t_progress
-          ~alternatives:(Ocsforge_lang.int32_interval_list
-          ~bump:(Int32.of_int 5)
-          ~min:Int32.zero
-          ~max:(Int32.of_int 100) ())
-          ~string_of_t:Int32.to_string
-          ()
-      else *)
         {{ <td>[
         !{: Ocsforge_lang.string_of_t_opt
               Int32.to_string
               t.Types.t_progress :} ] }}
     | "importance" ->
-(*      if editor
-      then
-        draw_simple_field ~name:importance_name
-          ~value:t.Types.t_importance
-          ~alternatives:(Ocsforge_lang.int32_interval_list
-          ~bump:(Int32.of_int 5)
-          ~min:Int32.zero
-          ~max:(Int32.of_int 100) ())
-          ~string_of_t:Int32.to_string
-          ()
-      else *)
           {{ <td>[
               !{: Ocsforge_lang.string_of_t_opt
                     Int32.to_string
                     t.Types.t_importance :} ] }}
     | "kind" ->
-(*      if editor
-      then
+        {{ <td>[ 
+             !{: t.Types.t_kind :} ] }}
+    | "deadline_time" ->
+        {{ <td>[
+             !{: Ocsforge_lang.string_of_t_opt
+                   Printer.Calendar.to_string
+                   t.Types.t_deadline_time :} ] }}
+    | "deadline_version" ->
+        {{ <td>[
+             !{: Ocsforge_lang.string_of_t_opt
+                   (fun d -> d)
+                   t.Types.t_deadline_version :} ] }}
+    | "length" ->
+        {{ <td>[
+            !{: Ocsforge_lang.string_of_t_opt
+                  Ocsforge_lang.string_of_period
+                  t.Types.t_length :} ] }}
+    | f ->
+      let f = Ocamlduce.Utf8.make ( "unknown field") in
+      {{ <td>[ !f ] }}
+
+
+  method private show_editable_field ~field ~task:t alt_k
+       ((progress_name :
+           [ `One of int32 option ] Eliom_parameters.param_name),
+        ((importance_name :
+            [ `One of int32 option ] Eliom_parameters.param_name),
+         ((kind_name :
+             [ `One of string ] Eliom_parameters.param_name),
+          ((deadline_t_name :
+              [ `One of CalendarLib.Printer.Calendar.t option ]
+                   Eliom_parameters.param_name),
+           ((deadline_v_name :
+               [ `Radio of string ] Eliom_parameters.param_name),
+            (length_name :
+                [ `One of CalendarLib.Calendar.Period.t option ]
+                           Eliom_parameters.param_name)
+                   ))))) 
+      = match field with 
+    | "progress" ->
+        draw_simple_field ~name:progress_name
+          ~value:t.Types.t_progress
+          ~alternatives:(Ocsforge_lang.int32_interval_list
+                           ~bump:(Int32.of_int 5)
+                           ~min:Int32.zero
+                           ~max:(Int32.of_int 100) ())
+          ~string_of_t:Int32.to_string
+          ()
+    | "importance" ->
+        draw_simple_field ~name:importance_name
+          ~value:t.Types.t_importance
+          ~alternatives:(Ocsforge_lang.int32_interval_list
+                           ~bump:(Int32.of_int 5)
+                           ~min:Int32.zero
+                           ~max:(Int32.of_int 100) ())
+          ~string_of_t:Int32.to_string
+          ()
+    | "kind" ->
         {{ <td>[
              !{: let k = t.Types.t_kind in
                  draw_field
@@ -357,12 +375,7 @@ object (self)
                    ~string_of_t:(fun k -> k) () :}
            ]
         }}
-      else *)
-        {{ <td>[ 
-             !{: t.Types.t_kind :} ] }}
     | "deadline_time" ->
-(*      if editor
-      then
         draw_simple_field ~name:deadline_t_name
           ~value:t.Types.t_deadline_time
           ~alternatives:(
@@ -384,28 +397,14 @@ object (self)
             ))
           ~string_of_t:Printer.Calendar.to_string
           ()
-      else *)
-        {{ <td>[
-             !{: Ocsforge_lang.string_of_t_opt
-                   Printer.Calendar.to_string
-                   t.Types.t_deadline_time :} ] }}
     | "deadline_version" ->
-(*      if editor
-      then
         {{ <td>[
             {: (Eliom_duce.Xhtml.string_input
                  ~name:deadline_v_name
                  ~input_type:{: "text" :}
                  ?value:t.Types.t_deadline_version
                  () ) :} ] }}
-      else *)
-        {{ <td>[
-             !{: Ocsforge_lang.string_of_t_opt
-                   (fun d -> d)
-                   t.Types.t_deadline_version :} ] }}
     | "length" ->
-(*      if editor
-      then
         draw_simple_field ~name:length_name
           ~value:t.Types.t_length
           ~alternatives:(
@@ -425,32 +424,13 @@ object (self)
                 ()) )
             ~string_of_t:Ocsforge_lang.string_of_period
             ()
-    else *)
-      {{ <td>[
-          !{: Ocsforge_lang.string_of_t_opt
-                Ocsforge_lang.string_of_period
-                t.Types.t_length :} ] }}
     | f ->
       let f = Ocamlduce.Utf8.make ( "unknown field") in
       {{ <td>[ !f ] }}
 
-  method display ~sp ~root_task ~fields ?(width = 600) ?(padding = 10) ?(char_size = 12)
-(*           ((progress_name :
-                [ `One of int32 option ] Eliom_parameters.param_name),
-             ((importance_name :
-                 [ `One of int32 option ] Eliom_parameters.param_name),
-              ((kind_name :
-                  [ `One of string ] Eliom_parameters.param_name),
-               ((deadline_t_name :
-                   [ `One of CalendarLib.Printer.Calendar.t option ]
-                       Eliom_parameters.param_name),
-                ((deadline_v_name :
-                    [ `Radio of string ]
-                        Eliom_parameters.param_name),
-                 (length_name :
-                    [ `One of CalendarLib.Calendar.Period.t option ]
-                        Eliom_parameters.param_name)
-                )))))*) () =
+  method display ~sp ~root_task ~fields
+        ?(width = 600) ?(padding = 10) ?(char_size = 12)
+        () =
     Data.get_tree ~sp ~root:root_task >>= fun tree ->
       let show_line ~width ~depth ~task:t =
         self#task_snippet ~sp
@@ -471,10 +451,11 @@ object (self)
                  !{: 
                      List.map
                       (fun field ->
-                         self#show_fields ~editor ~field ~task:t alt_k
-                       (*    (progress_name, (importance_name,
-                            (kind_name, (deadline_t_name,
-                             (deadline_v_name, length_name))))) *) )
+                         if editor
+                         then self#show_editable_field ~field ~task:t alt_k
+                                (List.assoc t.Types.t_id name_list)
+                         else self#show_static_field ~field ~task:t
+                      ) 
                       fields
                  :}
                ]
@@ -482,11 +463,11 @@ object (self)
             }}
       in
       let rec show_tree ~width ~depth ~tree:t = match t with
-        | Data.Nil ->
+        | Types.Tree.Nil ->
             let err = Ocamlduce.Utf8.make "Undefined task id." in
             Lwt.return ({{ [ <tr>[ <td>err ] ] }} : {{ [Xhtmltypes_duce.tr] }} )
-        | Data.Node (t,l) ->
-            (show_line ~width ~depth ~task:t
+        | Types.Tree.Node (t,l) ->
+            (show_line ~width ~depth ~task:t name_list
                >>= fun a ->
              Lwt_util.map_serial
                (fun tree -> show_tree ~width ~depth:(succ depth) ~tree)
@@ -506,18 +487,17 @@ object (self)
         show_tree ~width ~depth:0 ~tree
           >>= fun core ->
         let core : {{ [ Xhtmltypes_duce.tr+ ] }} = core in
-        let head = self#header ~fields in
-          Lwt.return
+        let head = self#header ~fields:(fields @ ["save"]) in
             (({{ <table
-                     cellpadding="15px" (*{: Ocamlduce.Utf8.make "15px" :}*)
-                     border="3px" (*{: Ocamlduce.Utf8.make "3px" :}*)
-                     width="80%" (*{: Ocamlduce.Utf8.make "80%" :}*)
-                     rules="cols">[
+                     cellpadding = "15px"
+                     border      = "2px"
+                     width       = "90%"
+                     rules       = "cols" >[
                    !{: head :}
                    !{: core :}
                  ]
               }} : {{ Xhtmltypes_duce.table }} ) : {{ Xhtmltypes_duce.block }})
-
+      in
 end
 
 

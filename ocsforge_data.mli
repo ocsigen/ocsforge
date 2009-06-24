@@ -86,18 +86,21 @@ val get_inheritance :
   area:Ocsforge_types.right_area ->
   Ocsforge_types.right_area Lwt.t
 
+val filter_task_list_for_editing :
+  sp:Eliom_sessions.server_params ->
+  Ocsforge_types.task_info list -> Ocsforge_types.task_info list
+
+
+val get_tree :
+  sp:Eliom_sessions.server_params ->
+  root:Ocsforge_types.task ->
+  Ocsforge_types.task_info Ocsforge_types.Tree.tree Lwt.t
 
 (** Get tasks with a specified parent.
   * [get_sub_tasks sp parent] result in the list of desired tasks. *)
 val get_sub_tasks :
   sp:Eliom_sessions.server_params ->
   parent:Ocsforge_types.task -> Ocsforge_types.task_info list Lwt.t
-
-type 'a tree = Node of 'a * 'a tree list | Nil
-
-val get_tree :
-  sp:Eliom_sessions.server_params ->
-  root:Ocsforge_types.task -> Ocsforge_types.task_info tree Lwt.t
 
 
 
@@ -114,11 +117,11 @@ val get_tasks_edited_by :
 val edit_task :
   sp:Eliom_sessions.server_params ->
   task:Ocsforge_types.task ->
-  ?length:CalendarLib.Calendar.Period.t ->
-  ?progress:int32 ->
-  ?importance:int32 ->
-  ?deadline_time:CalendarLib.Calendar.t ->
-  ?deadline_version:string -> ?kind:string -> unit -> unit Lwt.t
+  ?length:CalendarLib.Calendar.Period.t option ->
+  ?progress:int32 option ->
+  ?importance:int32 option ->
+  ?deadline_time:CalendarLib.Calendar.t option ->
+  ?deadline_version:string option -> ?kind:string -> unit -> unit Lwt.t
 
 
 (** Change a task parent and possibly area fields.

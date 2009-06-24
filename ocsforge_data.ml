@@ -260,26 +260,19 @@ let get_inheritance ~sp:_ ~area =
   Sql.full_transaction_block
   (Ocsforge_sql.get_area_inheritance ~area_id:area)
 
-let filter_aux sp t =
+let filter_aux_read sp t =
   Roles.get_area_role sp t.Types.t_area >>= fun role ->
   !!(role.Roles.task_reader)
 
+let filter_aux_edit sp t =
+  Roles.get_area_role sp t.Types.t_area >>= fun role ->
+  !!(role.Roles.task_property_editor)
+
 let filter_task_list_for_reading sp tl =
- Ocsimore_lib.lwt_filter
-  (filter_aux sp)
-  tl
+ Ocsimore_lib.lwt_filter (filter_aux_read sp) tl
 
-type 'a tree = Node of 'a * 'a tree list | Nil
-
-(*TODO : more efficient function*)
-let rec insert ~tree ~element ~is_parent =
-  match tree with
-    | Nil -> Node (element, [])
-    | Node (t, l) ->
-        if is_parent t element
-        then Node (t, (Node (element, []))::l)
-        else Node (t,
-                   (List.map (fun tree -> insert ~tree ~element ~is_parent) l))
+let filter_task_list_for_editing sp tl =
+  Ocsimore_lib.lwt_filter (filter_aux_edit sp) tl
 
 let get_tree ~sp ~root =
   Sql.full_transaction_block (Ocsforge_sql.get_tasks_in_tree ~root)
@@ -289,11 +282,11 @@ let get_tree ~sp ~root =
         | [] -> Lwt.return tree
         | h::t ->
             aux
-              (insert ~tree ~element:h
+              (Types.Tree.insert ~tree ~element:h
                  ~is_parent:(fun p e ->
                                e.Types.t_parent = p.Types.t_id))
               t
-      in aux Nil tl
+      in aux Types.Tree.Nil tl
 
 
 let get_sub_tasks ~sp ~parent =

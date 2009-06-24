@@ -31,10 +31,24 @@ let unopt ?default v =
     | (_, Some x) -> x
     | _           -> failwith "Can't unopt None"
 
-let string_of_t_opt ?none string_of_t =
+let string_of_t_opt ?(none = "None") ?(quote = "\"") string_of_t =
   function
-    | None -> (match none with | None -> "None" | Some n -> n)
-    | Some s -> "\"" ^ (string_of_t s) ^ "\""
+    | None -> none
+    | Some s -> quote ^ (string_of_t s) ^ quote
+
+let t_opt_of_string ?(none = "None") ?(quote = "\"") t_of_string =
+  let none_regexp = Str.regexp_string none in
+  let some_regexp =
+    let quote_ = Str.quote quote in
+    Str.regexp (quote_ ^ "\\(.*\\)" ^ quote_)
+  in
+    (fun s ->
+       if Str.string_match none_regexp s 0
+       then None
+       else if Str.string_match some_regexp s 0
+            then Some (t_of_string (Str.matched_group 1 s))
+            else failwith "Ocsforge_lang.t_opt_of_string not a valid string")
+
 
 (*List functions*)
 let assoc_all k l =
