@@ -98,16 +98,16 @@ let new_area ?id ~forum ?(version = "0.0") () =
                >>= fun id ->
                  PGSQL(db)
                    "INSERT INTO ocsforge_right_areas \
-                           ( id,  forum_id, inheritance) \
-                    VALUES ($id, $forum,   $id)"
+                           ( id,  forum_id, version,  inheritance) \
+                    VALUES ($id, $forum,    $version, $id)"
               >>= fun () -> Lwt.return id
              end
          | Some id ->
              let id = Types.sql_of_right_area id in
              PGSQL(db)
                "INSERT INTO ocsforge_right_areas \
-                       ( id,  forum_id, inheritance) \
-                VALUES ($id, $forum,   $id)"
+                       ( id,  forum_id, version,  inheritance) \
+                VALUES ($id, $forum,    $version, $id)"
              >>= fun () -> Lwt.return id
        )
      >>= fun i -> Lwt.return (Types.right_area_of_sql i))
@@ -208,7 +208,7 @@ let get_tasks_in_tree ~root db =
               deadline_time, deadline_version, kind, \
               area, tree_min, tree_max
        FROM ocsforge_tasks
-       WHERE tree_min > $tmin AND tree_max < $tmax")
+       WHERE tree_min >= $tmin AND tree_max <= $tmax")
     >>= fun r -> (Lwt_util.map_serial
                     (fun t -> Lwt.return (Types.get_task_info t))
                     r)
@@ -535,4 +535,13 @@ let bootstrap_task ~area ~message =
          VALUES ($id, $id, $message, $author, $now, $version, \
                  $kind, $area, $tmin, $tmax)")
 
+let get_task_count () =
+  Sql.full_transaction_block
+    (fun db ->
+       PGSQL(db)
+         "SELECT COUNT('id') FROM ocsforge_tasks"
+          >>= (function
+                 | [] | _::_::_ | [None] ->
+                     failwith "Ocsforge_sql.get_task_count"
+                 | [Some i] -> Lwt.return (Int64.to_int i)))
 

@@ -203,4 +203,7 @@ val bootstrap_task :
   area:Ocsforge_types.right_area ->
   message:Forum_sql.Types.message ->
   unit Lwt.t
+val get_task_count :
+  unit -> int Lwt.t
+
 

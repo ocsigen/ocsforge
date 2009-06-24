@@ -251,7 +251,20 @@ object (self)
     }}
 
   method private header ~fields =
+    let field_count = List.length fields in
     ({{ [
+       <colgroup>[
+         <col>[] (*the task column*)
+         !{:
+           List.map
+            (fun s -> {{ <col width={: (string_of_int (60 / field_count))
+                                       ^ "%"
+                                    :}>[] }} )
+            fields
+           (*There's no division by zero problem because the function is
+            * called only when the list isn't empty*)
+          :}
+       ]
        <thead>[
          <tr>[
            <th>[ !{: Ocamlduce.Utf8.make "tasks" :} ]
@@ -266,7 +279,7 @@ object (self)
            :}
          ]
        ] ]
-     }} : {{ [ Xhtmltypes_duce.thead ] }} )
+     }} : {{ [ Xhtmltypes_duce.colgroup Xhtmltypes_duce.thead ] }} )
 
   method private task_snippet ~sp ~width ~depth ~padding ~char_size ~message =
     Forum_data.get_message ~sp ~message_id:message >>= fun msg ->
@@ -284,7 +297,7 @@ object (self)
     Lwt.return res
 
   method private show_fields ~editor ~field ~task:t alt_k
-    ((progress_name :
+  (*  ((progress_name :
         [ `One of int32 option ] Eliom_parameters.param_name),
      ((importance_name :
          [ `One of int32 option ] Eliom_parameters.param_name),
@@ -298,10 +311,10 @@ object (self)
          (length_name :
              [ `One of CalendarLib.Calendar.Period.t option ]
                         Eliom_parameters.param_name)
-                ))))) 
+                ))))) *)
       = match field with 
     | "progress" ->
-      if editor
+(*      if editor
       then
         draw_simple_field ~name:progress_name
           ~value:t.Types.t_progress
@@ -311,13 +324,13 @@ object (self)
           ~max:(Int32.of_int 100) ())
           ~string_of_t:Int32.to_string
           ()
-      else
+      else *)
         {{ <td>[
         !{: Ocsforge_lang.string_of_t_opt
               Int32.to_string
               t.Types.t_progress :} ] }}
     | "importance" ->
-      if editor
+(*      if editor
       then
         draw_simple_field ~name:importance_name
           ~value:t.Types.t_importance
@@ -327,13 +340,13 @@ object (self)
           ~max:(Int32.of_int 100) ())
           ~string_of_t:Int32.to_string
           ()
-      else
+      else *)
           {{ <td>[
               !{: Ocsforge_lang.string_of_t_opt
                     Int32.to_string
                     t.Types.t_importance :} ] }}
     | "kind" ->
-      if editor
+(*      if editor
       then
         {{ <td>[
              !{: let k = t.Types.t_kind in
@@ -344,11 +357,11 @@ object (self)
                    ~string_of_t:(fun k -> k) () :}
            ]
         }}
-      else
+      else *)
         {{ <td>[ 
              !{: t.Types.t_kind :} ] }}
     | "deadline_time" ->
-      if editor
+(*      if editor
       then
         draw_simple_field ~name:deadline_t_name
           ~value:t.Types.t_deadline_time
@@ -371,13 +384,13 @@ object (self)
             ))
           ~string_of_t:Printer.Calendar.to_string
           ()
-      else
+      else *)
         {{ <td>[
              !{: Ocsforge_lang.string_of_t_opt
                    Printer.Calendar.to_string
                    t.Types.t_deadline_time :} ] }}
     | "deadline_version" ->
-      if editor
+(*      if editor
       then
         {{ <td>[
             {: (Eliom_duce.Xhtml.string_input
@@ -385,13 +398,13 @@ object (self)
                  ~input_type:{: "text" :}
                  ?value:t.Types.t_deadline_version
                  () ) :} ] }}
-      else
+      else *)
         {{ <td>[
              !{: Ocsforge_lang.string_of_t_opt
                    (fun d -> d)
                    t.Types.t_deadline_version :} ] }}
     | "length" ->
-      if editor
+(*      if editor
       then
         draw_simple_field ~name:length_name
           ~value:t.Types.t_length
@@ -412,17 +425,17 @@ object (self)
                 ()) )
             ~string_of_t:Ocsforge_lang.string_of_period
             ()
-    else
+    else *)
       {{ <td>[
           !{: Ocsforge_lang.string_of_t_opt
                 Ocsforge_lang.string_of_period
                 t.Types.t_length :} ] }}
     | f ->
-      let f = Ocamlduce.Utf8.make ( "unknown field " ^ f) in
+      let f = Ocamlduce.Utf8.make ( "unknown field") in
       {{ <td>[ !f ] }}
 
   method display ~sp ~root_task ~fields ?(width = 600) ?(padding = 10) ?(char_size = 12)
-           ((progress_name :
+(*           ((progress_name :
                 [ `One of int32 option ] Eliom_parameters.param_name),
              ((importance_name :
                  [ `One of int32 option ] Eliom_parameters.param_name),
@@ -437,7 +450,7 @@ object (self)
                  (length_name :
                     [ `One of CalendarLib.Calendar.Period.t option ]
                         Eliom_parameters.param_name)
-                ))))) () =
+                )))))*) () =
     Data.get_tree ~sp ~root:root_task >>= fun tree ->
       let show_line ~width ~depth ~task:t =
         self#task_snippet ~sp
@@ -450,17 +463,18 @@ object (self)
 
           Lwt.return
             {{ <tr>[
-                 <th>[ <div class={:"depth" ^ (string_of_int depth):}>[
-                         !snip
-                       ]
+                 <th align="left">[
+                   <div class={:"depth" ^ (string_of_int depth):}>[
+                      !snip
+                   ]
                  ]
                  !{: 
                      List.map
                       (fun field ->
                          self#show_fields ~editor ~field ~task:t alt_k
-                           (progress_name, (importance_name,
+                       (*    (progress_name, (importance_name,
                             (kind_name, (deadline_t_name,
-                             (deadline_v_name, length_name))))))
+                             (deadline_v_name, length_name))))) *) )
                       fields
                  :}
                ]
@@ -494,11 +508,15 @@ object (self)
         let core : {{ [ Xhtmltypes_duce.tr+ ] }} = core in
         let head = self#header ~fields in
           Lwt.return
-            ({{ <table>[
-                  !{: head :}
-                  !{: core :}
-                ]
-             }} : {{ Xhtmltypes_duce.table }} )
+            (({{ <table
+                     cellpadding="15px" (*{: Ocamlduce.Utf8.make "15px" :}*)
+                     border="3px" (*{: Ocamlduce.Utf8.make "3px" :}*)
+                     width="80%" (*{: Ocamlduce.Utf8.make "80%" :}*)
+                     rules="cols">[
+                   !{: head :}
+                   !{: core :}
+                 ]
+              }} : {{ Xhtmltypes_duce.table }} ) : {{ Xhtmltypes_duce.block }})
 
 end
 
