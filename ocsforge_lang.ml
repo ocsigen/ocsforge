@@ -101,5 +101,30 @@ let string_of_period p =
   then
     let d = Date.Period.nb_days
               (Calendar.Period.to_date p)
-    in Printf.sprintf "%i days and %i hours" d (h mod 24)
-  else Printf.sprintf "%i hours" h
+    in
+    if h < 72
+    then
+      Printf.sprintf "%i days, %i hours" d (h mod 24)
+    else
+      Printf.sprintf "%i days" d
+  else
+    Printf.sprintf "%i hours" h
+
+let period_of_string s =
+  let days_re = Str.regexp "\\([0-9]+\\) days" in
+  let hours_re = Str.regexp "\\([0-9]+\\) hours" in
+  let hours =
+    try
+      let _ = Str.search_forward hours_re s 0 in
+      int_of_string (Str.matched_group 1 s)
+    with Not_found -> 0
+  in
+  let days =
+    try
+      let _ = Str.search_forward days_re s 0 in
+      int_of_string (Str.matched_group 1 s)
+    with Not_found -> 0
+  in Calendar.Period.lmake ~day:days ~hour:hours ()
+
+
+

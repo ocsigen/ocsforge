@@ -70,7 +70,7 @@ type task_info = {
   t_importance : int32 option;
   t_deadline_time : CalendarLib.Calendar.t option;
   t_deadline_version : string option;
-  t_kind : string;
+  t_kind : string option;
   t_area : right_area;
   t_tree_min : int32;
   t_tree_max : int32;
@@ -90,7 +90,7 @@ val task_of_int : int -> task
 type raw_task_info =
     int32 * int32 * int32 * int32 * CalendarLib.Calendar.t * string *
     CalendarLib.Calendar.Period.t option * int32 option * int32 option *
-    CalendarLib.Calendar.t option * string option * string * int32 *
+    CalendarLib.Calendar.t option * string option * string option * int32 *
     int32 * int32
 val get_task_info : raw_task_info -> task_info
 
@@ -109,7 +109,7 @@ type task_history_info = {
   th_importance : int32 option;
   th_deadline_time : CalendarLib.Calendar.t option;
   th_deadline_version : string option;
-  th_kind : string;
+  th_kind : string option;
   th_area : right_area;
 }
 
@@ -125,7 +125,7 @@ val task_history_of_string : string -> task
 type raw_task_history_info =
     int32 * int32 * int32 * CalendarLib.Calendar.t * string *
     CalendarLib.Calendar.Period.t option * int32 option * int32 option *
-    CalendarLib.Calendar.t option * string option * string * int32
+    CalendarLib.Calendar.t option * string option * string option * int32
 val get_task_history_info : raw_task_history_info -> task_history_info
 
 
@@ -136,8 +136,7 @@ sig
   val insert :
     tree:'a tree ->
     element:'a ->
+    is_parent:('a -> 'a -> bool) ->
     'a tree
 
-  val flatten :
-    'a tree -> 'a list
 end

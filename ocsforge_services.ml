@@ -19,145 +19,113 @@
 
 let ( ** ) = Eliom_parameters.prod
 let ( >>= ) = Lwt.bind
+
 module Params = Eliom_parameters
 module Data = Ocsforge_data
 module Types = Ocsforge_types
 
-(*
-(** Making services for a project.*)
-let register_services_for_project ~name =
-  let edit_task =
-    Eliom_services.new_service
-      ~sp
-      ~path:(root_path::name::["edit_task"])
-      ~get_params:
-         (Params.int "id" **
-          (Params.opt (Params.int "progress") **
-           (Params.opt (Params.int "importance") **
-            (Params.opt (Params.string "kind") **
-             (Params.opt (Params.user_type
-                            CalendarLib.Printer.Calendar.of_string
-                            CalendarLib.Printer.Calendar.to_string
-                            "deadline") **
-              (Params.opt (Params.string "deadline_version") **
-               (Params.opt (Params.int "length") **
-                Params.opt (Params.bool "detach")
-               )))))))
-      ()
-  in
-  let add_task =
-    Eliom_services.new_service
-      ~sp
-      ~path:(root_path::name::["new_task"])
-      ~get_params:
-         (Params.int "parent" **
-          (Params.opt (Params.int "progress") **
-           (Params.opt (Params.int "importance") **
-            (Params.opt (Params.string "kind") **
-             (Params.opt (Params.user_type
-                            CalendarLib.Printer.Calendar.of_string
-                            CalendarLib.Printer.Calendar.to_string
-                            "deadline") **
-              (Params.opt (Params.string "deadline_version") **
-               (Params.opt (Params.int "length") **
-                (Params.opt (Params.bool "detach")
-                ))))))))
-      ()
-  in
-
-    Eliom_predefmod.Action.register
-      ~service:add_task
-      (fun sp (parent, (progress, (importance, (kind,
-               (deadline_time, (deadline_version, (length, detach))))))) () ->
-         let parent = Types.task_of_int parent in
-         let length = CalendarLib.Calendar.Peridod.lmake ~hour:length () in
-           match detach with
-             | Some true ->
-               Data.new_task ~sp ~parent
-                 ?length ?progress ?importance
-                 ?deadline_time ?deadline_version ?kind ~area:None ()
-             | None | Some false ->
-               Data.new_task ~sp ~parent
-                 ?length ?progress ?importance
-                 ?deadline_time ?deadline_version ?kind ()
-      );
-
-    Eliom_predefmod.Action.register
-      ~service:edit_task
-      (fun sp (id, (progress, (importance, (kind,
-               (deadline_time, (deadline_version, (length))))))) () ->
-         let task = Types.task_of_int id in
-         let length = CalendarLib.Calendar.Peridod.lmake ~hour:length () in
-         Data.new_task ~sp ~task
-           ?length ?progress ?importance
-           ?deadline_time ?deadline_version ?kind ());
+open CalendarLib
 
 
 
-  (* returning the services *)
-  (edit_task, add_task)
 
-  *)
+let set_length_service =
+  Eliom_predefmod.Action.register_new_post_coservice'
+    ~options:`NoReload
+    ~post_params:(
+       (Params.user_type
+          Types.task_of_string
+          Types.string_of_task
+          "id") **
+       (Params.user_type
+          (Ocsforge_lang.t_opt_of_string Ocsforge_lang.period_of_string)
+          (Ocsforge_lang.string_of_t_opt Ocsforge_lang.string_of_period)
+          "length")
+      )
+    (* error_handler *)
+    (fun sp () (task, length) ->
+       Data.edit_task ~sp ~task ~length ())
 
-let make_batch_edit_parameters ~tasks =
+let set_progress_service =
+  Eliom_predefmod.Action.register_new_post_coservice'
+    ~options:`NoReload
+    ~post_params:(
+       (Params.user_type
+          Types.task_of_string
+          Types.string_of_task
+          "id") **
+       (Params.user_type
+          (Ocsforge_lang.t_opt_of_string Int32.of_string)
+          (Ocsforge_lang.string_of_t_opt Int32.to_string)
+          "progress")
+      )
+    (* error_handler *)
+    (fun sp () (task, progress) ->
+       Data.edit_task ~sp ~task ~progress ())
 
-    let param_names_for_task id =
-      let stamp s = s ^ (Types.string_of_task id) in
-       ( (opt_opt_param string_of_int int_of_string (stamp "progress")) **
-        ( (opt_opt_param string_of_int int_of_string (stamp "importance")) **
-         ( (Params.opt (Params.string (stamp "kind"))) **
-          ( (opt_opt_param
-               Printer.Calendar.of_string
-               Printer.Calendar.to_string
-               (stamp "deadline_t")) **
-           ( (Params.opt (Params.string (stamp "deadline_v"))) **
-             (opt_opt_param
-                Ocsforge_lang.string_of_period
-                Ocsforge_lang.period_of_string
-                (stamp "length"))
-           )))))
-    in
+let set_importance_service =
+  Eliom_predefmod.Action.register_new_post_coservice'
+    ~options:`NoReload
+    ~post_params:(
+       (Params.user_type
+          Types.task_of_string
+          Types.string_of_task
+          "id") **
+       (Params.user_type
+          (Ocsforge_lang.t_opt_of_string Int32.of_string)
+          (Ocsforge_lang.string_of_t_opt Int32.to_string)
+          "importance")
+      )
+    (* error_handler *)
+    (fun sp () (task, importance) ->
+       Data.edit_task ~sp ~task ~importance ())
 
-    let param_names_assoc =
-      List.map (fun id -> (id, param_names_for_task id)) tasks
-    in
-    let param_names =
-      let flattened = List.flatten (snd (List.split param_names_assoc)) in
-        List.fold_right
-          (fun (prog, (imp, (kind, (dl_t, (dl_v, len))))) n ->
-             (prog ** (imp ** (kind ** (dl_t ** (dl_v ** (len ** n)))))) )
-          flattened (Params.unit "unit")
-    in (param_names_assoc, param_names)
+let set_deadline_time_service =
+  Eliom_predefmod.Action.register_new_post_coservice'
+    ~options:`NoReload
+    ~post_params:(
+       (Params.user_type
+          Types.task_of_string
+          Types.string_of_task
+          "id") **
+       (Params.user_type
+          (Ocsforge_lang.t_opt_of_string Printer.Calendar.from_string)
+          (Ocsforge_lang.string_of_t_opt Printer.Calendar.to_string)
+          "deadline_t")
+      )
+    (* error_handler *)
+    (fun sp () (task, deadline_time) ->
+       Data.edit_task ~sp ~task ~deadline_time ())
 
+let set_deadline_version_service =
+  Eliom_predefmod.Action.register_new_post_coservice'
+    ~options:`NoReload
+    ~post_params:(
+       (Params.user_type
+          Types.task_of_string
+          Types.string_of_task
+          "id") **
+       (Params.string "deadline_v")
+      )
+    (* error_handler *)
+    (fun sp () (task, dlv) ->
+       Data.edit_task ~sp ~task
+         ~deadline_version:(if dlv = "" then None else Some dlv) ())
 
-let register_batch_edit_service ~tasks ~params =
-  (* /!\ to be used only with non empty lists *)
-  if tasks = []
-  then failwith "Ocsforge_service.register_batch_edit_service"
-  else
+let set_kind_service =
+  Eliom_predefmod.Action.register_new_post_coservice'
+    ~options:`NoReload
+    ~post_params:(
+       (Params.user_type
+          Types.task_of_string
+          Types.string_of_task
+          "id") **
+       (Params.user_type
+          (Ocsforge_lang.t_opt_of_string (fun s -> s))
+          (Ocsforge_lang.string_of_t_opt (fun s -> s))
+          "kind")
+      )
+    (* error_handler *)
+    (fun sp () (task, kind) ->
+       Data.edit_task ~sp ~task ~kind ())
 
-    let opt_opt_param string_of_t t_of_string name =
-      Params.opt
-        (Params.user_type
-           (Ocsforge_lang.string_of_t_opt string_of_t)
-           (Ocsforge_lang.t_opt_of_string t_of_string)
-           name)
-    in
-
-    (* creating *)
-    let batch_edit =
-      Eliom_services.new_post_coservice'
-        (* post because URI's might end up quite looooooooooong*)
-        ~max_use:1
-        ~fallback
-        ~post_params:params
-    in
-
-  (* registering *)
-  Eliom_predefmod.Action.register ~sp
-    ~service:batch_edit
-    (fun sp _ posted ->
-       () (*TODO*)
-    ) ;
-
-  batch_edit

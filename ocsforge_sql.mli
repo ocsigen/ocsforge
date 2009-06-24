@@ -145,7 +145,7 @@ val set_deadline_version :
   Sql.db_t -> unit Lwt.t
 val set_kind :
   task_id:Ocsforge_types.task ->
-  kind:string ->
+  kind:string option ->
   Sql.db_t -> unit Lwt.t
 val set_area :
   task_id:Ocsforge_types.task ->
@@ -167,7 +167,7 @@ val change_tree_marks :
 * the delete function can uses a tuple of list with the second being an
 * optionnal alternative for kinds.
 *
-* eg : del ~area ~kinds:(["BUG";"RFE";"RFF"],["Bug", Some "Feature", None]) db
+* eg : del ~area ~kinds:(["BUG";"RFE";"RFF"],[Some "Bug", Some "Feature", None]) db
 * replaces instances of "BUG" with "Bug" and "RFE" with "Feature"*)
 val get_kinds_for_area :
   area_id:Ocsforge_types.right_area ->

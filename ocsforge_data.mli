@@ -86,11 +86,6 @@ val get_inheritance :
   area:Ocsforge_types.right_area ->
   Ocsforge_types.right_area Lwt.t
 
-val filter_task_list_for_editing :
-  sp:Eliom_sessions.server_params ->
-  Ocsforge_types.task_info list -> Ocsforge_types.task_info list
-
-
 val get_tree :
   sp:Eliom_sessions.server_params ->
   root:Ocsforge_types.task ->
@@ -121,7 +116,7 @@ val edit_task :
   ?progress:int32 option ->
   ?importance:int32 option ->
   ?deadline_time:CalendarLib.Calendar.t option ->
-  ?deadline_version:string option -> ?kind:string -> unit -> unit Lwt.t
+  ?deadline_version:string option -> ?kind:string option -> unit -> unit Lwt.t
 
 
 (** Change a task parent and possibly area fields.

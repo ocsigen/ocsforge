@@ -76,7 +76,7 @@ type task_info = {
   t_importance       : int32 option;
   t_deadline_time    : CalendarLib.Calendar.t option;
   t_deadline_version : string option;
-  t_kind             : string;
+  t_kind             : string option;
 
   t_area             : right_area;
 
@@ -103,7 +103,7 @@ type raw_task_info =
      int32 *
      int32 * CalendarLib.Calendar.t * string *
      CalendarLib.Calendar.Period.t option * int32 option * int32 option
-     * CalendarLib.Calendar.t option * string option * string *
+     * CalendarLib.Calendar.t option * string option * string option *
      int32 * int32 * int32)
 
 let get_task_info
@@ -151,7 +151,7 @@ type task_history_info = {
   th_importance       : int32 option;
   th_deadline_time    : CalendarLib.Calendar.t option;
   th_deadline_version : string option;
-  th_kind             : string;
+  th_kind             : string option;
 
   th_area             : right_area;
 }
@@ -170,7 +170,7 @@ type raw_task_history_info =
     (int32 * int32 *
      int32 * CalendarLib.Calendar.t * string *
      CalendarLib.Calendar.Period.t option * int32 option * int32 option
-     * CalendarLib.Calendar.t option * string option * string *
+     * CalendarLib.Calendar.t option * string option * string option *
      int32)
 
 let get_task_history_info
@@ -212,11 +212,4 @@ struct
           else Node (t,
                      (List.map (fun tree -> insert ~tree ~element ~is_parent) l)
                     )
-
-  let flatten =
-    let rec aux accu = function
-      | Nil -> accu
-      | Node (t, l) -> t::(aux [] l)
-    in
-    aux []
 end

@@ -39,9 +39,8 @@ end
 
 let new_task 
       ~parent ~message ~creator ~version
-      ?length ?progress ?importance
-      ?deadline_time ?deadline_version
-      ?(kind       = Defaults.kind      )
+      ?length        ?progress         ?importance
+      ?deadline_time ?deadline_version ?kind
       ~area
       () =
   let parent_id   = Types.sql_of_task parent in
@@ -74,7 +73,7 @@ let new_task
                   area, tree_min, tree_max)
                 VALUES ($parent_id, $message_id, $creator_id, $now, $version, \
                         $?length, $?progress, $?importance, \
-                        $?deadline_time, $?deadline_version, $kind, \
+                        $?deadline_time, $?deadline_version, $?kind, \
                         $area_id, $tmin, $tmax)")
        >>= fun () -> Sql.PGOCaml.serial4 db "ocsforge_task_id_seq"
        >>= fun i -> Lwt.return (Types.task_of_sql i))
@@ -373,7 +372,7 @@ let set_kind ~task_id ~kind =
       (fun db -> 
           PGSQL(db)
             "UPDATE ocsforge_tasks
-             SET kind = $kind
+             SET kind = $?kind
              WHERE id = $task_id")
 
 let set_area ~task_id ~area =

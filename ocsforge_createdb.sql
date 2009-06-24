@@ -50,7 +50,7 @@ CREATE TABLE ocsforge_tasks (
     importance integer DEFAULT NULL CHECK (importance >= 0 AND 100 >= importance), 
     deadline_time timestamp,
     deadline_version text,
-    kind text DEFAULT 'MISC' NOT NULL,
+    kind text,
 
     area integer NOT NULL REFERENCES ocsforge_right_areas(id),
 
@@ -75,7 +75,7 @@ CREATE TABLE ocsforge_tasks_history (
     importance integer DEFAULT NULL CHECK (importance >= 0 AND importance <= 100),
     deadline_time timestamp,
     deadline_version text,
-    kind text DEFAULT 'MISC' NOT NULL,
+    kind text,
 
     area integer NOT NULL REFERENCES ocsforge_right_areas(id)
 );
