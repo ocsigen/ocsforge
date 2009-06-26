@@ -34,50 +34,9 @@ let (>>=) = Lwt.bind
 let (!!) = Lazy.force
 let ($) = User_sql.Types.apply_parameterized_group
 
+let do_sql f = Lwt_pool.use Sql.pool f
 
 (** Local functions *)
-
-(**[infer_progress ~task] evaluates as [(m,n)] where :
-  * [n] is the number of subtasks with progress unset (being [None])
-  * [m] is the mean of subtasks' progress (when not being [None])*)
-let infer_progress ~sp ~task =
-  Ocsforge_sql.get_area_for_task~task_id:task () >>= fun area ->
-  Roles.get_area_role sp area >>= fun role ->
-  !!(role.Roles.subarea_creator) >>= fun b ->
-  if b
-  then
-    begin
-      Ocsforge_sql.get_tasks_by_parent ~parent:task ()
-      >>= (function
-        | [] -> failwith "Ocsforge_data.infer_progress can't infer on leaf"
-        | tasks  ->
-        begin
-          Lwt_util.map_serial
-            (fun {Types.t_progress = progress ;
-                  Types.t_tree_min = tmin ;
-                  Types.t_tree_max = tmax }
-              -> Lwt.return (progress, (Int32.sub tmax tmin)))
-            tasks                                     >>= fun tasks ->
-          Lwt_util.fold_left
-            (fun (total, curr, nones) (value,weight)
-              -> match value with
-                | None ->
-                     Lwt.return (total, curr, Int32.succ nones)
-                | Some value ->
-                    (Lwt.return (Int32.add total weight) >>= fun total ->
-                     Lwt.return
-                       (Int32.add curr (Int32.mul value weight)) >>= fun curr ->
-                     Lwt.return (total, curr, nones)))
-            (Int32.zero, Int32.zero, Int32.zero) tasks
-        end)
-        >>= fun (t,c,n) -> 
-          Lwt.catch
-            (fun () -> Lwt.return ((Int32.div c t),n))
-            (function
-               | Division_by_zero -> Lwt.return (Int32.zero,n)
-               | exc -> Lwt.fail exc)
-    end
-  else Lwt.fail Ocsimore_common.Permission_denied
 
 
 
@@ -92,9 +51,10 @@ let new_task ~sp ~parent ~subject ~text
     match area with
 
     | Some None -> (* detach into a new zone *)
-        Ocsforge_sql.get_area_for_task ~task_id:parent () >>= fun parent_area ->
-        Roles.get_area_role sp parent_area >>= fun role ->
-        !!(role.Roles.subarea_creator) >>= fun b ->
+        do_sql (Ocsforge_sql.get_area_for_task ~task_id:parent)
+                                            >>= fun parent_area ->
+        Roles.get_area_role sp parent_area  >>= fun role ->
+        !!(role.Roles.subarea_creator)      >>= fun b ->
         if b
         then
           Sql.full_transaction_block
@@ -102,7 +62,7 @@ let new_task ~sp ~parent ~subject ~text
            begin
 
           (*get area code*)
-             Ocsforge_sql.next_right_area_id ~db
+             Ocsforge_sql.next_right_area_id db
           >>= fun c ->
 
           (* create forum *)
@@ -189,18 +149,17 @@ let new_task ~sp ~parent ~subject ~text
        else Lwt.fail Ocsimore_common.Permission_denied
 
     | None -> (* do not detach *)
-        Ocsforge_sql.get_area_for_task ~task_id:parent ()
+        do_sql (Ocsforge_sql.get_area_for_task ~task_id:parent)
                                                      >>= fun area_parent ->
-        Sql.full_transaction_block
-          (fun db -> Ocsforge_sql.get_area_inheritance ~area_id:area_parent db)
+        do_sql (Ocsforge_sql.get_area_inheritance ~area_id:area_parent)
                                                      >>= fun area ->
         Roles.get_area_role sp area                  >>= fun role ->
         !!(role.Roles.task_creator)                  >>= fun b ->
         if b
         then
           Sql.full_transaction_block
-          (fun _ ->
-            Ocsforge_sql.get_area_by_id ~area_id:area ()  >>= fun ainfo ->
+          (fun db ->
+            Ocsforge_sql.get_area_by_id ~area_id:area db >>= fun ainfo ->
             let version = ainfo.Types.r_version in
             let forum   = ainfo.Types.r_forum   in
 
@@ -219,8 +178,8 @@ let new_task ~sp ~parent ~subject ~text
          if b
          then
           Sql.full_transaction_block
-          (fun _ ->
-            Ocsforge_sql.get_area_by_id ~area_id:area () >>= fun ainfo ->
+          (fun db ->
+            Ocsforge_sql.get_area_by_id ~area_id:area db >>= fun ainfo ->
             let version = ainfo.Types.r_version in
             let forum = ainfo.Types.r_forum in
 
@@ -237,24 +196,24 @@ let new_task ~sp ~parent ~subject ~text
 
 
 let get_task ~sp ~task =
-  Ocsforge_sql.get_area_for_task ~task_id:task ()  >>= fun area ->
-  Roles.get_area_role sp area                      >>= fun role ->
-  !!(role.Roles.task_reader)                       >>= fun b ->
+  do_sql (Ocsforge_sql.get_area_for_task ~task_id:task)   >>= fun area ->
+  Roles.get_area_role sp area                             >>= fun role ->
+  !!(role.Roles.task_reader)                              >>= fun b ->
   if b
-  then Ocsforge_sql.get_task_by_id ~task_id:task ()
+  then do_sql (Ocsforge_sql.get_task_by_id ~task_id:task)
   else Lwt.fail Ocsimore_common.Permission_denied
 
 
 let get_task_history ~sp ~task =
-  Ocsforge_sql.get_area_for_task ~task_id:task ()  >>= fun area ->
-  Roles.get_area_role sp area                      >>= fun role ->
-  !!(role.Roles.task_reader)                       >>= fun b ->
+  do_sql (Ocsforge_sql.get_area_for_task ~task_id:task)   >>= fun area ->
+  Roles.get_area_role sp area                             >>= fun role ->
+  !!(role.Roles.task_reader)                              >>= fun b ->
   if b
-  then Ocsforge_sql.get_task_history_by_id ~task_id:task ()
+  then do_sql (Ocsforge_sql.get_task_history_by_id ~task_id:task)
   else Lwt.fail Ocsimore_common.Permission_denied
 
 let get_area ~sp:_ ~area =
-  Ocsforge_sql.get_area_by_id ~area_id:area ()
+  do_sql (Ocsforge_sql.get_area_by_id ~area_id:area)
 
 let get_inheritance ~sp:_ ~area =
   Sql.full_transaction_block
@@ -289,13 +248,15 @@ let get_tree ~sp ~root =
       in aux Types.Tree.Nil tl
 
 
+
+
 let get_sub_tasks ~sp ~parent =
-  Ocsforge_sql.get_tasks_by_parent ~parent ()
+  Sql.full_transaction_block (Ocsforge_sql.get_tasks_by_parent ~parent)
     >>= (filter_task_list_for_reading sp)
 
 
 let get_tasks_edited_by ~sp ~editor =
-  Ocsforge_sql.get_tasks_by_editor ~editor ()
+  Sql.full_transaction_block (Ocsforge_sql.get_tasks_by_editor ~editor)
     >>= (filter_task_list_for_reading sp)
 
 
@@ -307,9 +268,9 @@ let edit_task ~sp ~task
   then Lwt.return ()
   else
     begin
-      Ocsforge_sql.get_area_for_task ~task_id:task () >>= fun area ->
-      Roles.get_area_role sp area                     >>= fun role ->
-      !!(role.Roles.task_property_editor)             >>= fun b ->
+      do_sql (Ocsforge_sql.get_area_for_task ~task_id:task)  >>= fun area ->
+      Roles.get_area_role sp area                            >>= fun role ->
+      !!(role.Roles.task_property_editor)                    >>= fun b ->
       if not b
       then
         Lwt.fail Ocsimore_common.Permission_denied
@@ -355,13 +316,13 @@ let move_task ~sp ~task ~parent ?area () =
         Sql.full_transaction_block
          (fun db ->
          (*checking rights*)
-           Ocsforge_sql.get_area_for_task ~db ~task_id:parent ()
+           Ocsforge_sql.get_area_for_task ~task_id:parent db
                                                           >>= fun parent_area ->
            Ocsforge_sql.get_area_inheritance ~area_id:parent_area db
                                                           >>= fun area ->
            Roles.get_area_role ~sp area                   >>= fun role_nu ->
            !!(role_nu.Roles.task_mover_to)                >>= fun mover_to ->
-           Ocsforge_sql.get_area_for_task ~db ~task_id:task ()
+           Ocsforge_sql.get_area_for_task ~task_id:task db
                                                           >>= fun area_old ->
            Roles.get_area_role ~sp area_old               >>= fun role_old ->
            !!(role_old.Roles.task_mover_from)             >>= fun mover_from ->
@@ -385,7 +346,7 @@ let move_task ~sp ~task ~parent ?area () =
         Sql.full_transaction_block
          (fun db ->
            (*checking rights*)
-           Ocsforge_sql.get_area_for_task ~db ~task_id:task ()
+           Ocsforge_sql.get_area_for_task ~task_id:task db
                                                       >>= fun area_old ->
            Roles.get_area_role ~sp area_old           >>= fun role_old ->
            !!(role_old.Roles.task_mover_from)         >>= fun mover_from ->
@@ -419,14 +380,16 @@ let detach_task ~sp ~task ?parent () =
        (*checking rights*)
        (match parent with
           | None ->
-              (Ocsforge_sql.get_task_by_id
-                 ~db:db ~task_id:task ()               >>= fun tinfo ->
-               Ocsforge_sql.get_area_for_task
-                 ~db ~task_id:tinfo.Types.t_parent ()  >>= fun superarea ->
-               Roles.get_area_role ~sp superarea)
+              Sql.full_transaction_block
+                (fun db ->
+                  (Ocsforge_sql.get_task_by_id
+                     ~task_id:task db                      >>= fun tinfo ->
+                   Ocsforge_sql.get_area_for_task
+                     ~task_id:tinfo.Types.t_parent db      >>= fun superarea ->
+                   Roles.get_area_role ~sp superarea))
           | Some p ->
-              (Ocsforge_sql.get_area_for_task
-                 ~db ~task_id:p ()             >>= fun superarea ->
+              (do_sql (Ocsforge_sql.get_area_for_task
+                          ~task_id:p)                      >>= fun superarea ->
                Roles.get_area_role ~sp superarea))
        >>= fun role ->
        !!(role.Roles.subarea_creator) >>= fun b ->
@@ -437,12 +400,11 @@ let detach_task ~sp ~task ?parent () =
 
        (*exeuting*)
        else
-        (
-         User.get_user_id sp >>= fun author ->
-         Ocsforge_sql.copy_in_history ~task_id:task db >>= fun () ->
-         Ocsforge_sql.stamp_edition ~task_id:task ~author db >>= fun () ->
+         (User.get_user_id ~sp     >>= fun author ->
+          Ocsforge_sql.copy_in_history ~task_id:task db >>= fun () ->
+          Ocsforge_sql.stamp_edition ~task_id:task ~author db >>= fun () ->
 
-         Ocsforge_sql.next_right_area_id ~db
+             Ocsforge_sql.next_right_area_id db
         >>= fun c ->
 
         (* create forum *)

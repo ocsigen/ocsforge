@@ -17,6 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 
+open CalendarLib
 
 (* {2 Type conversion for database IO} *)
 
@@ -68,13 +69,13 @@ type task_info = {
   t_message : Forum_sql.Types.message;
 
   t_edit_author  : User_sql.Types.userid;
-  t_edit_time    : CalendarLib.Calendar.t;
+  t_edit_time    : Calendar.t;
   t_edit_version : string;
 
-  t_length           : CalendarLib.Calendar.Period.t option;
+  t_length           : Calendar.Period.t option;
   t_progress         : int32 option;
   t_importance       : int32 option;
-  t_deadline_time    : CalendarLib.Calendar.t option;
+  t_deadline_time    : Date.t option;
   t_deadline_version : string option;
   t_kind             : string option;
 
@@ -101,9 +102,9 @@ let task_of_string s = (Opaque.int32_t (Int32.of_string s) : task)
 type raw_task_info =
     (int32 * int32 *
      int32 *
-     int32 * CalendarLib.Calendar.t * string *
-     CalendarLib.Calendar.Period.t option * int32 option * int32 option
-     * CalendarLib.Calendar.t option * string option * string option *
+     int32 * Calendar.t * string *
+     Calendar.Period.t option * int32 option * int32 option
+     * Calendar.t option * string option * string option *
      int32 * int32 * int32)
 
 let get_task_info
@@ -126,7 +127,8 @@ let get_task_info
     t_length           = length;
     t_progress         = progress;
     t_importance       = importance;
-    t_deadline_time    = deadline_time;
+    t_deadline_time    = Ocsforge_lang.apply_on_opted
+                           Calendar.to_date deadline_time;
     t_deadline_version = deadline_version;
     t_kind             = kind;
 
@@ -143,13 +145,13 @@ type task_history_info = {
   th_parent : task;
 
   th_edit_author  : User_sql.Types.userid;
-  th_edit_time    : CalendarLib.Calendar.t;
+  th_edit_time    : Calendar.t;
   th_edit_version : string;
 
-  th_length           : CalendarLib.Calendar.Period.t option;
+  th_length           : Calendar.Period.t option;
   th_progress         : int32 option;
   th_importance       : int32 option;
-  th_deadline_time    : CalendarLib.Calendar.t option;
+  th_deadline_time    : Date.t option;
   th_deadline_version : string option;
   th_kind             : string option;
 
@@ -168,9 +170,9 @@ let task_history_of_string s = (Opaque.int32_t (Int32.of_string s) : task)
 
 type raw_task_history_info =
     (int32 * int32 *
-     int32 * CalendarLib.Calendar.t * string *
-     CalendarLib.Calendar.Period.t option * int32 option * int32 option
-     * CalendarLib.Calendar.t option * string option * string option *
+     int32 * Calendar.t * string *
+     Calendar.Period.t option * int32 option * int32 option
+     * Calendar.t option * string option * string option *
      int32)
 
 let get_task_history_info
@@ -189,7 +191,8 @@ let get_task_history_info
     th_length           = length ;
     th_progress         = progress ;
     th_importance       = importance ;
-    th_deadline_time    = deadline_time ;
+    th_deadline_time    = Ocsforge_lang.apply_on_opted
+                            Calendar.to_date deadline_time ;
     th_deadline_version = deadline_ver ;
     th_kind             = kind ;
 
@@ -212,4 +215,66 @@ struct
           else Node (t,
                      (List.map (fun tree -> insert ~tree ~element ~is_parent) l)
                     )
+
+  let rec filter ~tree ~func =
+    match tree with
+      | Nil         -> Nil
+      | Node (t, l) ->
+          if func t
+          then Node (t,
+                     (Ocsforge_lang.filter_map
+                        (fun tree ->
+                           match filter ~tree ~func with
+                             | Nil -> None
+                             | not_nil -> Some not_nil)
+                        l))
+          else Nil
+
+  let rec sort ~tree ~comp =
+    match tree with
+      | Nil -> Nil
+      | Node (t, l) ->
+          Node (t, List.sort comp l)
+
+end
+
+module Alts =
+struct
+
+  let deadlines =
+     (Ocsforge_lang.date_interval_list
+        ~min:(Calendar.Date.today ())
+        ~max:(Calendar.Date.add
+                (Calendar.Date.today ())
+                (Calendar.Date.Period.lmake ~day:7 ()))
+        () )
+    @(Ocsforge_lang.date_interval_list
+        ~bump:(Calendar.Date.Period.lmake ~day:7 ())
+        ~min:(Calendar.Date.add
+                (Calendar.Date.today ())
+                (Calendar.Date.Period.lmake ~day:7 ()))
+        ~max:(Calendar.Date.add
+                (Calendar.Date.today ())
+                (Calendar.Date.Period.lmake ~month:1 ()))
+        ()
+     )
+
+  let lengths =
+    ( [Calendar.Period.lmake ~hour:1 () ;
+       Calendar.Period.lmake ~hour:2 () ;
+       Calendar.Period.lmake ~hour:3 () ;
+       Calendar.Period.lmake ~hour:6 () ;
+       Calendar.Period.lmake ~hour:12 ();
+       Calendar.Period.lmake ~hour:24 ();]
+     @(Ocsforge_lang.period_interval_list
+         ~bump:(Calendar.Period.lmake ~hour:24 ())
+         ~min:(Calendar.Period.lmake ~hour:48 ())
+         ~max:(Calendar.Period.lmake ~hour:120 ())
+         ())
+    )
+
+  let percents = Ocsforge_lang.int32_interval_list ~bump:(Int32.of_int 5)
+                   ~min:Int32.zero ~max:(Int32.of_int 100) ()
+
+
 end

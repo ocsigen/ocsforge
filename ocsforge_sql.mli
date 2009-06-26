@@ -30,7 +30,7 @@ val new_task :
   ?length:CalendarLib.Calendar.Period.t ->
   ?progress:int32 ->
   ?importance:int32 ->
-  ?deadline_time:CalendarLib.Calendar.t ->
+  ?deadline_time:CalendarLib.Date.t ->
   ?deadline_version:string ->
   ?kind:string ->
   area:Ocsforge_types.right_area ->
@@ -49,7 +49,7 @@ val new_area :
 (** Get the nextval of the right_area_id_seq.
   * Used when detaching a task into a new area*)
 val next_right_area_id :
-  db:Sql.db_t -> Ocsforge_types.right_area Lwt.t
+  Sql.db_t -> Ocsforge_types.right_area Lwt.t
 
 (** Get the nextval of the task_id_seq. For bootstraping purpose*)
 val next_task_id :
@@ -58,20 +58,18 @@ val next_task_id :
 
 (** Get the task information based on identifier*)
 val get_task_by_id :
-  ?db:Sql.db_t ->
   task_id:Ocsforge_types.task ->
-  unit -> Ocsforge_types.task_info Lwt.t
+  Sql.db_t -> Ocsforge_types.task_info Lwt.t
 
 (** Get the task history entries.*)
 val get_task_history_by_id :
   task_id:Ocsforge_types.task ->
-  unit -> (Ocsforge_types.task_info * Ocsforge_types.task_history_info list) Lwt.t
+  Sql.db_t -> (Ocsforge_types.task_info * Ocsforge_types.task_history_info list) Lwt.t
 
 (** Get every task sharing the same specified parent*)
 val get_tasks_by_parent :
-  ?db:Sql.db_t ->
   parent:Ocsforge_types.task ->
-  unit -> Ocsforge_types.task_info list Lwt.t
+  Sql.db_t -> Ocsforge_types.task_info list Lwt.t
 
 (** Get every task in a subtree*)
 val get_tasks_in_tree :
@@ -83,9 +81,8 @@ val get_tasks_in_tree :
 
 (** Get every task having the given editor.*)
 val get_tasks_by_editor :
-  ?db:Sql.db_t ->
   editor:User_sql.Types.userid ->
-  unit -> Ocsforge_types.task_info list Lwt.t
+  Sql.db_t -> Ocsforge_types.task_info list Lwt.t
 
 (** Get the default inheritance for the given area.*)
 val get_area_inheritance :
@@ -94,20 +91,18 @@ val get_area_inheritance :
 
 (** Get the area a task is in*)
 val get_area_for_task :
-  ?db:Sql.db_t ->
   task_id:Ocsforge_types.task ->
-  unit -> Ocsforge_types.right_area Lwt.t
+  Sql.db_t -> Ocsforge_types.right_area Lwt.t
 
 (** Get area info about a task*)
 val get_area_by_id :
   area_id:Ocsforge_types.right_area ->
-  unit -> Ocsforge_types.right_area_info Lwt.t
+  Sql.db_t -> Ocsforge_types.right_area_info Lwt.t
 
 (** Get the version for the area *)
 val get_area_version :
-  ?db:Sql.db_t ->
   area_id:Ocsforge_types.right_area ->
-  unit -> string Lwt.t
+  Sql.db_t -> string Lwt.t
 
 (** Make a history entry for the task.
   * To be used only when editing.*)
@@ -137,7 +132,7 @@ val set_importance :
   Sql.db_t -> unit Lwt.t
 val set_deadline_time :
   task_id:Ocsforge_types.task ->
-  deadline_time:CalendarLib.Calendar.t option ->
+  deadline_time:CalendarLib.Date.t option ->
   Sql.db_t -> unit Lwt.t
 val set_deadline_version :
   task_id:Ocsforge_types.task ->

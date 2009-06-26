@@ -68,7 +68,7 @@ type task_info = {
   t_length : CalendarLib.Calendar.Period.t option;
   t_progress : int32 option;
   t_importance : int32 option;
-  t_deadline_time : CalendarLib.Calendar.t option;
+  t_deadline_time : CalendarLib.Date.t option;
   t_deadline_version : string option;
   t_kind : string option;
   t_area : right_area;
@@ -107,7 +107,7 @@ type task_history_info = {
   th_length : CalendarLib.Calendar.Period.t option;
   th_progress : int32 option;
   th_importance : int32 option;
-  th_deadline_time : CalendarLib.Calendar.t option;
+  th_deadline_time : CalendarLib.Date.t option;
   th_deadline_version : string option;
   th_kind : string option;
   th_area : right_area;
@@ -139,4 +139,21 @@ sig
     is_parent:('a -> 'a -> bool) ->
     'a tree
 
+  val filter :
+    tree:'a tree ->
+    func:('a -> bool) ->
+    'a tree
+
+  val sort :
+    tree:'a tree ->
+    comp:('a tree -> 'a tree -> int) ->
+    'a tree
+
+end
+
+module Alts :
+sig
+  val deadlines : CalendarLib.Date.t list
+  val lengths : CalendarLib.Calendar.Period.t list
+  val percents : int32 list
 end

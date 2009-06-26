@@ -50,7 +50,7 @@ val new_task :
   ?length:CalendarLib.Calendar.Period.t ->
   ?progress:int32 ->
   ?importance:int32 ->
-  ?deadline_time:CalendarLib.Calendar.t ->
+  ?deadline_time:CalendarLib.Date.t ->
   ?deadline_version:string ->
   ?kind:string ->
   ?area:Ocsforge_types.right_area option -> unit -> Ocsforge_types.task Lwt.t
@@ -115,7 +115,7 @@ val edit_task :
   ?length:CalendarLib.Calendar.Period.t option ->
   ?progress:int32 option ->
   ?importance:int32 option ->
-  ?deadline_time:CalendarLib.Calendar.t option ->
+  ?deadline_time:CalendarLib.Date.t option ->
   ?deadline_version:string option -> ?kind:string option -> unit -> unit Lwt.t
 
 

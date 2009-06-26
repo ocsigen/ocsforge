@@ -27,6 +27,22 @@ module Types = Ocsforge_types
 open CalendarLib
 
 
+(* Non localized parameters... *)
+let nl_param =
+  Params.make_non_localized_parameters
+    ((Params.user_type
+       Types.task_of_string
+       Types.string_of_task
+        "ocsforge_task_id") **
+     ((Params.string "ocsforge_field_sort") **
+      ((Params.bool "ocsforge_dsc_sort") **
+       (Params.string "ocsforge_field_css"))))
+
+let non_localized_service =
+  Eliom_services.add_non_localized_get_parameters
+    ~params:nl_param
+    ~service:Eliom_services.void_hidden_coservice'
+
 
 
 let set_length_service =
@@ -89,8 +105,8 @@ let set_deadline_time_service =
           Types.string_of_task
           "id") **
        (Params.user_type
-          (Ocsforge_lang.t_opt_of_string Printer.Calendar.from_string)
-          (Ocsforge_lang.string_of_t_opt Printer.Calendar.to_string)
+          (Ocsforge_lang.t_opt_of_string Ocsforge_lang.date_of_string)
+          (Ocsforge_lang.string_of_t_opt Ocsforge_lang.string_of_date)
           "deadline_t")
       )
     (* error_handler *)
@@ -129,3 +145,57 @@ let set_kind_service =
     (fun sp () (task, kind) ->
        Data.edit_task ~sp ~task ~kind ())
 
+
+let new_task_service =
+  Eliom_predefmod.Action.register_new_post_coservice'
+    ~options:`Reload
+    ~post_params:(
+       ((Params.user_type
+           Types.task_of_string Types.string_of_task
+           "parent") **
+        ((Params.string "subject") **
+         ((Params.string "text") **
+          ((Params.user_type
+              (Ocsforge_lang.t_opt_of_string Ocsforge_lang.period_of_string)
+              (Ocsforge_lang.string_of_t_opt Ocsforge_lang.string_of_period)
+              "length") **
+           ((Params.user_type
+               (Ocsforge_lang.t_opt_of_string Int32.of_string)
+               (Ocsforge_lang.string_of_t_opt Int32.to_string)
+               "progress") **
+            ((Params.user_type
+                (Ocsforge_lang.t_opt_of_string Int32.of_string)
+                (Ocsforge_lang.string_of_t_opt Int32.to_string)
+                "importance") **
+             ((Params.user_type
+                  (Ocsforge_lang.t_opt_of_string Ocsforge_lang.date_of_string)
+                  (Ocsforge_lang.string_of_t_opt Ocsforge_lang.string_of_date)
+                  "deadline_t") **
+              ((Params.string "deadline_v") **
+               ((Params.user_type
+                   (Ocsforge_lang.t_opt_of_string (fun k -> k))
+                   (Ocsforge_lang.string_of_t_opt (fun k -> k))
+                   "kind") **
+                (Params.bool "detach")
+               )))))))))
+    )
+    (* error handler ? *)
+    (fun sp () (parent,
+                (subject,
+                 (text,
+                  (length,
+                   (progress,
+                    (importance,
+                     (deadline_time,
+                      (deadline_version,
+                       (kind,
+                        detach)))))))))
+           ->
+       let area = if detach then Some None else None in
+       let deadline_version = match deadline_version with
+         | "" -> None
+         | s -> Some s
+       in
+       Data.new_task ~sp ~parent ~subject ~text
+          ?length ?progress ?importance ?deadline_time ?deadline_version ?kind
+          ?area () >>= fun _ -> Lwt.return ())
