@@ -132,6 +132,8 @@ let draw_savable_field ~sp ~service ~id ~value ~string_of_t ~alts () =
     )
     ()
 
+
+(*most of the time, the obrowser script wiil be used !*)
 class new_task_widget =
 object
 
@@ -486,7 +488,17 @@ object (self)
                           ~sp {{ "ZOOM" }}
                           ( (), (t.Types.t_id, ("", (false, ""))))
                      :} 
-                     <div onclick="ocsforge_add_task_script">[ 'NEW' ]
+                     {: {{
+                           <p>[
+                             <a class="jslink"
+                                 onclick={: ( "caml_run_from_table"
+                                            ^ "(main_vm, 189, "
+                                            ^ (Eliom_obrowser.jsmarshal
+                                                 t.Types.t_id)
+                                            ^ ")") :}>[ 'NEW' ]
+                           ]
+                         }}
+                     :}
                      !snip
                    ]
                  ]
@@ -551,7 +563,8 @@ object (self)
                      cellpadding = "15px"
                      border      = "2px"
                      width       = "90%"
-                     rules       = "cols" >[
+                     rules       = "cols"
+                     id          = "ocsforge_tree" >[
                    !{: head :}
                    !{: core :}
                  ]
