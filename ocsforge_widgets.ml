@@ -260,7 +260,7 @@ object (self)
 
   val task_text_class = "ocsforge_task_text"
 
-  method private header ~fields ~sp ~id ~parent ~nl_service =
+  method private header ~fields ~sp ~id ?parent ~nl_service =
     let field_count = List.length fields in
     ({{ [
        <colgroup>[
@@ -279,45 +279,90 @@ object (self)
        <thead>[
          <tr>[
            <th>[
-                  {: Eliom_duce.Xhtml.a
-                       ~service:nl_service
-                       ~sp {{ "UP" }} ( (), (parent, ("", (false, ""))))
+                  {: match parent with
+                     | None -> {{ ' ' }}
+                     | Some parent ->
+                         Eliom_duce.Xhtml.a
+                           ~service:nl_service
+                           ~sp {{ "UP" }} ( (), (parent, ("", false)))
                  :}
                  !{: Ocamlduce.Utf8.make "tasks" :} ]
            !{: List.map
                (function s ->
-                      {{ <td>[
-                           !{: match s with
-                               | "importance" as s ->
-                                   {{ [ {: Eliom_duce.Xhtml.a
-                                             ~service:nl_service
-                                             ~sp {{ "importance" }}
-                                             ( (), (id, ("", (false, s))))
-                                        :} ] }}
-                               | "deadline_time" as s ->
-                                   {{ [ {: Eliom_duce.Xhtml.a
-                                             ~service:nl_service
-                                             ~sp {{ "deadline" }}
-                                             ( (), (id, ("", (false, s))))
-                                        :} ] }}
-                               | "progress" as s ->
-                                   {{ [ {: Eliom_duce.Xhtml.a
-                                             ~service:nl_service
-                                             ~sp {{ "progress" }}
-                                             ( (), (id, ("", (false, s))))
-                                        :} ] }}
-                               | _ ->  Ocamlduce.Utf8.make s
-                           :}
-                           {: Eliom_duce.Xhtml.a
-                              ~service:nl_service
-                              ~sp {{ "^" }} ( (), (id, (s, (false, ""))))
-                           :}
-                           {: Eliom_duce.Xhtml.a
-                              ~service:nl_service
-                              ~sp {{ "v" }} ( (), (id, (s, (true, ""))))
-                           :}
-                         ]
-                      }}
+                  {{ <td>[
+                       !{: match s with
+                           | "importance" ->
+                               {{ [ 'importance'
+                                    <a class="jslink"
+                                       onclick={: (  "caml_run_from_table"
+                                                   ^ "(main_vm, 289, "
+                                                   ^ (Eliom_obrowser.jsmarshal
+                                                        "importance")
+                                                   ^ ")" ):}>[
+                                       <img src={: Eliom_duce.Xhtml.make_uri ~sp
+                                                     ~service:(
+                                                       Eliom_services.static_dir
+                                                        ~sp)
+                                                     ["highlighter.png"] :}
+                                            alt="highligth">[]
+                                    ]
+                                  ] }}
+                           | "deadline_time" ->
+                               {{ [ 'deadline'
+                                    <a class="jslink"
+                                       onclick={: (  "caml_run_from_table"
+                                                   ^ "(main_vm, 289, "
+                                                   ^ (Eliom_obrowser.jsmarshal
+                                                        "deadline")
+                                                   ^ ")" ):}>[
+                                       <img src={: Eliom_duce.Xhtml.make_uri ~sp
+                                                     ~service:(
+                                                       Eliom_services.static_dir
+                                                        ~sp)
+                                                     ["highlighter.png"] :}
+                                            alt="highligth">[]
+                                    ]
+                                  ] }}
+                           | "progress" ->
+                               {{ [ 'progress'
+                                    <a class="jslink"
+                                       onclick={: (  "caml_run_from_table"
+                                                   ^ "(main_vm, 289, "
+                                                   ^ (Eliom_obrowser.jsmarshal
+                                                        "complete")
+                                                   ^ ")" ):}>[
+                                       <img src={: Eliom_duce.Xhtml.make_uri ~sp
+                                                     ~service:(
+                                                       Eliom_services.static_dir
+                                                        ~sp)
+                                                     ["highlighter.png"] :}
+                                            alt="highligth">[]
+                                    ]
+                                  ] }}
+                           | _ -> Ocamlduce.Utf8.make s
+                       :}
+                       {: Eliom_duce.Xhtml.a
+                            ~service:nl_service
+                            ~sp
+                            {{ [ <img src={: Eliom_duce.Xhtml.make_uri ~sp
+                                                ~service:(
+                                                  Eliom_services.static_dir ~sp)
+                                                  ["up.png"] :}
+                                     alt="sort">[] ] }}
+                            ( (), (id, (s, false)))
+                       :}
+                       {: Eliom_duce.Xhtml.a
+                            ~service:nl_service
+                            ~sp 
+                            {{ [ <img src={: Eliom_duce.Xhtml.make_uri ~sp
+                                                ~service:(
+                                                  Eliom_services.static_dir ~sp)
+                                                ["down.png"] :}
+                                      alt="sort">[] ] }}
+                            ( (), (id, (s, true)))
+                       :}
+                     ]
+                  }}
                )
                fields
            :}
@@ -435,15 +480,14 @@ object (self)
         let f = Ocamlduce.Utf8.make "unknown" in
           {{ <p>[ !f ] }}
 
-  method display ~sp ~root_task ~fields
+  method display ~sp ~root_tasks:(root_task, top_root) ~fields
         ~(nl_service :
-            (unit * (Types.task * (string * (bool * string))), unit,
+            (unit * (Types.task * (string * bool)), unit,
              [ `Nonattached of 'a Eliom_services.na_s ], [ `WithoutSuffix ],
              unit *
              ([ `One of Types.task ] Params.param_name *
               ([ `One of string ] Params.param_name *
-               ([ `One of bool ] Params.param_name *
-                [ `One of string ] Params.param_name))),
+               [ `One of bool ] Params.param_name )),
              unit, [ `Unregistrable ])
             Eliom_services.service)
         ?(width = 600) ?(padding = 10) ?(char_size = 12)
@@ -480,25 +524,31 @@ object (self)
         in
 
           Lwt.return
-            {{ <tr>[
+            {{ <tr class={: Ocsimore_lib.build_class_attr classes :} style="">[
                  <th align="left">[
-                   <div class={: Ocsimore_lib.build_class_attr classes :}>[
+                    <div class={: Ocsimore_lib.build_class_attr
+                                    ["depth" ^ (string_of_int (min depth 9))]
+                       :}>[
                      {: Eliom_duce.Xhtml.a
                           ~service:nl_service
-                          ~sp {{ "ZOOM" }}
-                          ( (), (t.Types.t_id, ("", (false, ""))))
+                          ~sp
+                          {{ [ <img src={: Eliom_duce.Xhtml.make_uri ~sp
+                                            ~service:(Eliom_services.static_dir
+                                                         ~sp)
+                                            ["magnifier.png"] :}
+                                   alt="zoom to subtask">[]
+                             ] }}
+                          ( (), (t.Types.t_id, ("", false)))
                      :} 
-                     {: {{
-                           <p>[
-                             <a class="jslink"
-                                 onclick={: ( "caml_run_from_table"
-                                            ^ "(main_vm, 189, "
-                                            ^ (Eliom_obrowser.jsmarshal
-                                                 t.Types.t_id)
-                                            ^ ")") :}>[ 'NEW' ]
-                           ]
-                         }}
-                     :}
+                     <a class="jslink"
+                         onclick={: (  "caml_run_from_table"
+                                     ^ "(main_vm, 189, "
+                                     ^ (Eliom_obrowser.jsmarshal t.Types.t_id)
+                                     ^ ")") :}>[
+                         <img alt="add subtask"
+                              src={: Eliom_duce.Xhtml.make_uri ~sp
+                                        ~service:(Eliom_services.static_dir ~sp)
+                                        ["add.png"] :}>[]]
                      !snip
                    ]
                  ]
@@ -551,16 +601,19 @@ object (self)
         show_tree ~width ~depth:0 ~tree
           >>= fun core ->
         let core : {{ [ Xhtmltypes_duce.tr+ ] }} = core in
-        let head = self#header
-                     ~fields ~sp ~id:root_task
-                     ~parent:(match tree with
-                                | Types.Tree.Nil -> root_task
-                                | Types.Tree.Node (t, _) -> t.Types.t_parent)
-                     ~nl_service
+        let head =
+          let parent =
+            if root_task = top_root
+            then None
+            else Some (match tree with
+                        | Types.Tree.Nil -> root_task
+                        | Types.Tree.Node (t, _) -> t.Types.t_parent)
+          in
+            self#header
+              ~fields ~sp ~id:root_task ?parent ~nl_service
         in
           Lwt.return
             (({{ <table
-                     cellpadding = "15px"
                      border      = "2px"
                      width       = "90%"
                      rules       = "cols"
@@ -680,7 +733,7 @@ object (self)
                <br>[]
              {:"deadline (time) : " :}    {: info.Roles.t_deadline_time :}
                <br>[]
-             {:"deadlien (version) : " :} {: info.Roles.t_deadline_version :}
+             {:"deadline (version) : " :} {: info.Roles.t_deadline_version :}
                <br>[]
              {:"length : " :}             {: info.Roles.t_length :}
                <br>[]

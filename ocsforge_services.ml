@@ -35,8 +35,7 @@ let nl_param =
        Types.string_of_task
         "ocsforge_task_id") **
      ((Params.string "ocsforge_field_sort") **
-      ((Params.bool "ocsforge_dsc_sort") **
-       (Params.string "ocsforge_field_css"))))
+      (Params.bool "ocsforge_dsc_sort")))
 
 let non_localized_service =
   Eliom_services.add_non_localized_get_parameters
