@@ -36,25 +36,7 @@ module Lang = Obrowser_lang
         ~service:"ocsforge_set_deadline_v"
         ~args:[("id", Int32.to_string id)]
         ~param_name:"deadline_v"
-    in
-    let input =
-      Js.Html.input
-        (fun v -> v) (fun v -> v) (* "conversions" *)
-        value
-        6                         (*size*)
-        true                      (* editable *)
-        (fun s ->
-           (try
-                let args =
-                  [ ("__eliom_na__name","ocsforge_set_deadline_v");
-                    ("id", Int32.to_string id) ;
-                    ("deadline_v", s.Js.Html.get ()) ]
-                in
-                  send args
-              
-            with exc -> (Js.alert (Printexc.to_string exc))) ;
-           Js.Node.replace_all parent_node (Js.Node.text (s.Js.Html.get ()))
-        )
+        ()
     in
       Js.Node.replace_all parent_node input.Js.Html.node
 
@@ -82,15 +64,15 @@ module Lang = Obrowser_lang
         4 true
         (fun s ->
            try
-               send [ ("id", Int32.to_string id) ;
-                      (name, string_of_t (s.Js.Html.get ())) ]
+               Lang.send
+                 "http://localhost:8080/bsh/"
+                 [ ("id", Int32.to_string id) ;
+                   (name, string_of_t (s.Js.Html.get ())) ]
              
            with exc -> (Js.alert (Printexc.to_string exc)))
     in
       Js.Node.append (Js.get_element_by_id parent) input.Js.Html.node
 
-
-end
 
 
 
@@ -118,8 +100,8 @@ let pop_up_new_task id =
   in
    let progress_input =
      Js.Html.input
-       (string_of_t_opt Int32.to_string)
-       (fun s -> let r = t_opt_of_string Int32.of_string s in
+       (Lang.Opt.string_of_t_opt Int32.to_string)
+       (fun s -> let r = Lang.Opt.t_opt_of_string Int32.of_string s in
          match r with
           | None -> None
           | Some r -> Some (max Int32.zero (min (Int32.of_int 100) r)))
@@ -127,8 +109,8 @@ let pop_up_new_task id =
    in
    let importance_input =
      Js.Html.input
-       (string_of_t_opt Int32.to_string)
-       (fun s -> let r = t_opt_of_string Int32.of_string s in
+       (Lang.Opt.string_of_t_opt Int32.to_string)
+       (fun s -> let r = Lang.Opt.t_opt_of_string Int32.of_string s in
          match r with
           | None -> None
           | Some r -> Some (max Int32.zero (min (Int32.of_int 100) r)))
@@ -164,9 +146,9 @@ let pop_up_new_task id =
               ("subject", title_input.Js.Html.get ()) ;
               ("text", "") ;
               ("length", "") ;
-              ("progress", string_of_t_opt Int32.to_string
+              ("progress", Lang.Opt.string_of_t_opt Int32.to_string
                              (progress_input.Js.Html.get ())) ;
-              ("importance", string_of_t_opt Int32.to_string
+              ("importance", Lang.Opt.string_of_t_opt Int32.to_string
                                (importance_input.Js.Html.get ())) ;
               ("deadline_t", "") ;
               ("deadline_v", "") ;
@@ -174,7 +156,7 @@ let pop_up_new_task id =
               ("detach", "off") ;
             ]
           in
-            send args ;
+            Lang.send "http://localhost:8080/bsh" args ;
             close ()
         with exc -> Js.alert ("unable to save task :\n"
                               ^ (Printexc.to_string exc)) ;
@@ -295,5 +277,5 @@ let _ =
   let reg = Eliom_obrowser_client.register_closure in
   reg 189 pop_up_new_task ;
   reg 289 Row_color.color_fields ;
-  reg 389 Fields.auto_update_version_deadline
+  reg 389 auto_update_version_deadline
 
