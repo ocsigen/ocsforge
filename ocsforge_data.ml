@@ -292,6 +292,7 @@ let edit_task ~sp ~task
             (match importance with
                | None -> Lwt.return ()
                | Some importance ->
+                   Lwt.return (Printf.printf " DEBBUG A -%!") >>= fun () ->
                    Ocsforge_sql.set_importance ~task_id ~importance db) >>= fun () ->
             (match deadline_time with
                | None -> Lwt.return ()
@@ -504,7 +505,7 @@ let add_kinds ~sp ~area ~kinds =
   if b
   then
     Sql.full_transaction_block
-      (fun db -> Ocsforge_sql.add_kinds_for_area ~area_id:area ~kinds db)
+      (Ocsforge_sql.add_kinds_for_area ~area_id:area ~kinds)
   else Lwt.fail Ocsimore_common.Permission_denied
 
 let del_kinds ~sp ~area ~kinds =
@@ -513,7 +514,7 @@ let del_kinds ~sp ~area ~kinds =
   if b
   then
     Sql.full_transaction_block
-      (fun db -> Ocsforge_sql.del_kinds_for_area ~area_id:area ~kinds db)
+      (Ocsforge_sql.del_kinds_for_area ~area_id:area ~kinds)
   else Lwt.fail Ocsimore_common.Permission_denied
 
 let set_kinds ~sp ~area ~kinds =
@@ -522,7 +523,7 @@ let set_kinds ~sp ~area ~kinds =
   if b
   then
     Sql.full_transaction_block
-      (fun db -> Ocsforge_sql.set_kinds_for_area ~area_id:area ~kinds db)
+      (Ocsforge_sql.set_kinds_for_area ~area_id:area ~kinds)
   else Lwt.fail Ocsimore_common.Permission_denied
 
 let swap_kinds ~sp ~area ~kinds =
@@ -531,7 +532,7 @@ let swap_kinds ~sp ~area ~kinds =
   if b
   then
     Sql.full_transaction_block
-      (fun db -> Ocsforge_sql.swap_kinds_for_area ~area_id:area ~kinds db)
+      (Ocsforge_sql.swap_kinds_for_area ~area_id:area ~kinds)
   else Lwt.fail Ocsimore_common.Permission_denied
 
 

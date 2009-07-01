@@ -317,7 +317,6 @@ let set_length ~task_id ~length =
 
 let set_progress ~task_id ~progress =
   let task_id = Types.sql_of_task task_id in
-  let progress = progress in
      (fun db ->
         PGSQL(db)
           "UPDATE ocsforge_tasks
@@ -326,7 +325,6 @@ let set_progress ~task_id ~progress =
 
 let set_importance ~task_id ~importance =
   let task_id = Types.sql_of_task task_id in
-  let importance = importance in
      (fun db ->
         PGSQL(db)
           "UPDATE ocsforge_tasks
