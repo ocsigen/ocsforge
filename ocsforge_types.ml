@@ -27,7 +27,7 @@ type task = task_arg Opaque.int32_t
 type right_area_arg = [ `Right_area ]
 type right_area = right_area_arg Opaque.int32_t
 type task_history_arg = [ `Task_history ]
-type task_history = task_history_arg Opaque.int32_t
+type task_history = task_history_arg Opaque.int32_t 
 
 
 
@@ -81,6 +81,9 @@ type task_info = {
 
   t_area             : right_area;
 
+  t_repository_kind  : string option;
+  t_repository_path  : string option;
+
   t_tree_min         : int32;
   t_tree_max         : int32;
 }
@@ -105,14 +108,14 @@ type raw_task_info =
      int32 * Calendar.t * string *
      Calendar.Period.t option * int32 option * int32 option
      * Calendar.t option * string option * string option *
-     int32 * int32 * int32)
+     int32 * string option * string option * int32 * int32)
 
 let get_task_info
       (id,  parent_id,
        message,
        edit_author, edit_time, edit_version,
        length,  progress,  importance,  deadline_time, deadline_version,  kind,
-       area, tmin, tmax)
+       area, rep_kind, rep_path, tmin, tmax)
       = 
   {
     t_id     = task_of_sql id;
@@ -133,6 +136,9 @@ let get_task_info
     t_kind             = kind;
 
     t_area             = right_area_of_sql area;
+
+    t_repository_kind  = rep_kind;
+    t_repository_path  = rep_path;
 
     t_tree_max         = tmin;
     t_tree_min         = tmax;

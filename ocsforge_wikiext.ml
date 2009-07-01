@@ -52,6 +52,7 @@ let send_css_up css_file sp =
 let register_wikiext wp
       (tree_widget : Ocsforge_widgets.tree_widget)
       nl_service
+      repo_service
      =
 
   Wiki_syntax.add_extension
@@ -132,6 +133,7 @@ let register_wikiext wp
               ~root_tasks:(Ocsforge_lang.unopt ~default:we_id nl_id, we_id)
               ~fields
               ~nl_service
+	      ~repo_service
               ?sort ()
                                    >>= fun b ->
               Lwt.return {{  b }}

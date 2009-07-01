@@ -215,3 +215,10 @@ let new_task_service =
        Data.new_task ~sp ~parent ~subject ~text
           ?length ?progress ?importance ?deadline_time ?deadline_version ?kind
           ?area () >>= fun _ -> Lwt.return ())
+
+let project_repository_service = Eliom_predefmod.Action.register_new_service 
+    ~path: ["repos"]
+    ~get_params: (Eliom_parameters.suffix 
+		    (Eliom_parameters.string "project" ** 
+		       Eliom_parameters.all_suffix "path"))
+    (fun sp (project,path) () ->  Lwt.return ())

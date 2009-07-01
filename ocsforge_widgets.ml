@@ -120,7 +120,7 @@ let draw_savable_field ~sp ~service ~id ~value ~string_of_t ~alts () =
     ()
 
 
-(*most of the time, the obrowser script wiil be used !*)
+(*most of the time, the obrowser script will be used !*)
 class new_task_widget =
 object
 
@@ -450,9 +450,19 @@ object (self)
                [ `One of bool ] Params.param_name )),
              unit, [ `Unregistrable ])
             Eliom_services.service)
-        ?(width = 600) ?(padding = 10) ?(char_size = 12)
-        ?sort
-        () =
+       ~(repo_service :
+	   (string * string list, unit,
+            [ `Attached of
+              Eliom_services.get_attached_service_kind Eliom_services.a_s ],
+            [ `WithSuffix ],
+            [ `One of string ] Eliom_parameters.param_name *
+            [ `One of string list ] Eliom_parameters.param_name, unit,
+            [ `Registrable ])
+           Eliom_services.service
+	)
+      ?(width = 600) ?(padding = 10) ?(char_size = 12)
+      ?sort
+      () =
     Data.get_tree ~sp ~root:root_task >>= fun tree ->
       let show_line ~width ~depth ~task:t =
         self#task_snippet ~sp
@@ -489,6 +499,17 @@ object (self)
                     <div class={: Ocsimore_lib.build_class_attr
                                     ["depth" ^ (string_of_int (min depth 9))]
                        :}>[
+		       {: EDuce.Xhtml.a
+                          ~service:repo_service
+                          ~sp
+                          {{ [ <img src={: EDuce.Xhtml.make_uri ~sp
+                                            ~service:(Eliom_services.static_dir
+                                                         ~sp)
+                                            ["open_repository.png"] :}
+                                   alt="go to repos page">[]
+                             ] }}
+                          (Types.string_of_task t.Types.t_id, [""])
+                     :} 
                      {: EDuce.Xhtml.a
                           ~service:nl_service
                           ~sp

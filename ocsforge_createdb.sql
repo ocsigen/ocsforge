@@ -54,6 +54,9 @@ CREATE TABLE ocsforge_tasks (
 
     area integer NOT NULL REFERENCES ocsforge_right_areas(id),
 
+    repository_kind text,
+    repository_path text, 
+    
     tree_min integer DEFAULT 0 NOT NULL,
     tree_max integer DEFAULT 1 NOT NULL
 );

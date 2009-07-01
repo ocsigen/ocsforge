@@ -93,6 +93,6 @@ let _ =
     Wiki_syntax.wikicreole_parser
     tree_widget
     Ocsforge_services.non_localized_service
-
+    Ocsforge_services.project_repository_service
 
 let _ = Printf.printf "done registering wikiext\n%!"

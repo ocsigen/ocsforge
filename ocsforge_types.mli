@@ -72,6 +72,8 @@ type task_info = {
   t_deadline_version : string option;
   t_kind : string option;
   t_area : right_area;
+  t_repository_kind : string option;
+  t_repository_path : string option;
   t_tree_min : int32;
   t_tree_max : int32;
 }
@@ -91,7 +93,7 @@ type raw_task_info =
     int32 * int32 * int32 * int32 * CalendarLib.Calendar.t * string *
     CalendarLib.Calendar.Period.t option * int32 option * int32 option *
     CalendarLib.Calendar.t option * string option * string option * int32 *
-    int32 * int32
+    string option * string option * int32 * int32
 val get_task_info : raw_task_info -> task_info
 
 (** {2 For task history marks...} *)

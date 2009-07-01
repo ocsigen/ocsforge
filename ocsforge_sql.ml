@@ -142,7 +142,7 @@ let get_task_by_id ~task_id =
                edit_author, edit_time, edit_version, \
                length, progress, importance, \
                deadline_time, deadline_version, kind, \
-               area, tree_min, tree_max \
+               area, repository_kind, repository_path, tree_min, tree_max \
         FROM ocsforge_tasks
         WHERE id = $task_id"
      >>= function
@@ -174,7 +174,7 @@ let get_tasks_by_parent ~parent =
                 edit_author, edit_time, edit_version, \
                 length, progress, importance, \
                 deadline_time, deadline_version, kind, \
-                area, tree_min, tree_max
+                area, repository_kind, repository_path, tree_min, tree_max
          FROM ocsforge_tasks
          WHERE parent = $parent"
         >>= fun r -> (Lwt_util.map_serial
@@ -195,7 +195,7 @@ let get_tasks_in_tree ~root db =
               edit_author, edit_time, edit_version, \
               length, progress, importance, \
               deadline_time, deadline_version, kind, \
-              area, tree_min, tree_max
+              area, repository_kind, repository_path, tree_min, tree_max
        FROM ocsforge_tasks
        WHERE tree_min >= $tmin AND tree_max <= $tmax
        ORDER BY tree_min")
@@ -211,7 +211,7 @@ let get_tasks_by_editor ~editor =
               edit_author, edit_time, edit_version, \
               length, progress, importance, \
               deadline_time, deadline_version, kind, \
-              area, tree_min, tree_max
+              area, repository_kind, repository_path, tree_min, tree_max
        FROM ocsforge_tasks
        WHERE edit_author = $editor"
       >>=fun r -> (Lwt_util.map_serial
