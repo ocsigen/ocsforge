@@ -46,6 +46,7 @@ let non_localized_service =
 
 let set_length_service =
   Eliom_predefmod.Action.register_new_post_coservice'
+    ~name:"ocsforge_set_length"
     ~options:`NoReload
     ~post_params:(
        (Params.user_type
@@ -63,6 +64,7 @@ let set_length_service =
 
 let set_progress_service =
   Eliom_predefmod.Action.register_new_post_coservice'
+    ~name:"ocsforge_set_progress"
     ~options:`NoReload
     ~post_params:(
        (Params.user_type
@@ -80,6 +82,7 @@ let set_progress_service =
 
 let set_importance_service =
   Eliom_predefmod.Action.register_new_post_coservice'
+    ~name:"ocsforge_set_importance"
     ~options:`NoReload
     ~post_params:(
        (Params.user_type
@@ -97,6 +100,7 @@ let set_importance_service =
 
 let set_deadline_time_service =
   Eliom_predefmod.Action.register_new_post_coservice'
+    ~name:"ocsforge_set_deadline_t"
     ~options:`NoReload
     ~post_params:(
        (Params.user_type
@@ -114,6 +118,7 @@ let set_deadline_time_service =
 
 let set_deadline_version_service =
   Eliom_predefmod.Action.register_new_post_coservice'
+    ~name:"ocsforge_set_deadline_v"
     ~options:`NoReload
     ~post_params:(
        (Params.user_type
@@ -129,6 +134,7 @@ let set_deadline_version_service =
 
 let set_kind_service =
   Eliom_predefmod.Action.register_new_post_coservice'
+    ~name:"ocsforge_set_kind"
     ~options:`NoReload
     ~post_params:(
        (Params.user_type

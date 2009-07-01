@@ -25,110 +25,97 @@ module Types = Ocsforge_types
 module Data  = Ocsforge_data
 module Services = Ocsforge_services
 module Params = Eliom_parameters
+module EDuce = Eliom_duce
+module Olang = Ocsforge_lang
 
 open CalendarLib
 
+let to_utf8 = Ocamlduce.Utf8.make
 
 (** draw a select field for optional values.
 * If a list of alternative is provided, it makes it selectable.*)
 let draw_opt_field ~name ?alternatives ~string_of_t () =
-  match alternatives with
+  {{ [ {: match alternatives with
     | None | Some []->
-        {{ 
-          [
-            {:Eliom_duce.Xhtml.user_type_select
-               (Ocsforge_lang.string_of_t_opt string_of_t)
-               ~name
-               (Eliom_duce.Xhtml.Option ({{ { } }}, None, None, true))
-               []
-            :} ]
-        }}
+          EDuce.Xhtml.user_type_select
+             (Olang.string_of_t_opt string_of_t)
+             ~name
+             (EDuce.Xhtml.Option ({{ { } }}, None, None, true))
+             []
     | Some l ->
-        {{ 
-          [
-            {:Eliom_duce.Xhtml.user_type_select
-               (Ocsforge_lang.string_of_t_opt string_of_t)
-               ~name
-               (Eliom_duce.Xhtml.Option ({{ { } }}, None, None, true)) 
-               (List.map
-                  (fun a ->
-                    Eliom_duce.Xhtml.Option ({{ { } }}, Some a, None, false))
-                  l)
-            :} ]
-        }}
+          EDuce.Xhtml.user_type_select
+             (Olang.string_of_t_opt string_of_t)
+             ~name
+             (EDuce.Xhtml.Option ({{ { } }}, None, None, true)) 
+             (List.map
+                (fun a ->
+                  EDuce.Xhtml.Option ({{ { } }}, Some a, None, false))
+                l)
+  :} ] }}
 
 let draw_field ~name ~value ?alternatives ~string_of_t () =
   match (value,alternatives) with
-    | (v, None) ->
-        {{ [ !{: Ocamlduce.Utf8.make (string_of_t v) :}] }}
+    | (v, None)   -> {{ {: to_utf8 (string_of_t v) :} }}
     | (v, Some l) ->
-        {{
-          [
-           {:Eliom_duce.Xhtml.user_type_select
-              string_of_t
-              ~name
-              (Eliom_duce.Xhtml.Option ({{ { } }}, v, None, true))
-              (List.map
-                 (fun a ->
-                    Eliom_duce.Xhtml.Option ({{ { } }}, a, None, false))
-                 l)
-           :}]
-        }}
+        {{ [ {:
+          EDuce.Xhtml.user_type_select
+             string_of_t
+             ~name
+             (EDuce.Xhtml.Option ({{ { } }}, v, None, true))
+             (List.map
+                (fun a ->
+                   EDuce.Xhtml.Option ({{ { } }}, a, None, false))
+                l)
+        :} ] }}
 
 let draw_savable_field ~sp ~service ~id ~value ~string_of_t ~alts () =
-  Eliom_duce.Xhtml.post_form
+  EDuce.Xhtml.post_form
     ~service ~sp
     (fun (id_name, param_name) ->
        match (value,alts) with
          | (None,   []) ->
-             {{ [ <p>[ !{: Ocamlduce.Utf8.make "none" :}  ]] }}
+             {{ [ <p>{: to_utf8 "none" :}  ] }}
          | (Some v, [])->
-             {{ [ <p>[ !{: Ocamlduce.Utf8.make (string_of_t v) :} ] ] }}
+             {{ [ <p>{: to_utf8 (string_of_t v) :} ] }}
          | (None,   l) ->
-             {{ [
-                <p>[
-                 {: Eliom_duce.Xhtml.user_type_select
-                      (Ocsforge_lang.string_of_t_opt string_of_t)
+             {{ [ <p>[
+                 {: EDuce.Xhtml.user_type_select
+                      (Olang.string_of_t_opt string_of_t)
                       ~name:param_name
-                      (Eliom_duce.Xhtml.Option ({{ { } }}, None, None, true)) 
+                      (EDuce.Xhtml.Option ({{ { } }}, None, None, true)) 
                       (List.map
-                         (fun a -> Eliom_duce.Xhtml.Option
+                         (fun a -> EDuce.Xhtml.Option
                                      ({{ { } }}, Some a, None, false)
                          )
                          l)
                  :}
-                 {: Eliom_duce.Xhtml.user_type_button
+                 {: EDuce.Xhtml.user_type_button
                       ~name:id_name
                       ~value:id
                       Types.string_of_task
                       {{ "Save" }}
                  :}
-                ]
-               ]
-             }}
+             ] ] }}
          | (Some v, l) ->
-             {{ [
-                <p>[
-                 {:Eliom_duce.Xhtml.user_type_select
-                     (Ocsforge_lang.string_of_t_opt string_of_t)
+             {{ [ <p>[
+                 {:EDuce.Xhtml.user_type_select
+                     (Olang.string_of_t_opt string_of_t)
                      ~name:param_name
-                     (Eliom_duce.Xhtml.Option ({{ { } }}, Some v, None, true))
+                     (EDuce.Xhtml.Option ({{ { } }}, Some v, None, true))
                      ( (List.map
-                         (fun a -> Eliom_duce.Xhtml.Option
+                         (fun a -> EDuce.Xhtml.Option
                                     ({{ { } }}, Some a, None, false))
                          l)
-                      @[Eliom_duce.Xhtml.Option ({{ { } }}, None, None, false)])
+                      @[EDuce.Xhtml.Option ({{ { } }}, None, None, false)])
 
                  :}
-                 {: Eliom_duce.Xhtml.user_type_button
+                 {: EDuce.Xhtml.user_type_button
                       ~name:id_name
                       ~value:id
                       Types.string_of_task
                       {{ "Save" }}
                  :}
-                ]
-               ]
-             }}
+             ] ] }}
     )
     ()
 
@@ -145,6 +132,7 @@ object
     Data.get_kinds ~sp ~area:p_a_info.Types.r_id >>= fun alt_k ->
     Forum_data.get_message ~sp ~message_id:p_info.Types.t_message
                                                  >>= fun p_msg ->
+
     let draw_form
           ((parent_name,
             (subject_name,
@@ -172,25 +160,25 @@ object
       {{
         [<p>[
            'Creating sub task for : '
-           !{: Ocamlduce.Utf8.make
-                 (Ocsforge_lang.unopt
+           !{: to_utf8
+                 (Olang.unopt
                     ~default:"undescribed task"
                     p_msg.Forum_sql.Types.m_subject)
            :}
            <br>[]
-           {: Eliom_duce.Xhtml.string_input
+           {: EDuce.Xhtml.string_input
                 ~a:{{ { size="40%" } }}
                 ~input_type:{: "text" :}
                 ~name:subject_name () :}
            <br>[]
-           {: Eliom_duce.Xhtml.textarea ~name:text_name ~rows ~cols () :}
+           {: EDuce.Xhtml.textarea ~name:text_name ~rows ~cols () :}
          ]
         <p>[
           'length : '
           !{: draw_opt_field
                ~name:length_name
                ~alternatives:Types.Alts.lengths 
-               ~string_of_t:Ocsforge_lang.string_of_period
+               ~string_of_t:Olang.string_of_period
                () :}
           <br>[]
           'progress : '
@@ -211,11 +199,11 @@ object
           !{: draw_opt_field
                 ~name:deadline_t_name
                 ~alternatives:Types.Alts.deadlines
-                ~string_of_t:Ocsforge_lang.string_of_date
+                ~string_of_t:Olang.string_of_date
                 () :}
           <br>[]
           'deadline (version) : '
-          {: Eliom_duce.Xhtml.string_input
+          {: EDuce.Xhtml.string_input
                ~a:{{ { size="9%" } }}
                ~name:deadline_v_name
                ~input_type:{: "text" :}
@@ -229,11 +217,11 @@ object
                 () :}
           <br>[]
           'detach : '
-          {: Eliom_duce.Xhtml.bool_checkbox
+          {: EDuce.Xhtml.bool_checkbox
                ~name:detach_name () :}
         ]
         <p>[
-          {: Eliom_duce.Xhtml.user_type_button
+          {: EDuce.Xhtml.user_type_button
                 ~name:parent_name
                 ~value:p_info.Types.t_id
                 Types.string_of_task
@@ -246,7 +234,7 @@ object
      }}
     in
       Lwt.return
-        (Eliom_duce.Xhtml.post_form
+        (EDuce.Xhtml.post_form
            ~service:Services.new_task_service
            ~sp draw_form ())
 
@@ -256,21 +244,21 @@ end
 
 
 class tree_widget =
+  let fresh_id_well = ref 0 in
 object (self)
 
   val task_text_class = "ocsforge_task_text"
 
+  method fresh_id = incr fresh_id_well ; !fresh_id_well
+
   method private header ~fields ~sp ~id ?parent ~nl_service =
     let field_count = List.length fields in
-    ({{ [
-       <colgroup>[
-         <col>[] (*the task column*)
-         !{:
-           List.map
-            (fun _ -> {{ <col width={: (string_of_int
-                                          (min (60 / field_count) 12))
-                                       ^ "%"
-                                    :}>[] }} )
+    ({{ [ <colgroup>[
+           <col>[] (*the task column*)
+           !{: List.map (fun _ -> {{ <col width={: (string_of_int
+                                                    (min (60 / field_count) 12))
+                                                   ^ "%" :}>[]
+                                  }} )
             fields
            (*There's no division by zero problem because the function is
             * called only when the list isn't empty*)
@@ -278,97 +266,98 @@ object (self)
        ]
        <thead>[
          <tr>[
-           <th>[
-                  {: match parent with
+           <th>[ {: match parent with
                      | None -> {{ ' ' }}
                      | Some parent ->
-                         Eliom_duce.Xhtml.a
+                         EDuce.Xhtml.a
                            ~service:nl_service
                            ~sp {{ "UP" }} ( (), (parent, ("", false)))
                  :}
-                 !{: Ocamlduce.Utf8.make "tasks" :} ]
+                 ' tasks'
+           ]
            !{: List.map
-               (function s ->
-                  {{ <td>[
-                       !{: match s with
-                           | "importance" ->
-                               {{ [ 'importance'
-                                    <a class="jslink"
-                                       onclick={: (  "caml_run_from_table"
-                                                   ^ "(main_vm, 289, "
-                                                   ^ (Eliom_obrowser.jsmarshal
-                                                        "importance")
-                                                   ^ ")" ):}>[
-                                       <img src={: Eliom_duce.Xhtml.make_uri ~sp
-                                                     ~service:(
-                                                       Eliom_services.static_dir
-                                                        ~sp)
-                                                     ["highlighter.png"] :}
+                (function s ->
+                  {{ <td>[ !{: match s with
+                       | "importance" ->
+                            {{ [ 'importance'
+                                 <a id="importance_hl_script"
+                                    class="jslink"
+                                    onclick={: (  "caml_run_from_table"
+                                                ^ "(main_vm, 289, "
+                                                ^ (Eliom_obrowser.jsmarshal
+                                                     "importance")
+                                                ^ ")" ):}>[
+                                      <img src={: EDuce.Xhtml.make_uri ~sp
+                                                    ~service:(
+                                                    Eliom_services.static_dir
+                                                    ~sp)
+                                                    ["highlighter.png"] :}
+                                           alt="highligth">[]
+                                  ]
+                            ] }}
+                       | "deadline_time" ->
+                           {{ [ 'deadline'
+                                <a id="deadline_hl_script"
+                                   class="jslink"
+                                   onclick={: (  "caml_run_from_table"
+                                               ^ "(main_vm, 289, "
+                                               ^ (Eliom_obrowser.jsmarshal
+                                                    "deadline")
+                                               ^ ")" ):}>[
+                                     <img src={: EDuce.Xhtml.make_uri ~sp
+                                                   ~service:(
+                                                   Eliom_services.static_dir
+                                                   ~sp)
+                                                   ["highlighter.png"] :}
+                                          alt="highligth">[]
+                                ]
+                           ] }}
+                       | "progress" ->
+                           {{ [ 'progress'
+                                <a id="progress_hl_script"
+                                   class="jslink"
+                                   onclick={: (  "caml_run_from_table"
+                                               ^ "(main_vm, 289, "
+                                               ^ (Eliom_obrowser.jsmarshal
+                                                    "complete")
+                                               ^ ")" ):}>[
+                                     <img src={: EDuce.Xhtml.make_uri ~sp
+                                                   ~service:(
+                                                   Eliom_services.static_dir
+                                                   ~sp)
+                                                   ["highlighter.png"] :}
                                             alt="highligth">[]
-                                    ]
-                                  ] }}
-                           | "deadline_time" ->
-                               {{ [ 'deadline'
-                                    <a class="jslink"
-                                       onclick={: (  "caml_run_from_table"
-                                                   ^ "(main_vm, 289, "
-                                                   ^ (Eliom_obrowser.jsmarshal
-                                                        "deadline")
-                                                   ^ ")" ):}>[
-                                       <img src={: Eliom_duce.Xhtml.make_uri ~sp
-                                                     ~service:(
-                                                       Eliom_services.static_dir
-                                                        ~sp)
-                                                     ["highlighter.png"] :}
-                                            alt="highligth">[]
-                                    ]
-                                  ] }}
-                           | "progress" ->
-                               {{ [ 'progress'
-                                    <a class="jslink"
-                                       onclick={: (  "caml_run_from_table"
-                                                   ^ "(main_vm, 289, "
-                                                   ^ (Eliom_obrowser.jsmarshal
-                                                        "complete")
-                                                   ^ ")" ):}>[
-                                       <img src={: Eliom_duce.Xhtml.make_uri ~sp
-                                                     ~service:(
-                                                       Eliom_services.static_dir
-                                                        ~sp)
-                                                     ["highlighter.png"] :}
-                                            alt="highligth">[]
-                                    ]
-                                  ] }}
-                           | _ -> Ocamlduce.Utf8.make s
+                                ]
+                           ] }}
+                       | _ -> to_utf8 s
                        :}
-                       {: Eliom_duce.Xhtml.a
+
+                       {: EDuce.Xhtml.a
                             ~service:nl_service
                             ~sp
-                            {{ [ <img src={: Eliom_duce.Xhtml.make_uri ~sp
+                            {{ [ <img src={: EDuce.Xhtml.make_uri ~sp
                                                 ~service:(
-                                                  Eliom_services.static_dir ~sp)
-                                                  ["up.png"] :}
-                                     alt="sort">[] ] }}
+                                                Eliom_services.static_dir ~sp)
+                                                ["up.png"] :}
+                                      alt="sort">[] ] }}
                             ( (), (id, (s, false)))
                        :}
-                       {: Eliom_duce.Xhtml.a
+
+                       {: EDuce.Xhtml.a
                             ~service:nl_service
                             ~sp 
-                            {{ [ <img src={: Eliom_duce.Xhtml.make_uri ~sp
+                            {{ [ <img src={: EDuce.Xhtml.make_uri ~sp
                                                 ~service:(
-                                                  Eliom_services.static_dir ~sp)
+                                                Eliom_services.static_dir ~sp)
                                                 ["down.png"] :}
                                       alt="sort">[] ] }}
                             ( (), (id, (s, true)))
                        :}
-                     ]
-                  }}
+                  ] }}
                )
                fields
            :}
-         ]
-       ] ]
-     }} : {{ [ Xhtmltypes_duce.colgroup Xhtmltypes_duce.thead ] }} )
+         ] ] ] }} : {{ [ Xhtmltypes_duce.colgroup Xhtmltypes_duce.thead ] }} )
 
   method private task_snippet ~sp ~width ~depth ~padding ~char_size ~message =
     Forum_data.get_message ~sp ~message_id:message >>= fun msg ->
@@ -380,105 +369,92 @@ object (self)
     in
     let res =
       shorten
-        (Ocsforge_lang.unopt ~default:"\"NONE\"" msg.Forum_sql.Types.m_subject)
+        (Olang.unopt ~default:"\"NONE\"" msg.Forum_sql.Types.m_subject)
         depth width padding char_size
     in
+
     Lwt.return res
 
-  method private show_static_field ~field ~task:t = match field with
+  method private show_static_field ~field ~task:t =
+    {{ <td>{:
+      match field with
     | "progress" ->
-        {{ <td>[
-             !{: Ocsforge_lang.string_of_t_opt
-                   Int32.to_string
-                   t.Types.t_progress :} ] }}
+        Olang.string_of_t_opt Int32.to_string        t.Types.t_progress
     | "importance" ->
-        {{ <td>[
-            !{: Ocsforge_lang.string_of_t_opt
-                  Int32.to_string
-                  t.Types.t_importance :} ] }}
+        Olang.string_of_t_opt Int32.to_string        t.Types.t_importance
     | "kind" ->
-        {{ <td>[ 
-             !{: Ocsforge_lang.string_of_t_opt
-                     (fun k -> k)
-                     t.Types.t_kind :} ] }}
+        Olang.string_of_t_opt (fun k -> k)           t.Types.t_kind
     | "deadline_time" ->
-        {{ <td>[
-             !{: Ocsforge_lang.string_of_t_opt
-                   Ocsforge_lang.string_of_date
-                   t.Types.t_deadline_time :} ] }}
+        Olang.string_of_t_opt Olang.string_of_date   t.Types.t_deadline_time
     | "deadline_version" ->
-        {{ <td>[
-             !{: Ocsforge_lang.string_of_t_opt
-                   (fun d -> d)
-                   t.Types.t_deadline_version :} ] }}
+        Olang.string_of_t_opt (fun d -> d)           t.Types.t_deadline_version
     | "length" ->
-        {{ <td>[
-            !{: Ocsforge_lang.string_of_t_opt
-                  Ocsforge_lang.string_of_period
-                  t.Types.t_length :} ] }}
-    | _ ->
-      {{ <td>[  ] }}
+        Olang.string_of_t_opt Olang.string_of_period t.Types.t_length
+    | _ -> ""
+    :} }}
 
-
-  method private show_editable_field ~sp ~task:t alt_k = function 
+  method private show_editable_field ~sp ~td_id ~task:t alt_k = function
     | "progress" ->
+        {{ <td id={: td_id :}>[ {:
         draw_savable_field ~sp ~service:Services.set_progress_service
-          ~id:t.Types.t_id
-          ~value:t.Types.t_progress
-          ~string_of_t:Int32.to_string
-          ~alts:Types.Alts.percents
-          ()
+          ~id:t.Types.t_id     ~value:t.Types.t_progress
+          ~string_of_t:Int32.to_string ~alts:Types.Alts.percents       ()
+        :} ] }}
     | "importance" ->
+        {{ <td id={: td_id :}>[ {:
         draw_savable_field ~sp ~service:Services.set_importance_service
-          ~id:t.Types.t_id
-          ~value:t.Types.t_importance
-          ~alts:Types.Alts.percents
-          ~string_of_t:Int32.to_string
-          ()
+          ~id:t.Types.t_id     ~value:t.Types.t_importance
+          ~alts:Types.Alts.percents ~string_of_t:Int32.to_string       ()
+        :} ] }}
     | "kind" ->
+        {{ <td id={: td_id :}>[ {:
         draw_savable_field ~sp ~service:Services.set_kind_service
-          ~id:t.Types.t_id
-          ~value:t.Types.t_kind
-          ~alts:alt_k
-          ~string_of_t:(fun s -> s)
-          ()
+          ~id:t.Types.t_id     ~value:t.Types.t_kind
+          ~alts:alt_k          ~string_of_t:(fun s -> s)               ()
+        :} ] }}
     | "deadline_time" ->
+        {{ <td id={: td_id :}>[ {:
         draw_savable_field ~sp ~service:Services.set_deadline_time_service
-          ~id:t.Types.t_id
-          ~value:t.Types.t_deadline_time
-          ~alts:Types.Alts.deadlines
-          ~string_of_t:Ocsforge_lang.string_of_date
-          ()
+          ~id:t.Types.t_id     ~value:t.Types.t_deadline_time
+          ~alts:Types.Alts.deadlines ~string_of_t:Olang.string_of_date ()
+        :} ] }}
     | "deadline_version" ->
-        let draw_dlv (id_name, deadline_v_name) =
+(*        let draw_dlv (id_name, deadline_v_name) =
         {{ [<p>[
-            {: Eliom_duce.Xhtml.string_input
+            {: EDuce.Xhtml.string_input
                  ~a:{{ { size="9%" } }}
                  ~name:deadline_v_name
                  ~input_type:{: "text" :}
                  ?value:t.Types.t_deadline_version
                  () :}
-            {: Eliom_duce.Xhtml.user_type_button
+            {: EDuce.Xhtml.user_type_button
                  ~name:id_name
                  ~value:t.Types.t_id
                  Types.string_of_task
                  {{ "Save" }}
             :} ]]
         }}
-        in Eliom_duce.Xhtml.post_form
+        in EDuce.Xhtml.post_form
              ~a:{{ { accept-charset="utf-8" } }}
              ~service:Services.set_deadline_version_service
-             ~sp draw_dlv ()
+             ~sp draw_dlv () *)
+        {{ <td id={: td_id :}
+               onclick={: "caml_run_from_table(main_vm, 389, "
+                          ^(Eliom_obrowser.jsmarshal
+                            (td_id,
+                             Olang.unopt ~default:"" t.Types.t_deadline_version,
+                             t.Types.t_id))
+                          ^")" :}>[
+           <div>{: Olang.unopt ~default:"" t.Types.t_deadline_version :}
+        ] }}
     | "length" ->
+        {{ <td id={: td_id :}>[ {:
         draw_savable_field ~sp ~service:Services.set_length_service
-          ~id:t.Types.t_id
-          ~value:t.Types.t_length
-          ~alts:Types.Alts.lengths
-          ~string_of_t:Ocsforge_lang.string_of_period
-          ()
-    | _ ->
-        let f = Ocamlduce.Utf8.make "unknown" in
-          {{ <p>[ !f ] }}
+          ~id:t.Types.t_id      ~value:t.Types.t_length
+          ~alts:Types.Alts.lengths ~string_of_t:Olang.string_of_period ()
+        :} ] }}
+    | _ -> {{ <td>[<p>[ 'unknwown' ]] }}
+
 
   method display ~sp ~root_tasks:(root_task, top_root) ~fields
         ~(nl_service :
@@ -498,7 +474,7 @@ object (self)
         self#task_snippet ~sp
           ~width ~depth ~padding ~char_size ~message:t.Types.t_message
                                                                >>= fun snip ->
-        let snip = Ocamlduce.Utf8.make snip in
+        let snip = to_utf8 snip in
         Roles.get_area_role sp t.Types.t_area                  >>= fun role ->
         !!(role.Roles.task_property_editor)                    >>= fun editor ->
         Data.get_kinds ~sp ~area:t.Types.t_area                >>= fun alt_k ->
@@ -507,17 +483,17 @@ object (self)
             ("depth" ^ (string_of_int (min depth 9)))
           ::("importance" ^ (Int32.to_string
                                (Int32.div
-                                  (Ocsforge_lang.unopt ~default:Int32.zero
+                                  (Olang.unopt ~default:Int32.zero
                                      t.Types.t_importance)
                                   ten)))
           ::("deadline" ^ (string_of_int
-                             (Ocsforge_lang.unopt ~default:0
-                             (Ocsforge_lang.apply_on_opted
-                               Ocsforge_lang.urgency
+                             (Olang.unopt ~default:0
+                             (Olang.apply_on_opted
+                               Olang.urgency
                                 t.Types.t_deadline_time))))
           ::("complete" ^ (Int32.to_string
                              (Int32.div
-                                (Ocsforge_lang.unopt ~default:Int32.zero
+                                (Olang.unopt ~default:Int32.zero
                                    t.Types.t_progress)
                                 ten)))
           ::[]
@@ -529,10 +505,10 @@ object (self)
                     <div class={: Ocsimore_lib.build_class_attr
                                     ["depth" ^ (string_of_int (min depth 9))]
                        :}>[
-                     {: Eliom_duce.Xhtml.a
+                     {: EDuce.Xhtml.a
                           ~service:nl_service
                           ~sp
-                          {{ [ <img src={: Eliom_duce.Xhtml.make_uri ~sp
+                          {{ [ <img src={: EDuce.Xhtml.make_uri ~sp
                                             ~service:(Eliom_services.static_dir
                                                          ~sp)
                                             ["magnifier.png"] :}
@@ -546,7 +522,7 @@ object (self)
                                      ^ (Eliom_obrowser.jsmarshal t.Types.t_id)
                                      ^ ")") :}>[
                          <img alt="add subtask"
-                              src={: Eliom_duce.Xhtml.make_uri ~sp
+                              src={: EDuce.Xhtml.make_uri ~sp
                                         ~service:(Eliom_services.static_dir ~sp)
                                         ["add.png"] :}>[]]
                      !snip
@@ -554,19 +530,21 @@ object (self)
                  ]
                  !{: 
                      List.map
-                      (fun field ->
-                         if editor
-                         then
-                           let editable_field =
-                             self#show_editable_field
-                                ~sp ~task:t alt_k field
-                           in ({{ <td>[ editable_field ] }}
-                                 : {{ Xhtmltypes_duce.td }})
-                         else
-                           ((self#show_static_field ~field ~task:t )
-                              : {{ Xhtmltypes_duce.td }})
-                      ) 
-                      fields
+                       (fun field ->
+                          if editor
+                          then
+                            let td_id =
+                              "td_id_" ^ (string_of_int self#fresh_id)
+                            in
+                            let editable_field =
+                              self#show_editable_field
+                                 ~sp ~td_id ~task:t alt_k field
+                            in ( editable_field : {{ Xhtmltypes_duce.td }})
+                          else
+                            ((self#show_static_field ~field ~task:t )
+                               : {{ Xhtmltypes_duce.td }})
+                       ) 
+                       fields
                  :}
                ]
 
@@ -574,7 +552,7 @@ object (self)
       in
       let rec show_tree ~width ~depth ~tree:t = match t with
         | Types.Tree.Nil -> (*TODO: raise a Ocsimore_common.Permission_denied*)
-            let err = Ocamlduce.Utf8.make "Undefined task id." in
+            let err = to_utf8 "Undefined task id." in
             Lwt.return ({{ [ <tr>[ <td>err ] ] }} : {{ [Xhtmltypes_duce.tr] }} )
         | Types.Tree.Node (t,l) ->
             (show_line ~width ~depth ~task:t
@@ -613,15 +591,17 @@ object (self)
               ~fields ~sp ~id:root_task ?parent ~nl_service
         in
           Lwt.return
-            (({{ <table
+            (({{ [
+                 <table
+                     cellpadding = "0px"
                      border      = "2px"
                      width       = "90%"
                      rules       = "cols"
                      id          = "ocsforge_tree" >[
                    !{: head :}
                    !{: core :}
-                 ]
-              }} : {{ Xhtmltypes_duce.table }} ) : {{ Xhtmltypes_duce.block }})
+                 ] ]
+              }} ) : {{ [ Xhtmltypes_duce.block ] }})
 
 end
 
@@ -666,7 +646,7 @@ object (self)
           {: draw_opt_field
                ~title:"progress" ~name:progress_name
                ~value:info.Types.t_progress
-               ~alternatives:(Ocsforge_lang.int_interval_list
+               ~alternatives:(Olang.int_interval_list
                                 ~bump:5 ~min:0 ~max:100)
                ~string_of_t:Int32.to_string ()
           :}
@@ -675,15 +655,15 @@ object (self)
                ~title:"importance" ~name:importance_name
                ~value:info.Types.t_importance
                ~alternatives:(
-                 lazy (Ocsforge_lang.int_interval_list ~bump:5 ~min:0 ~max:100))
+                 lazy (Olang.int_interval_list ~bump:5 ~min:0 ~max:100))
                ~string_of_t:Int32.to_string ()
           :}
         <br>[]
           {: draw_opt_field
                ~title:"deadline (time)" ~name:deadline_t_name
                ~value:info.Types.t_deadline_time
-               ~alternatives:((Ocsforge_lang.date_interval_list ~min:1 ~max:7)
-                             @(Ocsforge_lang.date_interval_list
+               ~alternatives:((Olang.date_interval_list ~min:1 ~max:7)
+                             @(Olang.date_interval_list
                                 ~bump:(Calendar.Period.lmake
                                          ~day:7 ())
                                 ~min:1 ~max:(7 * 4)))
@@ -691,7 +671,7 @@ object (self)
           :}
         <br>[]
           {: {{ {: "deadline (version) : " :}
-                {: (Eliom_duce.Xhtml.string_input
+                {: (EDuce.Xhtml.string_input
                      ~input_type:{: "text" :}
                      ~value:info.Types.t_deadline_version)
                      ~name:deadline_v_name :}
@@ -702,23 +682,23 @@ object (self)
                ~title:"length" ~name:length_name
                ~value:info.Types.length
                ~alternatives:(lazy (
-                 ( (Ocsforge_lang.period_interval_list ~min:1 ~max:6)
-                  @(Ocsforge_lang.period_interval_list
+                 ( (Olang.period_interval_list ~min:1 ~max:6)
+                  @(Olang.period_interval_list
                       ~bump:(Calendar.Period.lmake ~hour:12 ())
                       ~min:12 ~max:24)
-                  @(Ocsforge_lang.period_interval_list
+                  @(Olang.period_interval_list
                       ~bump:(Calendar.Period.lmake ~hour:24 ())
                       ~min:48 ~max:96))))
-               ~string_of_t:(Ocsforge_lang.string_of_period) ()
+               ~string_of_t:(Olang.string_of_period) ()
           :}
         <br>[]
           {: {{ {: "Detach : " :}
-                {: Eliom_duce.Xhtml.bool_checkbox ~name:detach_name () :}
+                {: EDuce.Xhtml.bool_checkbox ~name:detach_name () :}
              }}
           :}
         ]
       }}
-      in Eliom_duce.Xhtml.get_form
+      in EDuce.Xhtml.get_form
            ~service:edit_task
            ~sp draw_form ()
 
