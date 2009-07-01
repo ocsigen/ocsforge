@@ -1,0 +1,28 @@
+
+tr:hover { background-color: #ddf8ff }
+
+
+
+div.depth0  { padding-left: 0px;  }
+div.depth1  { padding-left: 15px; }
+div.depth2  { padding-left: 30px; }
+div.depth3  { padding-left: 40px; }
+div.depth4  { padding-left: 50px; }
+div.depth5  { padding-left: 55px; }
+div.depth6  { padding-left: 60px; }
+div.depth7  { padding-left: 65px; }
+div.depth8  { padding-left: 68px; }
+div.depth9  { padding-left: 70px; }
+
+
+
+div.complete0 { color: #000000; }
+div.complete1 { color: #002200; }
+div.complete2 { color: #004400; }
+div.complete3 { color: #086600; }
+div.complete4 { color: #108800; }
+div.complete5 { color: #18aa00; }
+div.complete6 { color: #20cc00; }
+div.complete7 { color: #28dd00; }
+div.complete8 { color: #30ee00; }
+div.complete9 { color: #33ff00; }
