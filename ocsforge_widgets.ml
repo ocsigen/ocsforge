@@ -441,8 +441,7 @@ object (self)
         {{ <td id={: td_id :}
                onclick={: "caml_run_from_table(main_vm, 389, "
                           ^(Eliom_obrowser.jsmarshal
-                            (Eliom_sessions.get_current_full_path_string ~sp,
-                             td_id,
+                            (td_id,
                              Olang.unopt ~default:"" t.Types.t_deadline_version,
                              t.Types.t_id))
                           ^")" :}>[
@@ -519,9 +518,7 @@ object (self)
                      :} 
                      <a class="jslink"
                          onclick={: (  "caml_run_from_table (main_vm, 189, "
-                                   ^ (Eliom_obrowser.jsmarshal
-                              (Eliom_sessions.get_current_full_path_string ~sp,
-                                             t.Types.t_id))
+                                     ^ (Eliom_obrowser.jsmarshal t.Types.t_id)
                                      ^ ")") :}>[
                          <img alt="add subtask"
                               src={: EDuce.Xhtml.make_uri ~sp
@@ -594,7 +591,7 @@ object (self)
         in
           Lwt.return
             (({{ [
-                 <table
+                  <table
                      cellpadding = "0px"
                      border      = "2px"
                      width       = "90%"

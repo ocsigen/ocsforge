@@ -21,7 +21,7 @@ module Lang = Obrowser_lang
 
 
 
-  let auto_update_version_deadline (url, parent, value, id) =
+  let auto_update_version_deadline (parent, value, id) =
     let parent_node = Js.get_element_by_id parent in
     let input =
       let idtt = fun v -> v in
@@ -32,7 +32,7 @@ module Lang = Obrowser_lang
           fun s ->
            Js.Node.replace_all parent_node (Js.Node.text (s.Js.Html.get ()))
         )
-        ~url
+        ~url:"%2F"
         ~service:"ocsforge_set_deadline_v"
         ~args:[("id", Int32.to_string id)]
         ~param_name:"deadline_v"
@@ -40,44 +40,11 @@ module Lang = Obrowser_lang
     in
       Js.Node.replace_all parent_node input.Js.Html.node
 
-  let auto_update_percent (parent, name, value, id) =
-    let string_of_t = function
-      | None -> ""
-      | Some t -> string_of_int t
-    in
-    let t_of_string s =
-      let t =
-        match s with
-          | "" -> None
-          | s -> Some (int_of_string s)
-      in
-      if (match t with
-            | None -> false
-            | Some t -> t < 0 || 100 < t )
-      then failwith "percent_of_string"
-      else t
-    in
-    let input =
-      Js.Html.input
-        string_of_t t_of_string
-        value
-        4 true
-        (fun s ->
-           try
-               Lang.send
-                 "http://localhost:8080/bsh/"
-                 [ ("id", Int32.to_string id) ;
-                   (name, string_of_t (s.Js.Html.get ())) ]
-             
-           with exc -> (Js.alert (Printexc.to_string exc)))
-    in
-      Js.Node.append (Js.get_element_by_id parent) input.Js.Html.node
-
 
 
 
 (*poping up the new task form*)
-let pop_up_new_task (url, id) =
+let pop_up_new_task id =
   let body = Js.get_element_by_id "ocsforge_tree" in
   let mask =
     Js.Html.div
@@ -156,7 +123,7 @@ let pop_up_new_task (url, id) =
               ("detach", "off") ;
             ]
           in
-            Lang.send url args ;
+            Lang.send "%2F" args ;
             close ()
         with exc -> Js.alert ("unable to save task :\n"
                               ^ (Printexc.to_string exc)) ;
@@ -277,5 +244,6 @@ let _ =
   let reg = Eliom_obrowser_client.register_closure in
   reg 189 pop_up_new_task ;
   reg 289 Row_color.color_fields ;
-  reg 389 auto_update_version_deadline
+  reg 389 auto_update_version_deadline ;
+
 
