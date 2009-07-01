@@ -21,7 +21,7 @@ module Lang = Obrowser_lang
 
 
 
-  let auto_update_version_deadline (parent, value, id) =
+  let auto_update_version_deadline (url, parent, value, id) =
     let parent_node = Js.get_element_by_id parent in
     let input =
       let idtt = fun v -> v in
@@ -32,7 +32,7 @@ module Lang = Obrowser_lang
           fun s ->
            Js.Node.replace_all parent_node (Js.Node.text (s.Js.Html.get ()))
         )
-        ~url:"http://localhost:8080/bsh/"
+        ~url
         ~service:"ocsforge_set_deadline_v"
         ~args:[("id", Int32.to_string id)]
         ~param_name:"deadline_v"
@@ -77,7 +77,7 @@ module Lang = Obrowser_lang
 
 
 (*poping up the new task form*)
-let pop_up_new_task id =
+let pop_up_new_task (url, id) =
   let body = Js.get_element_by_id "ocsforge_tree" in
   let mask =
     Js.Html.div
@@ -156,7 +156,7 @@ let pop_up_new_task id =
               ("detach", "off") ;
             ]
           in
-            Lang.send "http://localhost:8080/bsh" args ;
+            Lang.send url args ;
             close ()
         with exc -> Js.alert ("unable to save task :\n"
                               ^ (Printexc.to_string exc)) ;
