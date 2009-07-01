@@ -140,7 +140,6 @@ let pop_up_new_task id =
               ("deadline_t", "") ;
               ("deadline_v", "") ;
               ("kind", "") ;
-              ("detach", "off") ;
             ]
           in
             Lang.send "?" args ;

@@ -104,10 +104,12 @@ struct
       if s = none
       then None
       else (if String.sub s 0 ql = quote
-            then (if String.sub s (sl - eql) eql = end_quote
+            then (if String.sub s (pred (sl - eql)) eql = end_quote
                   then Some (t_of_string (String.sub s ql (sl -ql - eql)))
-                  else failwith "Obrowser_lang.t_opt_of_string invalid string")
-            else failwith "Obrowser_lang.t_opt_of_string invalid string")
+                  else (Js.alert "Obrowser_lang.t_opt_of_string invalid string";
+                        failwith "Obrowser_lang.t_opt_of_string invalid string"))
+            else (Js.alert "Obrowser_lang.t_opt_of_string invalid string";
+                        failwith "Obrowser_lang.t_opt_of_string invalid string"))
 
   let apply_on_opted f = function
     | None   -> None
