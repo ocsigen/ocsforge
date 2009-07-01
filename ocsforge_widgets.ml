@@ -401,11 +401,14 @@ object (self)
           ~string_of_t:Int32.to_string ~alts:Types.Alts.percents       ()
         :} ] }}
     | "importance" ->
-        {{ <td id={: td_id :}>[ {:
-        draw_savable_field ~sp ~service:Services.set_importance_service
-          ~id:t.Types.t_id     ~value:t.Types.t_importance
-          ~alts:Types.Alts.percents ~string_of_t:Int32.to_string       ()
-        :} ] }}
+        {{ <td id={: td_id :}
+               onclick={: "caml_run_from_table(main_vm, 489, "
+                          ^(Eliom_obrowser.jsmarshal
+                            (td_id, t.Types.t_importance, t.Types.t_id))
+                          ^")" :}>[
+           <div>{: (Olang.string_of_t_opt ~quote:"" Int32.to_string)
+                      t.Types.t_importance :}
+        ] }}
     | "kind" ->
         {{ <td id={: td_id :}>[ {:
         draw_savable_field ~sp ~service:Services.set_kind_service
@@ -419,25 +422,6 @@ object (self)
           ~alts:Types.Alts.deadlines ~string_of_t:Olang.string_of_date ()
         :} ] }}
     | "deadline_version" ->
-(*        let draw_dlv (id_name, deadline_v_name) =
-        {{ [<p>[
-            {: EDuce.Xhtml.string_input
-                 ~a:{{ { size="9%" } }}
-                 ~name:deadline_v_name
-                 ~input_type:{: "text" :}
-                 ?value:t.Types.t_deadline_version
-                 () :}
-            {: EDuce.Xhtml.user_type_button
-                 ~name:id_name
-                 ~value:t.Types.t_id
-                 Types.string_of_task
-                 {{ "Save" }}
-            :} ]]
-        }}
-        in EDuce.Xhtml.post_form
-             ~a:{{ { accept-charset="utf-8" } }}
-             ~service:Services.set_deadline_version_service
-             ~sp draw_dlv () *)
         {{ <td id={: td_id :}
                onclick={: "caml_run_from_table(main_vm, 389, "
                           ^(Eliom_obrowser.jsmarshal

@@ -21,25 +21,45 @@ module Lang = Obrowser_lang
 
 
 
-  let auto_update_version_deadline (parent, value, id) =
-    let parent_node = Js.get_element_by_id parent in
-    let input =
-      let idtt = fun v -> v in
+let auto_update_version_deadline (parent, value, id) =
+  let parent_node = Js.get_element_by_id parent in
+  let input =
+    let idtt = fun v -> v in
       Lang.Fields.auto_update_input
         ~string_of_t:idtt ~t_of_string:idtt
         ~value
         ~cb_second:(
           fun s ->
-           Js.Node.replace_all parent_node (Js.Node.text (s.Js.Html.get ()))
+            Js.Node.replace_all parent_node (Js.Node.text (s.Js.Html.get ()))
         )
-        ~url:"%2F"
+        ~url:"?"
         ~service:"ocsforge_set_deadline_v"
         ~args:[("id", Int32.to_string id)]
         ~param_name:"deadline_v"
         ()
-    in
-      Js.Node.replace_all parent_node input.Js.Html.node
+  in
+    Js.Node.replace_all parent_node input.Js.Html.node
 
+let auto_update_importance (parent, value, id) =
+  let parent_node = Js.get_element_by_id parent in
+  let input =
+    let string_of_t = Lang.Opt.string_of_t_opt string_of_int in
+    let t_of_string = Lang.Opt.t_opt_of_string int_of_string in
+      Lang.Fields.auto_update_input
+        ~string_of_t ~t_of_string
+        ~value
+        ~cb_second:(
+          fun s ->
+            Js.Node.replace_all parent_node
+              (Js.Node.text (string_of_t (s.Js.Html.get ())))
+        )
+        ~url:"?"
+        ~service:"ocsforge_set_importance"
+        ~args:[("id", Int32.to_string id)]
+        ~param_name:"importance"
+        ()
+  in
+    Js.Node.replace_all parent_node input.Js.Html.node
 
 
 
@@ -123,7 +143,7 @@ let pop_up_new_task id =
               ("detach", "off") ;
             ]
           in
-            Lang.send "%2F" args ;
+            Lang.send "?" args ;
             close ()
         with exc -> Js.alert ("unable to save task :\n"
                               ^ (Printexc.to_string exc)) ;
@@ -245,5 +265,6 @@ let _ =
   reg 189 pop_up_new_task ;
   reg 289 Row_color.color_fields ;
   reg 389 auto_update_version_deadline ;
+  reg 489 auto_update_importance ;
 
 

@@ -90,8 +90,8 @@ let set_importance_service =
           Types.string_of_task
           "id") **
        (Params.user_type
-          (Ocsforge_lang.t_opt_of_string Int32.of_string)
-          (Ocsforge_lang.string_of_t_opt Int32.to_string)
+          (Ocsforge_lang.t_opt_of_string ~none:"" ~quote:"" Int32.of_string)
+          (Ocsforge_lang.string_of_t_opt ~none:"" ~quote:"" Int32.to_string)
           "importance")
       )
     (* error_handler *)
