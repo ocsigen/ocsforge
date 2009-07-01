@@ -17,157 +17,26 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 
-module Encode =
-struct
-
-  let seek_and_destroy seek destroy str =
-    let rec aux str =
-      try
-        let i = String.index str seek in
-            (String.sub str 0 i)
-          ^ destroy
-          ^ (aux (String.sub str (succ i) ((String.length str) - (succ i))))
-      with Not_found -> str
-    in aux str
-
-  let percent_assoc = (*/!\ '%' must be first ; ' ' must be last !*)
-    [('%', "%25") ; ('!', "%21") ; ('*', "%2A") ; ('"', "%22") ; ('\'', "%27");
-     ('(', "%28") ; (')', "%29") ; (';', "%3B") ; (':', "%3A") ; ('@', "%40") ;
-     ('&', "%26") ; ('=', "%3D") ; ('+', "%2B") ; ('$', "%24") ; (',', "%2C") ;
-     ('/', "%2F") ; ('?', "%3F") ; ('#', "%23") ; ('[', "%5B") ; (']', "%5D") ;
-     (' ', "+")   ]
-
-  let urlencode_string str =
-    List.fold_left (fun a (s,d) -> seek_and_destroy s d a)
-      str percent_assoc
-     
-  let urlencode args =
-   String.concat "&"
-     (List.map
-        (fun (n,v) -> (urlencode_string n) ^ "=" ^ (urlencode_string v))
-        args
-     )
-
-end
+module Lang = Obrowser_lang
 
 
-
-(*poping up the new task form*)
-let pop_up_new_task id =
-  let body = Js.get_element_by_id "ocsforge_tree" in
-  let mask =
-    Js.Html.div
-      ~style:"position: fixed; right: 0px; top: 0px; width: 100%; \
-              height: 100%; background-color: black; opacity: .5;"
-      []
-  in
-  let savable = ref false in
-  let title_input =
-    Js.Html.input
-      (fun s -> s)                                (* format... (string_of_t)  *)
-      (fun s -> s)                                (* parse...  (t_of_string)  *)
-      ""                                          (* value...                 *)
-      100                                         (* size...                  *)
-      true                                        (* editable...              *)
-      (fun s ->
-         if s.Js.Html.get () = ""
-         then savable := false
-         else savable := true  )                  (* callback...              *) (*TODO: use the call back to grey out the "SAVE" button*)
-  in
-(* let progress_input =
- *   Js.Html.input
- *     (function
- *        | None -> ""
- *        | Some n -> Int32.to_string n)
- *     (function
- *        | "" -> None
- *        | s -> Some (Int32.of_string s))
- *     None 8 true (fun _ -> ())
- * in
- * let importance_input =
- *   Js.Html.input
- *     (function
- *        | None -> ""
- *        | Some n -> Int32.to_string n)
- *     (function
- *        | "" -> None
- *        | s -> Some (Int32.of_string s))
- *     None 8 true (fun _ -> ())
- * in *)
-  let form =
-    Js.Html.div
-      ~style:"position: fixed; left: 25px; bottom: 25px; \
-      -moz-border-radius: 5px; padding: 10px; \
-                                 background-color: white; text-align: right;"
-      [ (* Title *) title_input.Js.Html.node ;
-                               Js.Html.br () ;
-
-(*       (* progress *)     Js.Html.string " Progress : " ;
- *                            progress_input.Js.Html.node ;
- *       (* importance *) Js.Html.string " Importance : " ;
- *                          importance_input.Js.Html.node ;
- *                                          Js.Html.br () ; *)
-      ]
-  in
-  let close () =
-    Js.Node.remove body form ;
-    Js.Node.remove body mask
-  in
-  let save () =
-    if !savable
-    then
-      begin
-        try
-          let args = (*TODO : use xml*)
-            [ ("id", Int32.to_string id) ;
-              ("title", title_input.Js.Html.get ()) ;
-            ]
-          in
-            Js.alert ( snd (
-              Js.http_post
-                "http://localhost:8080/bsh/"
-                "application/x-www-form-urlencoded"
-                (Encode.urlencode args))) ;
-            close ()
-        with exc -> Js.alert ("unable to save task :\n"
-                              ^ (Printexc.to_string exc)) ;
-                    close ()
-      end
-    else Js.alert "Fill the description field before saving"
-  in
-  let save_close_node = 
-    (Js.Html.div
-       [
-         Js.Html.a ~onclick:save
-           [Js.Node.text "SAVE"] ;
-         Js.Html.string " - " ;
-         Js.Html.a ~onclick:close
-           [Js.Node.text "CLOSE"] ;
-       ]
-    )
-  in
-
-    Js.Node.append form save_close_node ;
-    Js.Node.append body mask ;
-    Js.Node.append body form
-;;
-
-
-module Fields =
-struct
-
-  let send_editable_field args =
-    let (code, msg) =
-      Js.http_post "http://localhost:8080/bsh/"
-        "application/x-www-form-urlencoded"
-        (Encode.urlencode args)
-    in
-      if code / 100 = 2
-      then ()
-      else Js.alert msg
 
   let auto_update_version_deadline (parent, value, id) =
     let parent_node = Js.get_element_by_id parent in
+    let input =
+      let idtt = fun v -> v in
+      Lang.Fields.auto_update_input
+        ~string_of_t:idtt ~t_of_string:idtt
+        ~value
+        ~cb_second:(
+          fun s ->
+           Js.Node.replace_all parent_node (Js.Node.text (s.Js.Html.get ()))
+        )
+        ~url:"http://localhost:8080/bsh/"
+        ~service:"ocsforge_set_deadline_v"
+        ~args:[("id", Int32.to_string id)]
+        ~param_name:"deadline_v"
+    in
     let input =
       Js.Html.input
         (fun v -> v) (fun v -> v) (* "conversions" *)
@@ -181,7 +50,7 @@ struct
                     ("id", Int32.to_string id) ;
                     ("deadline_v", s.Js.Html.get ()) ]
                 in
-                  send_editable_field args
+                  send args
               
             with exc -> (Js.alert (Printexc.to_string exc))) ;
            Js.Node.replace_all parent_node (Js.Node.text (s.Js.Html.get ()))
@@ -213,16 +82,124 @@ struct
         4 true
         (fun s ->
            try
-               send_editable_field [ ("id", Int32.to_string id) ;
-                                     (name, string_of_t (s.Js.Html.get ())) ]
+               send [ ("id", Int32.to_string id) ;
+                      (name, string_of_t (s.Js.Html.get ())) ]
              
            with exc -> (Js.alert (Printexc.to_string exc)))
     in
       Js.Node.append (Js.get_element_by_id parent) input.Js.Html.node
 
 
-
 end
+
+
+
+(*poping up the new task form*)
+let pop_up_new_task id =
+  let body = Js.get_element_by_id "ocsforge_tree" in
+  let mask =
+    Js.Html.div
+      ~style:"position: fixed; right: 0px; top: 0px; width: 100%; \
+              height: 100%; background-color: black; opacity: .5;"
+      []
+  in
+  let savable = ref false in
+  let title_input =
+    Js.Html.input
+      (fun s -> s)                                (* format... (string_of_t)  *)
+      (fun s -> s)                                (* parse...  (t_of_string)  *)
+      ""                                          (* value...                 *)
+      100                                         (* size...                  *)
+      true                                        (* editable...              *)
+      (fun s ->
+         if s.Js.Html.get () = ""
+         then savable := false
+         else savable := true  )                  (* callback...              *) (*TODO: use the call back to grey out the "SAVE" button*)
+  in
+   let progress_input =
+     Js.Html.input
+       (string_of_t_opt Int32.to_string)
+       (fun s -> let r = t_opt_of_string Int32.of_string s in
+         match r with
+          | None -> None
+          | Some r -> Some (max Int32.zero (min (Int32.of_int 100) r)))
+       None 8 true (fun _ -> ())
+   in
+   let importance_input =
+     Js.Html.input
+       (string_of_t_opt Int32.to_string)
+       (fun s -> let r = t_opt_of_string Int32.of_string s in
+         match r with
+          | None -> None
+          | Some r -> Some (max Int32.zero (min (Int32.of_int 100) r)))
+       None 8 true (fun _ -> ())
+   in
+   let form =
+    Js.Html.div
+      ~style:"position: fixed; left: 25px; bottom: 25px; \
+      -moz-border-radius: 5px; padding: 10px; \
+                                 background-color: white; text-align: right;"
+      [ (* Title *) title_input.Js.Html.node ;
+                               Js.Html.br () ;
+
+         (* progress *)     Js.Html.string " Progress : " ;
+                              progress_input.Js.Html.node ;
+         (* importance *) Js.Html.string " Importance : " ;
+                            importance_input.Js.Html.node ;
+                                            Js.Html.br () ;
+      ]
+  in
+  let close () =
+    Js.Node.remove body form ;
+    Js.Node.remove body mask
+  in
+  let save () =
+    if !savable
+    then
+      begin
+        try
+          let args = (*TODO : fill all fields*)
+            [ ("__eliom_na__name","ocsforge_add_task") ;
+              ("parent", Int32.to_string id) ;
+              ("subject", title_input.Js.Html.get ()) ;
+              ("text", "") ;
+              ("length", "") ;
+              ("progress", string_of_t_opt Int32.to_string
+                             (progress_input.Js.Html.get ())) ;
+              ("importance", string_of_t_opt Int32.to_string
+                               (importance_input.Js.Html.get ())) ;
+              ("deadline_t", "") ;
+              ("deadline_v", "") ;
+              ("kind", "") ;
+              ("detach", "off") ;
+            ]
+          in
+            send args ;
+            close ()
+        with exc -> Js.alert ("unable to save task :\n"
+                              ^ (Printexc.to_string exc)) ;
+                    close ()
+      end
+    else Js.alert "Fill the description field before saving"
+  in
+  let save_close_node = 
+    (Js.Html.div
+       [
+         Js.Html.a ~onclick:save
+           [Js.Node.text "SAVE"] ;
+         Js.Html.string " - " ;
+         Js.Html.a ~onclick:close
+           [Js.Node.text "CLOSE"] ;
+       ]
+    )
+  in
+
+    Js.Node.append form save_close_node ;
+    Js.Node.append body mask ;
+    Js.Node.append body form
+;;
+
+
 
 
 (*changing coloration depending on fields values*)
