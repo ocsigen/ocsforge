@@ -46,6 +46,9 @@ let _ = dispatch begin function
        Options.ocamldep   := ocamlfind & A"ocamldep";
        Options.ocamldoc   := ocamlfind & A"ocamldoc";
        Options.ocamlmktop := ocamlfind & A"ocamlmktop"
+   
+   | After_options ->
+	 Options.ocamlyacc := A"menhir"
 
    | After_rules ->
 

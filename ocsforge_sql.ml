@@ -133,7 +133,6 @@ let next_task_id db =
 
 (** {5 getters for tasks} *)
 
-
 let get_task_by_id ~task_id =
   let task_id = Types.sql_of_task task_id in
   (fun db ->
@@ -524,4 +523,3 @@ let get_task_count () =
                  | [] | _::_::_ | [None] ->
                      failwith "Ocsforge_sql.get_task_count"
                  | [Some i] -> Lwt.return (Int64.to_int i)))
-

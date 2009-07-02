@@ -193,8 +193,6 @@ let new_task ~sp ~parent ~subject ~text
         else Lwt.fail Ocsimore_common.Permission_denied
 
 
-
-
 let get_task ~sp ~task =
   do_sql (Ocsforge_sql.get_area_for_task ~task_id:task)   >>= fun area ->
   Roles.get_area_role sp area                             >>= fun role ->
@@ -203,6 +201,13 @@ let get_task ~sp ~task =
   then do_sql (Ocsforge_sql.get_task_by_id ~task_id:task)
   else Lwt.fail Ocsimore_common.Permission_denied
 
+let has_repository ~sp ~task = 
+  Lwt.catch 
+    (fun () ->
+      get_task ~sp ~task >>= fun t -> match (t.Types.t_repository_kind) with
+      | None -> Lwt.return false
+      | Some(_) -> Lwt.return true)
+    (function | _ -> Lwt.return false)
 
 let get_task_history ~sp ~task =
   do_sql (Ocsforge_sql.get_area_for_task ~task_id:task)   >>= fun area ->
@@ -246,7 +251,6 @@ let get_tree ~sp ~root =
                                e.Types.t_parent = p.Types.t_id))
               t
       in aux Types.Tree.Nil tl
-
 
 
 
