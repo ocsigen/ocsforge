@@ -34,16 +34,21 @@ struct
 
 end
 
-  let send_post url args =
-    let (code, msg) =
-      Js.http_post
-        url
-        "application/x-www-form-urlencoded"
-        (Encode.urlencode args)
-    in
-      if code / 100 = 2
-      then ()
-      else Js.alert msg
+let send_post url args =
+  let (code, msg) =
+    Js.http_post
+      url
+      "application/x-www-form-urlencoded"
+      (Encode.urlencode args)
+  in
+    if code / 100 = 2
+    then ()
+    else Js.alert msg
+
+let smart_create ~name ?(attrs = []) children =
+  let m = Js.Html.create name ~attrs () in
+    List.iter (Js.Node.append m) children ;
+    m
 
 
 module Fields =
@@ -77,6 +82,38 @@ struct
            | (None    , Some scb) ->        send |> scb
            | (Some fcb, Some scb) -> fcb |> send |> scb)
 
+  let visual_percent
+        ?(color = "rgb(100,100,255)")
+        ?(bg_color = "rgb(230,230,230)")
+        ~value
+        ()
+      =
+    let value = min 100 (max 0 value) in
+    Js.Html.table ~attrs:[("width", "100%")]
+      [smart_create ~name:"colgroup"
+         [smart_create ~name:"col"
+                       ~attrs:[("width", (string_of_int value) ^ "%")]
+                       [] ;
+          smart_create ~name:"col"
+                       ~attrs:[("width", (string_of_int (100 - value)) ^ "%")]
+                       [] ;
+         ] ;
+        
+       Js.Html.tr
+         [Js.Html.td
+            ~style:("background-color:" ^ color)
+            [Js.Node.text
+               (if value > 50
+                then (string_of_int value) ^ "%"
+                else "")] ;
+          Js.Html.td
+            ~style:("background-color:" ^ bg_color)
+            [Js.Node.text
+               (if value <= 50
+                then (string_of_int (100 - value)) ^ "%"
+                else "")] ;
+         ] ;
+      ]
 
 end
 

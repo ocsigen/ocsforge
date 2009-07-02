@@ -119,6 +119,40 @@ let draw_savable_field ~sp ~service ~id ~value ~string_of_t ~alts () =
     )
     ()
 
+let visual_percent
+      ?(color = "rgb(100,100,255)")
+      ?(bg_color = "rgb(230,230,230)")
+      ~value
+      ()
+    =
+  let value = min 100 (max 0 value) in
+  {{
+     <table width={: "100%" :}>[
+       <colgroup>[
+         <col width={: (string_of_int value) ^ "%" :}>[]
+         <col width={: (string_of_int (100 -value)) ^ "%" :}>[]
+       ]
+       <tr>[
+         <td style={: "background-color:" ^ color :}
+             align="right">[
+           !{: to_utf8
+                 (if value > 50
+                  then (string_of_int value) ^ "%"
+                  else "") :}
+         ]
+         <td style={: "background-color:" ^ bg_color :}
+             align="left">[
+           !{: to_utf8
+                 (if value <= 50
+                  then (string_of_int value) ^ "%"
+                  else "") :}
+         ]
+       ]
+     ]
+  }}
+
+
+
 
 (*most of the time, the obrowser script will be used !*)
 class new_task_widget =
@@ -396,9 +430,12 @@ object (self)
   method private show_editable_field ~sp ~td_id ~task:t alt_k = function
     | "progress" ->
         {{ <td id={: td_id :}>[ {:
-        draw_savable_field ~sp ~service:Services.set_progress_service
-          ~id:t.Types.t_id     ~value:t.Types.t_progress
-          ~string_of_t:Int32.to_string ~alts:Types.Alts.percents       ()
+        visual_percent
+          ~value:(Int32.to_int (Olang.unopt
+                                  ~default:Int32.zero
+                                  t.Types.t_progress)
+          )
+          ()
         :} ] }}
     | "importance" ->
         {{ <td id={: td_id :}
