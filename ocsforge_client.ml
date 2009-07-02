@@ -58,7 +58,6 @@ let auto_update_importance (parent, value, id) =
         ~param_name:"importance"
         ()
   in
-    Js.alert (match value with | None -> "DEBUG:None" | Some n -> "DEBUG:Some " ^ (Int32.to_string n)) ;
     Js.Node.replace_all parent_node input.Js.Html.node
 
 
@@ -142,7 +141,7 @@ let pop_up_new_task id =
               ("kind", "") ;
             ]
           in
-            Lang.send "./" args ;
+            Lang.send_post "./" args ;
             close ()
         with exc -> Js.alert ("unable to save task :\n"
                               ^ (Printexc.to_string exc)) ;

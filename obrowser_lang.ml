@@ -34,7 +34,7 @@ struct
 
 end
 
-  let send url args =
+  let send_post url args =
     let (code, msg) =
       Js.http_post
         url
@@ -66,7 +66,7 @@ struct
          cb_first s ;
          begin
            try
-             send url
+             send_post url
                (   ("__eliom_na__name", service)
                 :: (param_name, string_of_t (s.Js.Html.get ()))
                 :: args )
@@ -103,6 +103,7 @@ struct
     and eql = String.length end_quote
     in
     fun s ->
+      Js.alert ("t_opt_of_string : " ^ s ^ " with none, quote : " ^ none ^ " " ^ quote);
       let sl = String.length s in
       if s = none
       then None

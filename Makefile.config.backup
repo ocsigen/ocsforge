@@ -1,0 +1,4 @@
+DBUSER=ocsimore
+PASSWORD=
+USER=www-data
+GROUP=www-data
