@@ -125,3 +125,13 @@ val new_task_service :
            [ `One of bool ] Eliom_parameters.param_name)))))))),
    [> `Registrable ])
   Eliom_services.service
+
+val project_repository_service :
+    (string * string list, unit,
+        [> `Attached of
+                   [> `Internal of [> `Service ] * [> `Get ] ] Eliom_services.a_s ],
+        [ `WithSuffix ],
+        [ `One of string ] Eliom_parameters.param_name *
+        [ `One of string list ] Eliom_parameters.param_name, unit,
+        [> `Registrable ])
+    Eliom_services.service

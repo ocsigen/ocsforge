@@ -40,7 +40,7 @@ let auto_update_version_deadline (parent, value, id) =
   in
     Js.Node.replace_all parent_node input.Js.Html.node
 
-let auto_update_importance ((parent, value, id) : (_, int32 option, _)) =
+let auto_update_importance (parent, value, id) =
   let parent_node = Js.get_element_by_id parent in
   let input =
     let string_of_t = Lang.Opt.string_of_t_opt Int32.to_string in
