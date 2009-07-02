@@ -86,13 +86,13 @@ let _ =
 (*let services = Forum_services.register_services () in                     *)
 (*let widget_err = new Widget.widget_with_error_box in                      *)
 (*let add_message_widget = new Forum_widgets.add_message_widget services in *)
-  let tree_widget = new Ocsforge_widgets.tree_widget in
+  let tree_widget = new Ocsforge_widgets_tasks.tree_widget in
 (*let new_task_widget = new Ocsforge_widgets.new_task_widget in*)
   
   Ocsforge_wikiext.register_wikiext
     Wiki_syntax.wikicreole_parser
     tree_widget
-    Ocsforge_services.non_localized_service
-    Ocsforge_services.project_repository_service
+    Ocsforge_services_tasks.non_localized_service
+    Ocsforge_services_source.project_repository_service
 
 let _ = Printf.printf "done registering wikiext\n%!"

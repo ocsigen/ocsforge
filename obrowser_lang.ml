@@ -52,9 +52,9 @@ struct
   let auto_update_input
         ~string_of_t ~t_of_string        (* conversion functions         *)
         ~value                           (* initial value                *)
-        ?(size = 12) ?(editable = true)  (* shape and editability        *)
-        ?(cb_first = (fun _ -> ()))      (* callback before the emission *)
-        ?(cb_second = (fun _ -> ()))     (* callback after the emission  *)
+        ?(size = 8) ?(editable = true)   (* shape and editability        *)
+        ?cb_first                        (* callback before the emission *)
+        ?cb_second                       (* callback after the emission  *)
         ~url                             (* url to send new values to    *)
         ~service                         (* name of the eliom service    *)
         ~args                            (* defalut arguments            *)
@@ -62,17 +62,20 @@ struct
         ()
       =
     Js.Html.input string_of_t t_of_string value size editable
-      (fun s ->
-         cb_first s ;
-         begin
-           try
-             send_post url
-               (   ("__eliom_na__name", service)
-                :: (param_name, string_of_t (s.Js.Html.get ()))
-                :: args )
-           with exc -> Js.alert (Printexc.to_string exc)
-         end ;
-         cb_second s)
+      (let send s =
+         try
+           send_post url
+             (   ("__eliom_na__name", service)
+             :: (param_name, string_of_t (s.Js.Html.get ()))
+             :: args )
+         with exc -> Js.alert (Printexc.to_string exc)
+       in
+       let ( |> ) f g = (fun x -> f x ; g x) in
+         match (cb_first, cb_second) with
+           | (None    , None    ) ->        send
+           | (Some fcb, None    ) -> fcb |> send
+           | (None    , Some scb) ->        send |> scb
+           | (Some fcb, Some scb) -> fcb |> send |> scb)
 
 
 end
