@@ -212,16 +212,17 @@ let darcs_diff file rep from_patch to_patch =
   exec_command command error_message >>= fun res ->
     parse_diff res [{fileName=file; oldContent=[]; newContent=[]}] false >>= function 
       | [] -> Lwt.return {fileName=file; oldContent=[]; newContent=[]}
-      | h::t -> Lwt.return h 
-(*
+      | h::_ -> Lwt.return h 
+
 let _ = 
   let darcs_fun_pack = 
     { vm_list = darcs_list;
       vm_cat = darcs_cat;
       vm_log = get_patch_list;
       vm_diff = darcs_diff } in
-  Interface_svn.setFunPack "Darcs" darcs_fun_pack;
-  
+  Ocsforge_version_managers.set_fun_pack "Darcs" darcs_fun_pack
+
+(*  
   let path = "/home/jh/lwt" in 
   let file = "README" in
   

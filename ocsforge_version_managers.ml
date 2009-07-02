@@ -1,5 +1,5 @@
 (* Ocsimore
- * Copyright (C) 2009
+ * Copyright (C) 2005
  * Laboratoire PPS - Université Paris Diderot - CNRS
  *
  * This program is free software; you can redistribute it and/or modify
@@ -17,15 +17,21 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 
+exception Manager_not_supported
 
-let ( ** ) = Eliom_parameters.prod
-let ( >>= ) = Lwt.bind
+(* List of supported version management systems *)
+let fun_list:((string * Ocsforge_source_types.fun_pack) list ref) = ref []
 
+let set_fun_pack vm_name fun_pack = 
+  try 
+    let _ = List.assoc vm_name (!fun_list) in
+    ()
+  with Not_found ->
+    fun_list := ((vm_name,fun_pack)::(!fun_list))
 
-let project_repository_service = Eliom_predefmod.Action.register_new_service 
-    ~path:["sources"]
-    ~get_params:(Eliom_parameters.suffix 
-		   (Eliom_parameters.string "project" ** 
-		      Eliom_parameters.all_suffix "path"))
-    (fun sp (project,path) () ->  Lwt.return ())
+let get_fun_pack vm_name = 
+  Lwt.catch 
+    (fun () -> Lwt.return (List.assoc vm_name (!fun_list)))
+    (function | _ -> Lwt.fail Manager_not_supported)
 
+let get_managers_list () = fst (List.split (!fun_list))
