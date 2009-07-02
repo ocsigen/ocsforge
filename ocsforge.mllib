@@ -11,6 +11,7 @@ Ocsforge_wikiext_source
 Ocsforge_wikiext_tasks
 Ocsforge_bootstrap
 Ocsforge_source_tree
+Ocsforge_source_types
 Ocsforge_version_managers
 Xml_lexer
 Xml_parser
