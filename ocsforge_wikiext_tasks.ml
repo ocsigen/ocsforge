@@ -20,7 +20,7 @@
 let (>>=) = Lwt.bind
 module Params = Eliom_parameters
 module Types = Ocsforge_types
-module Services = Ocsforge_services
+module Services = Ocsforge_services_tasks
 
 (**Functions to pass CSS information *)
 (* Functions to add a CSS header for wiki, and to query whether
@@ -50,7 +50,7 @@ let send_css_up css_file sp =
 
 
 let register_wikiext wp
-      (tree_widget : Ocsforge_widgets.tree_widget)
+      (tree_widget : Ocsforge_widgets_tasks.tree_widget)
       nl_service
       repo_service
      =

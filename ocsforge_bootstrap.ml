@@ -89,7 +89,7 @@ let _ =
   let tree_widget = new Ocsforge_widgets_tasks.tree_widget in
 (*let new_task_widget = new Ocsforge_widgets.new_task_widget in*)
   
-  Ocsforge_wikiext.register_wikiext
+  Ocsforge_wikiext_tasks.register_wikiext
     Wiki_syntax.wikicreole_parser
     tree_widget
     Ocsforge_services_tasks.non_localized_service
