@@ -1,0 +1,145 @@
+.wikibox{
+}
+
+div.interactive{
+    position: relative;
+}
+
+div.interactive img.boxmenu {
+  display: none;
+}
+
+div.interactive:hover {
+    outline: 1px solid #eeeeee;
+    padding: 0px;
+    margin: 0px;
+}
+
+div.interactive:hover>div.boxmenu>img.boxmenu {
+  display: block;
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  z-index: 10;
+}
+
+div.boxmenu {
+  overflow: visible;
+}
+
+div.boxmenu div.boxmenucontent {
+  display: none;
+  overflow: visible;
+}
+
+div.boxmenu:hover div.boxmenucontent {
+  border: 1px solid #7777ee;
+  display: block;
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  z-index: 20;
+  background-color: white;
+  overflow: visible;
+}
+
+div.editform,
+div.history{
+    background-color: white;
+    overflow: visible;
+}
+
+p.boxtitle{
+    text-align: left;
+    margin: 0px;
+    padding: 0px 0px 0px 4px;
+    font-size: 80%;
+    height: 2em;
+    background-color: white;
+}
+
+ul.boxbutton{
+    list-style-type: none;
+    margin: 0px;
+    padding: 0px;
+}
+
+.boxbutton li{
+    display: block;
+    margin: 2px;
+    padding: 0px;
+    font-weight: bold;
+    vertical-align: bottom;
+    color: #999999;
+}
+
+.boxbutton li.eliomtools_current{
+    padding: 0px 6px;
+}
+
+.boxbutton a{
+    color: #999999;
+    background-color: #f1f1f1;
+    padding: 0px 6px;
+    text-decoration: none;
+}
+
+.boxbutton a:hover{
+    background-color: #dddddd;
+    text-decoration: none;
+}
+
+.boxbutton a:active{
+    background-color: #ffffff;
+    text-decoration: none;
+}
+
+.jslink {
+    cursor: pointer;
+}
+
+div.preview{
+    border: 1px solid #ff8888;
+    background-image: url(preview.png);
+}
+
+.ocsimore_button,div.ocsimore_button>p {
+    margin: 0px;
+    padding: 0px;
+    display: inline;
+}
+
+textarea{
+  width: 100%;
+}
+
+.editform textarea{
+  width: 68%;
+}
+
+div.wikihelp {
+  float: right;
+  width: 30%;
+  background-color: white;
+}
+
+span.underlined {
+  text-decoration: underline;
+}
+
+span.linethrough {
+  text-decoration: line-through;
+}
+
+div.deletewidget {
+    position:fixed;
+    left: 0px;
+    top: 0px;
+    z-index: 1000;
+    padding: 50px;
+    margin: 50px;
+    width: 300px;
+    opacity: 0.8;
+    background-color: red;
+}
+

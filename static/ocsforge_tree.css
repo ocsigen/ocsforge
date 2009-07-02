@@ -14,5 +14,8 @@ div.depth7  { padding-left: 65px; }
 div.depth8  { padding-left: 68px; }
 div.depth9  { padding-left: 70px; }
 
+a img { border:none }
+a img:hover { border: 1px solid; color: green}
+
 
 

@@ -5,16 +5,16 @@
   <server>
 
     <port>8080</port>
-    <logdir>/home/raphael/src/ocsimore/var/log/ocsimore</logdir>
-    <datadir>/home/raphael/src/ocsimore/var/lib/ocsimore</datadir>
+    <logdir>/home/jh/ocsimore/var/log/ocsimore</logdir>
+    <datadir>/home/jh/ocsimore/var/lib/ocsimore</datadir>
     
     
     <charset>utf-8</charset>
-    <commandpipe>/home/raphael/src/ocsimore/var/run/ocsimore_command</commandpipe>
+    <commandpipe>/home/jh/ocsimore/var/run/ocsimore_command</commandpipe>
 
     <debugmode/>
 
-    <findlib path="/home/raphael/src/ocsimore/files"/>
+    <findlib path="/home/jh/ocsimore/files"/>
 
     <extension findlib-package="ocsigen.ext.staticmod"/>
     <extension findlib-package="ocsigen.ext.ocsipersist-sqlite">
@@ -27,9 +27,8 @@
     <extension findlib-package="ocsigen.ext.eliom_duce"/>
     <extension findlib-package="ocsigen.ext.accesscontrol"/>
     <extension findlib-package="pgocaml"/>
-    <extension findlib-package="pam"/>
     <extension findlib-package="ocsimore">
-      <passwordfile name="/home/raphael/src/ocsimore/etc/ocsigen/ocsimorepassword" />
+      <passwordfile name="/home/jh/ocsimore/etc/ocsigen/ocsimorepassword" />
     </extension>
     <extension findlib-package="ocsimore.forum" />
 
@@ -42,8 +41,8 @@
 
     <host defaulthostname="localhost">
 
-      <static dir="/home/raphael/src/ocsimore/static" />
-      <static dir="/home/raphael/src/ocsforge/static" />
+      <static dir="/home/jh/PPS/ocsforge/static" />
+            
 
       <eliommodule findlib-package="ocsimore.users">
         <!-- The following arguments are optional: -->
@@ -62,7 +61,7 @@
       </eliommodule>
 
       <eliommodule findlib-package="ocsimore.ocsisite">
-        <admin staticdir="/home/raphael/src/ocsimore/static" />
+        <admin staticdir="/home/jh/PPS/ocsforge/static" />
       </eliommodule>
 
 
@@ -75,7 +74,7 @@
       <eliommodule module="_build/ocsforge.cma">
       </eliommodule>
 
-      <eliommodule module="../ocsimore/_build/forum/ocsicreateforum.cmo">
+      <eliommodule module="../../ocsimore/_build/forum/ocsicreateforum.cmo">
         <name>task_forum</name>
       </eliommodule>
 
