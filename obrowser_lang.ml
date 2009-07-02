@@ -52,7 +52,7 @@ struct
   let auto_update_input
         ~string_of_t ~t_of_string        (* conversion functions         *)
         ~value                           (* initial value                *)
-        ?(size = 6) ?(editable = true)   (* shape and editability        *)
+        ?(size = 12) ?(editable = true)  (* shape and editability        *)
         ?(cb_first = (fun _ -> ()))      (* callback before the emission *)
         ?(cb_second = (fun _ -> ()))     (* callback after the emission  *)
         ~url                             (* url to send new values to    *)
@@ -81,17 +81,20 @@ end
 module Opt =
 struct
 
-  let string_of_t_opt ?(none = "") ?(quote = "") ?end_quote string_of_t =
+  let string_of_t_opt ?(none = "None") ?(quote = "") ?end_quote string_of_t =
     function
       | None -> none
       | Some v ->
-           quote
-         ^ (string_of_t v)
-         ^ (match end_quote with
-              | None -> quote
-              | Some q -> q)
+          if quote = ""
+          then string_of_t v
+          else
+            (  quote
+             ^ (string_of_t v)
+             ^ (match end_quote with
+                  | None -> quote
+                  | Some q -> q))
 
-  let t_opt_of_string ?(none = "") ?(quote = "") ?end_quote t_of_string =
+  let t_opt_of_string ?(none = "None") ?(quote = "") ?end_quote t_of_string =
     let end_quote = match end_quote with
       | None -> quote
       | Some q -> q

@@ -46,8 +46,11 @@ let string_of_t_opt ?(none = "None") ?(quote = "\"") string_of_t =
 let t_opt_of_string ?(none = "None") ?(quote = "\"") t_of_string =
   let none_regexp = Str.regexp_string none in
   let some_regexp =
-    let quote_ = Str.quote quote in
-    Str.regexp (quote_ ^ "\\(.*\\)" ^ quote_)
+    if quote = ""
+    then Str.regexp "\\(.*\\)"
+    else
+      let quote_ = Str.quote quote in
+      Str.regexp (quote_ ^ "\\(.*\\)" ^ quote_)
   in
     (fun s ->
        if Str.string_match none_regexp s 0

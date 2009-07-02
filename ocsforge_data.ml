@@ -292,7 +292,6 @@ let edit_task ~sp ~task
             (match importance with
                | None -> Lwt.return ()
                | Some importance ->
-                   Lwt.return (Printf.printf " DEBBUG A -%!") >>= fun () ->
                    Ocsforge_sql.set_importance ~task_id ~importance db) >>= fun () ->
             (match deadline_time with
                | None -> Lwt.return ()

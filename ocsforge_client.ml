@@ -32,7 +32,7 @@ let auto_update_version_deadline (parent, value, id) =
           fun s ->
             Js.Node.replace_all parent_node (Js.Node.text (s.Js.Html.get ()))
         )
-        ~url:"?"
+        ~url:"./"
         ~service:"ocsforge_set_deadline_v"
         ~args:[("id", Int32.to_string id)]
         ~param_name:"deadline_v"
@@ -40,25 +40,25 @@ let auto_update_version_deadline (parent, value, id) =
   in
     Js.Node.replace_all parent_node input.Js.Html.node
 
-let auto_update_importance (parent, value, id) =
+let auto_update_importance ((parent, value, id) : (_, int32 option, _)) =
   let parent_node = Js.get_element_by_id parent in
   let input =
-    let string_of_t = Lang.Opt.string_of_t_opt string_of_int in
-    let t_of_string = Lang.Opt.t_opt_of_string int_of_string in
+    let string_of_t = Lang.Opt.string_of_t_opt Int32.to_string in
+    let t_of_string = Lang.Opt.t_opt_of_string Int32.of_string in
       Lang.Fields.auto_update_input
         ~string_of_t ~t_of_string
         ~value
         ~cb_second:(
-          fun s ->
-            Js.Node.replace_all parent_node
-              (Js.Node.text (string_of_t (s.Js.Html.get ())))
+          fun s -> Js.Node.replace_all parent_node
+                      (Js.Node.text (string_of_t (s.Js.Html.get ())))
         )
-        ~url:"?"
+        ~url:"./"
         ~service:"ocsforge_set_importance"
         ~args:[("id", Int32.to_string id)]
         ~param_name:"importance"
         ()
   in
+    Js.alert (match value with | None -> "DEBUG:None" | Some n -> "DEBUG:Some " ^ (Int32.to_string n)) ;
     Js.Node.replace_all parent_node input.Js.Html.node
 
 
@@ -142,7 +142,7 @@ let pop_up_new_task id =
               ("kind", "") ;
             ]
           in
-            Lang.send "?" args ;
+            Lang.send "./" args ;
             close ()
         with exc -> Js.alert ("unable to save task :\n"
                               ^ (Printexc.to_string exc)) ;

@@ -77,7 +77,7 @@ let _ =
 
 
 
-let forge_wiki_model = Ocsisite.wikicreole_model (* pour l'instant *)
+let forge_wiki_model = Ocsisite.wikicreole_model (*TODO: use a real wiki model*)
 
 let _ = Printf.printf "registering wikiext\n%!"
 
