@@ -23,6 +23,7 @@ let ( >>= ) = Lwt.bind
 
 
 let project_repository_service = Eliom_duce.Xhtml.register_new_service 
+    (* Path a modifier pour mettre le NOM du projet *)
     ~path:["sources"]
     ~get_params:(Eliom_parameters.suffix 
 		   ((Eliom_parameters.user_type
