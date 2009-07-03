@@ -25,6 +25,10 @@ let apply_on_opted f = function
   | None   -> None
   | Some v -> Some (f v)
 
+let apply_on_opted_lwt f = function
+  | None -> Lwt.return None
+  | Some v -> Lwt.return (Some (f v))
+
 let unopt ?default v =
   match (v,default) with
     | (Some x, _) -> x
@@ -78,7 +82,13 @@ let filter_map f l =
                  | Some v -> aux (v::accu) t)
   in aux [] l
 
+let apply_on_uniq_or_fail s f = function
+  | [ v ] -> f v
+  | [] | _::_::_ -> failwith (s ^ " not one result")
 
+let apply_on_uniq_or_fail_lwt s f = function
+  | [ v ] -> Lwt.return (f v)
+  | [] | _::_::_ -> failwith (s ^ " not one result")
 
 
 (* auto list generation *)

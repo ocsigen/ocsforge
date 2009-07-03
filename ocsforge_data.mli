@@ -53,7 +53,7 @@ val new_task :
   ?deadline_time:CalendarLib.Date.t ->
   ?deadline_version:string ->
   ?kind:string ->
-  ?area:Ocsforge_types.right_area option -> unit -> Ocsforge_types.task Lwt.t
+  unit -> Ocsforge_types.task Lwt.t
 
 
 (** Get the desired task.
@@ -81,11 +81,6 @@ val get_area :
   sp:Eliom_sessions.server_params ->
   area:Ocsforge_types.right_area -> Ocsforge_types.right_area_info Lwt.t
 
-val get_inheritance :
-  sp:Eliom_sessions.server_params ->
-  area:Ocsforge_types.right_area ->
-  Ocsforge_types.right_area Lwt.t
-
 val get_tree :
   sp:Eliom_sessions.server_params ->
   root:Ocsforge_types.task ->
@@ -97,6 +92,10 @@ val get_sub_tasks :
   sp:Eliom_sessions.server_params ->
   parent:Ocsforge_types.task -> Ocsforge_types.task_info list Lwt.t
 
+
+val get_area_for_task :
+  sp:Eliom_sessions.server_params ->
+  task:Ocsforge_types.task -> Ocsforge_types.right_area_info Lwt.t
 
 
 (** Get tasks sharing a common editor.
@@ -130,8 +129,7 @@ val move_task :
   sp:Eliom_sessions.server_params ->
   task:Ocsforge_types.task ->
   parent:Ocsforge_types.task ->
-  ?area:Ocsforge_types.right_area ->
-  unit -> unit Lwt.t
+  unit Lwt.t
 
 (** Detach a task into a new area.
   *
@@ -140,11 +138,10 @@ val move_task :
   * task : the task to detach
   * parent : the new parent for the task. If unspecified, won't change parent.
   * *)
-val detach_task :
+val make_project :
   sp:Eliom_sessions.server_params ->
   task:Ocsforge_types.task ->
-  ?parent:Ocsforge_types.task ->
-  unit -> unit Lwt.t
+  unit Lwt.t
 
 
 

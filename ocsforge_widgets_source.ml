@@ -24,8 +24,8 @@ module STypes = Ocsforge_source_types
 module Vm = Ocsforge_version_managers
 
 let create_repository_table_content ~sp ~id ~version = 
-  Data.get_task sp id >>= fun t_infos -> 
-    match (t_infos.Types.t_repository_kind,t_infos.Types.t_repository_path) with
+  Data.get_area_for_task sp id >>= fun r_infos -> 
+    match (r_infos.Types.r_repository_kind,r_infos.Types.r_repository_path) with
     | (Some(kind),Some(path)) ->
 	Ocsforge_version_managers.get_fun_pack kind >>= fun fun_pack ->
 	  let rec build_content tree current_dir = match tree with

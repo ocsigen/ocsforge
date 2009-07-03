@@ -119,43 +119,50 @@ let draw_savable_field ~sp ~service ~id ~value ~string_of_t ~alts () =
     )
     ()
 
-let visual_percent
-      ?(color = "rgb(100,100,255)")
-      ?(bg_color = "rgb(230,230,230)")
-      ~value
-      ()
-    =
-  let value = min 100 (max 0 value) in
-  {{
-     <table width={: "100%" :}>[
-       <colgroup>[
-         <col width={: (string_of_int value) ^ "%" :}>[]
-         <col width={: (string_of_int (100 -value)) ^ "%" :}>[]
-       ]
-       <tr>[
-         <td style={: "background-color:" ^ color :}
-             align="right">[
-           !{: to_utf8
-                 (if value > 50
-                  then (string_of_int value) ^ "%"
-                  else "") :}
-         ]
-         <td style={: "background-color:" ^ bg_color :}
-             align="left">[
-           !{: to_utf8
-                 (if value <= 50
-                  then (string_of_int value) ^ "%"
-                  else "") :}
-         ]
-       ]
-     ]
-  }}
+let visual_percent ~color ~bg_color ~value () =
+  match value with
+    | Some v -> let value = min 100 (max 0 v) in
+        {{
+           <table width={: "100%" :} rules="none" border={: "0px" :}>[
+             <colgroup>[
+               <col width={: (string_of_int value) ^ "%" :}>[]
+               <col width={: (string_of_int (100 -value)) ^ "%" :}>[]
+             ]
+             <tr>[
+               <td style={: "background-color:" ^ ( color value ) :}
+                   align="right">[
+                 !{: to_utf8
+                       (if value > 50
+                        then (string_of_int value) ^ "%"
+                        else "") :}
+               ]
+               <td style={: "background-color:" ^ ( bg_color value ) :}
+                   align="left">[
+                 !{: to_utf8
+                       (if value <= 50
+                        then (string_of_int value) ^ "%"
+                        else "") :}
+               ]
+             ]
+           ]
+        }}
+    | None ->
+        {{ <table width={: "100%" :}>[
+              <col width="100%">[]
+              <tr>[
+                <td style={: "color:" ^ ( bg_color 0 ) :}>[
+                'None'
+                ]
+              ]
+           ]
+        }}
+
 
 
 
 
 (*most of the time, the obrowser script will be used !*)
-class new_task_widget =
+class new_project_widget =
 object
 
   val add_task_class = "ocsforge_add_task_form"
@@ -363,6 +370,7 @@ object (self)
                                             alt="highligth">[]
                                 ]
                            ] }}
+                       | "deadline_version" -> to_utf8 "deadline"
                        | _ -> to_utf8 s
                        :}
 
@@ -410,10 +418,22 @@ object (self)
     Lwt.return res
 
   method private show_static_field ~field ~task:t =
+    match field with
+      | "progress" ->
+        {{ <td>[ {:
+        visual_percent
+          ~color:(
+            fun v -> "rgb(100,"
+                        ^ (string_of_int (100 + v / 2)) ^ ","
+                        ^ "255)"
+          )
+          ~bg_color:(fun _ -> "rgb(240,240,240)")
+          ~value:(Olang.apply_on_opted Int32.to_int t.Types.t_progress)
+          ()
+        :} ] }}
+      | field ->
     {{ <td>{:
       match field with
-    | "progress" ->
-        Olang.string_of_t_opt Int32.to_string        t.Types.t_progress
     | "importance" ->
         Olang.string_of_t_opt Int32.to_string        t.Types.t_importance
     | "kind" ->
@@ -431,17 +451,23 @@ object (self)
     | "progress" ->
         {{ <td id={: td_id :}>[ {:
         visual_percent
-          ~value:(Int32.to_int (Olang.unopt
-                                  ~default:Int32.zero
-                                  t.Types.t_progress)
+          ~color:(
+            fun v -> "rgb(100,"
+                        ^ (string_of_int (100 + v / 2)) ^ ","
+                        ^ "255)"
           )
+          ~bg_color:(fun _ -> "rgb(240,240,240)")
+          ~value:(Olang.apply_on_opted Int32.to_int t.Types.t_progress)
           ()
         :} ] }}
     | "importance" ->
         {{ <td id={: td_id :}
                onclick={: "caml_run_from_table(main_vm, 489, "
                           ^(Eliom_obrowser.jsmarshal
-                            (td_id, t.Types.t_importance, t.Types.t_id))
+                            (td_id,
+                             "importance",
+                             t.Types.t_importance,
+                             t.Types.t_id))
                           ^")" :}>[
            <div>{: (Olang.string_of_t_opt ~quote:"" Int32.to_string)
                       t.Types.t_importance :}
@@ -463,6 +489,7 @@ object (self)
                onclick={: "caml_run_from_table(main_vm, 389, "
                           ^(Eliom_obrowser.jsmarshal
                             (td_id,
+                             "deadline_v",
                              Olang.unopt ~default:"" t.Types.t_deadline_version,
                              t.Types.t_id))
                           ^")" :}>[

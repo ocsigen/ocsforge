@@ -30,6 +30,7 @@ open CalendarLib
 (* Non localized parameters... *)
 let nl_param =
   Params.make_non_localized_parameters
+    ~name:"ocsforgetree"
     ((Params.user_type
        Types.task_of_string
        Types.string_of_task
@@ -214,5 +215,63 @@ let new_task_service =
        in
        Data.new_task ~sp ~parent ~subject ~text
           ?length ?progress ?importance ?deadline_time ?deadline_version ?kind
-          ?area () >>= fun _ -> Lwt.return ())
+          () >>= fun _ -> Lwt.return ())
 
+
+
+(*
+let new_project_service =
+  Eliom_predefmod.Action.register_new_post_coservice'
+    ~name:"ocsforge_add_task"
+    ~options:`Reload
+    ~post_params:(
+       ((Params.user_type
+           Types.task_of_string Types.string_of_task
+           "parent") **
+        ((Params.string "subject") **
+         ((Params.string "text") **
+          ((Params.user_type
+              (Ocsforge_lang.t_opt_of_string ~none:"" ~quote:""
+                 Ocsforge_lang.period_of_string)
+              (Ocsforge_lang.string_of_t_opt ~none:"" ~quote:""
+                 Ocsforge_lang.string_of_period)
+              "length") **
+           ((Params.user_type
+               (Ocsforge_lang.t_opt_of_string ~none:"" ~quote:""
+                  Int32.of_string)
+               (Ocsforge_lang.string_of_t_opt ~none:"" ~quote:""
+                  Int32.to_string)
+               "progress") **
+            ((Params.user_type
+                (Ocsforge_lang.t_opt_of_string ~none:"" ~quote:""
+                   Int32.of_string)
+                (Ocsforge_lang.string_of_t_opt ~none:"" ~quote:""
+                   Int32.to_string)
+                "importance") **
+             ((Params.user_type
+                  (Ocsforge_lang.t_opt_of_string ~none:"" ~quote:""
+                     Ocsforge_lang.date_of_string)
+                  (Ocsforge_lang.string_of_t_opt ~none:"" ~quote:""
+                     Ocsforge_lang.string_of_date)
+                  "deadline_t") **
+               ((Params.user_type
+                   (Ocsforge_lang.t_opt_of_string ~none:"" ~quote:""
+                      (fun k -> k))
+                   (Ocsforge_lang.string_of_t_opt ~none:"" ~quote:""
+                      (fun k -> k))
+                   "kind") **
+                (Params.opt (Params.string "repo_kind"))
+               ))))))))
+    )
+    (* error handler ? *)
+    (fun sp () (parent,
+                (subject,
+                 (text,
+                  (length,
+                   (progress,
+                    (importance,
+                     (deadline_time,
+                      (kind,
+                       repo_kind))))))))
+           -> Lwt.return ())
+ *)

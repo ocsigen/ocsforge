@@ -36,10 +36,13 @@ type task_history = task_history_arg Opaque.int32_t
 
 (** {5 info record} *)
 type right_area_info = {
-  r_id          : right_area ;
-  r_forum       : Forum_sql.Types.forum ;
-  r_version     : string ;
-  r_inheritance : right_area ;
+  r_id                   : right_area ;
+  r_forum                : Forum_sql.Types.forum ;
+  r_version              : string ;
+  r_repository_kind      : string option ;
+  r_repository_path      : string option ;
+  r_wiki_container       : Wiki_types.wikibox option ;
+  r_wiki                 : Wiki_types.wiki ;
 }
 
 (** {5 Conversion} *)
@@ -51,7 +54,8 @@ val string_of_right_area : right_area -> string
 val right_area_of_string : string -> right_area
 
 (* NOT TO BE USED BUT IN ocsforge_sql *)
-type raw_right_area_info = int32 * int32 * string * int32
+type raw_right_area_info = int32 * int32 * string * string option *
+                           string option * int32 option * int32
 val get_right_area_info : raw_right_area_info -> right_area_info
 
 
@@ -72,10 +76,9 @@ type task_info = {
   t_deadline_version : string option;
   t_kind : string option;
   t_area : right_area;
-  t_repository_kind : string option;
-  t_repository_path : string option;
   t_tree_min : int32;
   t_tree_max : int32;
+  t_deleted          : bool;
 }
 
 (** {5 Conversion} *)
@@ -93,7 +96,7 @@ type raw_task_info =
     int32 * int32 * int32 * int32 * CalendarLib.Calendar.t * string *
     CalendarLib.Calendar.Period.t option * int32 option * int32 option *
     CalendarLib.Calendar.t option * string option * string option * int32 *
-    string option * string option * int32 * int32
+    int32 * int32 * bool
 val get_task_info : raw_task_info -> task_info
 
 (** {2 For task history marks...} *)

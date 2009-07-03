@@ -102,12 +102,14 @@ struct
        Js.Html.tr
          [Js.Html.td
             ~style:("background-color:" ^ color)
+            ~attrs:[("align", "right")]
             [Js.Node.text
                (if value > 50
                 then (string_of_int value) ^ "%"
                 else "")] ;
           Js.Html.td
             ~style:("background-color:" ^ bg_color)
+            ~attrs:[("align", "right")]
             [Js.Node.text
                (if value <= 50
                 then (string_of_int (100 - value)) ^ "%"

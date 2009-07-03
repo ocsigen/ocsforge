@@ -21,7 +21,7 @@ module Lang = Obrowser_lang
 
 
 
-let auto_update_version_deadline (parent, value, id) =
+let auto_update_string (parent, param_name, value, id) =
   let parent_node = Js.get_element_by_id parent in
   let input =
     let idtt = fun v -> v in
@@ -35,12 +35,12 @@ let auto_update_version_deadline (parent, value, id) =
         ~url:"./"
         ~service:"ocsforge_set_deadline_v"
         ~args:[("id", Int32.to_string id)]
-        ~param_name:"deadline_v"
+        ~param_name
         ()
   in
     Js.Node.replace_all parent_node input.Js.Html.node
 
-let auto_update_importance (parent, value, id) =
+let auto_update_percent (parent, param_name, value, id) =
   let parent_node = Js.get_element_by_id parent in
   let input =
     let string_of_t = Lang.Opt.string_of_t_opt Int32.to_string in
@@ -55,7 +55,7 @@ let auto_update_importance (parent, value, id) =
         ~url:"./"
         ~service:"ocsforge_set_importance"
         ~args:[("id", Int32.to_string id)]
-        ~param_name:"importance"
+        ~param_name
         ()
   in
     Js.Node.replace_all parent_node input.Js.Html.node
@@ -262,7 +262,7 @@ let _ =
   let reg = Eliom_obrowser_client.register_closure in
   reg 189 pop_up_new_task ;
   reg 289 Row_color.color_fields ;
-  reg 389 auto_update_version_deadline ;
-  reg 489 auto_update_importance ;
+  reg 389 auto_update_string ;
+  reg 489 auto_update_percent ;
 
 

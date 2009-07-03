@@ -44,7 +44,16 @@ val new_area :
   ?id:Ocsforge_types.right_area ->
   forum:Forum_sql.Types.forum ->
   ?version:string ->
+  ?repository_kind:string ->
+  ?repository_path:string ->
+  ?wiki_container:Wiki_types.wikibox ->
+  wiki:Wiki_types.wiki ->
   unit -> Ocsforge_types.right_area Lwt.t
+
+val get_path_for_area :
+  area:Ocsforge_types.right_area ->
+  Sql.db_t -> string list option Lwt.t
+
 
 (** Get the nextval of the right_area_id_seq.
   * Used when detaching a task into a new area*)
@@ -59,6 +68,7 @@ val next_task_id :
 (** Get the task information based on identifier*)
 val get_task_by_id :
   task_id:Ocsforge_types.task ->
+  ?with_deleted:bool ->
   Sql.db_t -> Ocsforge_types.task_info Lwt.t
 
 (** Get the task history entries.*)
@@ -69,11 +79,13 @@ val get_task_history_by_id :
 (** Get every task sharing the same specified parent*)
 val get_tasks_by_parent :
   parent:Ocsforge_types.task ->
+  ?with_deleted:bool ->
   Sql.db_t -> Ocsforge_types.task_info list Lwt.t
 
 (** Get every task in a subtree*)
 val get_tasks_in_tree :
   root:Ocsforge_types.task ->
+  ?with_deleted:bool -> unit ->
   Sql.db_t -> Ocsforge_types.task_info list Lwt.t
 
 
@@ -82,17 +94,19 @@ val get_tasks_in_tree :
 (** Get every task having the given editor.*)
 val get_tasks_by_editor :
   editor:User_sql.Types.userid ->
+  ?with_deleted:bool -> unit ->
   Sql.db_t -> Ocsforge_types.task_info list Lwt.t
-
-(** Get the default inheritance for the given area.*)
-val get_area_inheritance :
-  area_id:Ocsforge_types.right_area ->
-  Sql.db_t -> Ocsforge_types.right_area Lwt.t
 
 (** Get the area a task is in*)
 val get_area_for_task :
   task_id:Ocsforge_types.task ->
   Sql.db_t -> Ocsforge_types.right_area Lwt.t
+
+(** Get the info for the area the task is in *)
+val get_area_info_for_task :
+  task_id:Ocsforge_types.task ->
+  Sql.db_t -> Ocsforge_types.right_area_info Lwt.t
+
 
 (** Get area info about a task*)
 val get_area_by_id :
@@ -150,6 +164,11 @@ val set_parent :
   task_id:Ocsforge_types.task ->
   parent:Ocsforge_types.task ->
   Sql.db_t -> unit Lwt.t
+val set_deleted :
+  task_id:Ocsforge_types.task ->
+  deleted:bool ->
+  Sql.db_t -> unit Lwt.t
+
 
 (** When moving a task to a new parent, updates tree_min and tree_max fields. *)
 val change_tree_marks :
@@ -190,6 +209,9 @@ val swap_kinds_for_area :
   kinds:(string * string) list ->
   Sql.db_t -> unit Lwt.t
 
+val is_area_root :
+  task:Ocsforge_types.task ->
+  Sql.db_t -> bool Lwt.t
 
 
 

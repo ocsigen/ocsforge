@@ -36,7 +36,7 @@ let first_task () =
   else
     begin
       Lwt.return (Printf.printf "..!\n%!") >>= fun () ->
-      Ocsforge_sql.new_area ~forum:(Forum_sql.Types.forum_of_sql (Int32.of_int 2)) ()
+      Ocsforge_sql.new_area ~forum:(Forum_sql.Types.forum_of_sql (Int32.of_int 2)) ~wiki:(Wiki_types.wiki_of_sql Int32.one) ()
                                                        >>= fun area ->
       Ocsforge_sql.bootstrap_task ~area ~message:(Forum_sql.Types.message_of_sql Int32.one)
                                                        >>= fun _ ->

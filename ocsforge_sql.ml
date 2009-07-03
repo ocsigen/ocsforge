@@ -19,6 +19,7 @@
 
 let (>>=) = Lwt.bind
 module Types = Ocsforge_types
+module Olang = Ocsforge_lang
 
 (*Can't compile w/o : *)open Sql
 
@@ -78,8 +79,13 @@ let new_task
 
 (** {5 make area} *)
 
-let new_area ?id ~forum ?(version = "0.0") () =
+let new_area ?id ~forum ?(version = "0.0") ?repository_kind ?repository_path
+             ?wiki_container ~wiki () =
   let forum = Forum_sql.Types.sql_of_forum forum in
+  let wiki_container = Olang.apply_on_opted
+                         Wiki_types.sql_of_wikibox wiki_container
+  in
+  let wiki = Wiki_types.sql_of_wiki wiki in
    Sql.full_transaction_block
     (fun db ->
        (match id with
@@ -94,19 +100,41 @@ let new_area ?id ~forum ?(version = "0.0") () =
                >>= fun id ->
                  PGSQL(db)
                    "INSERT INTO ocsforge_right_areas \
-                           ( id,  forum_id, version,  inheritance) \
-                    VALUES ($id, $forum,    $version, $id)"
+                           ( id,  forum_id, version, \
+                            repository_kind, repository_path, \
+                            wiki_container, wiki) \
+                    VALUES ($id, $forum,    $version, \
+                            $?repository_kind, $?repository_path, \
+                            $?wiki_container, $wiki)"
               >>= fun () -> Lwt.return id
              end
          | Some id ->
              let id = Types.sql_of_right_area id in
              PGSQL(db)
                "INSERT INTO ocsforge_right_areas \
-                       ( id,  forum_id, version,  inheritance) \
-                VALUES ($id, $forum,    $version, $id)"
+                       ( id,  forum_id, version, \
+                        repository_kind, repository_path, \
+                        wiki_container, wiki) \
+                VALUES ($id, $forum,    $version, \
+                        $?repository_kind, $?repository_path, \
+                        $?wiki_container, $wiki)"
              >>= fun () -> Lwt.return id
        )
      >>= fun i -> Lwt.return (Types.right_area_of_sql i))
+
+let get_path_for_area ~area =
+  let area = Types.sql_of_right_area area in
+    (fun db ->
+       PGSQL(db)
+         "SELECT wiki FROM ocsforge_right_areas WHERE id = $area"
+       >>= function
+         | [] | _::_::_ -> failwith "Ocsforge_sql.get_path_for_area not one id"
+         | [ wikiid ] ->
+       PGSQL(db)
+         "SELECT pages FROM wikis WHERE id = $wikiid"
+         >>= (Olang.apply_on_uniq_or_fail "Ocsforge_sql.get_path_for_area"
+               (Olang.apply_on_opted_lwt (Str.split (Str.regexp "/")))))
+
 
 let next_right_area_id db =
     PGSQL(db)
@@ -133,7 +161,7 @@ let next_task_id db =
 
 (** {5 getters for tasks} *)
 
-let get_task_by_id ~task_id =
+let get_task_by_id ~task_id ?(with_deleted = false) =
   let task_id = Types.sql_of_task task_id in
   (fun db ->
      PGSQL(db)
@@ -141,9 +169,9 @@ let get_task_by_id ~task_id =
                edit_author, edit_time, edit_version, \
                length, progress, importance, \
                deadline_time, deadline_version, kind, \
-               area, repository_kind, repository_path, tree_min, tree_max \
+               area, tree_min, tree_max, deleted \
         FROM ocsforge_tasks
-        WHERE id = $task_id"
+        WHERE id = $task_id AND (deleted = $with_deleted OR deleted = false)"
      >>= function
          | [r]  -> Lwt.return (Types.get_task_info r)
          | []   -> Lwt.fail Not_found
@@ -165,7 +193,7 @@ let get_task_history_by_id ~task_id =
         (current,
          List.map Types.get_task_history_info history))
 
-let get_tasks_by_parent ~parent =
+let get_tasks_by_parent ~parent ?(with_deleted = false)=
   let parent = Types.sql_of_task parent in
     (fun db ->
       PGSQL(db)
@@ -173,14 +201,15 @@ let get_tasks_by_parent ~parent =
                 edit_author, edit_time, edit_version, \
                 length, progress, importance, \
                 deadline_time, deadline_version, kind, \
-                area, repository_kind, repository_path, tree_min, tree_max
+                area, tree_min, tree_max, deleted
          FROM ocsforge_tasks
-         WHERE parent = $parent"
+         WHERE parent = $parent
+           AND (deleted = $with_deleted OR deleted = false)"
         >>= fun r -> (Lwt_util.map_serial
                         (fun t -> Lwt.return (Types.get_task_info t))
                         r))
 
-let get_tasks_in_tree ~root db =
+let get_tasks_in_tree ~root ?(with_deleted = false) () db =
   let root = Types.sql_of_task root in
   PGSQL(db)
     "SELECT tree_min, tree_max
@@ -194,15 +223,16 @@ let get_tasks_in_tree ~root db =
               edit_author, edit_time, edit_version, \
               length, progress, importance, \
               deadline_time, deadline_version, kind, \
-              area, repository_kind, repository_path, tree_min, tree_max
+              area, tree_min, tree_max, deleted
        FROM ocsforge_tasks
        WHERE tree_min >= $tmin AND tree_max <= $tmax
+         AND (deleted = $with_deleted OR deleted = false)
        ORDER BY tree_min")
     >>= fun r -> (Lwt_util.map_serial
                     (fun t -> Lwt.return (Types.get_task_info t))
                     r)
 
-let get_tasks_by_editor ~editor =
+let get_tasks_by_editor ~editor ?(with_deleted = false) () =
   let editor = User_sql.Types.sql_from_userid editor in
   (fun db ->
     PGSQL(db)
@@ -210,9 +240,10 @@ let get_tasks_by_editor ~editor =
               edit_author, edit_time, edit_version, \
               length, progress, importance, \
               deadline_time, deadline_version, kind, \
-              area, repository_kind, repository_path, tree_min, tree_max
+              area, tree_min, tree_max, deleted
        FROM ocsforge_tasks
-       WHERE edit_author = $editor"
+       WHERE edit_author = $editor
+         AND (deleted = $with_deleted OR deleted = false)"
       >>=fun r -> (Lwt_util.map_serial
                      (fun t -> Lwt.return (Types.get_task_info t))
                      r))
@@ -221,18 +252,6 @@ let get_tasks_by_editor ~editor =
 
 (** {5 getters for area} *)
 
-let get_area_inheritance ~area_id =
-  let id = Types.sql_of_right_area area_id in
-    (fun db ->
-       PGSQL(db)
-         "SELECT inheritance
-          FROM ocsforge_right_areas
-          WHERE id = $id"
-    >>= function
-      | [r] -> Lwt.return (Types.right_area_of_sql r)
-      | []  -> Lwt.fail Not_found
-      | _   -> failwith "Ocsforge_sql.get_area_inheritance, \
-                  more than one result")
 
 let get_area_for_task ~task_id =
   let task = Types.sql_of_task task_id in
@@ -248,12 +267,27 @@ let get_area_for_task ~task_id =
                   more than one result"
     )
 
+let get_area_info_for_task ~task_id =
+  let task = Types.sql_of_task task_id in
+    (fun db ->
+       PGSQL(db)
+         "SELECT id, forum_id, version, repository_kind, repository_path,
+                 wiki_container, wiki
+          FROM ocsforge_right_areas
+          WHERE id = (SELECT area
+                      FROM ocsforge_tasks
+                      WHERE id = $task)"
+    >>= (Ocsforge_lang.apply_on_uniq_or_fail_lwt
+           "Ocsforge_sql.get_area_info_for_task"
+           Types.get_right_area_info)
+    )
 
 let get_area_by_id ~area_id =
   let area = Types.sql_of_right_area area_id in
     (fun db ->
        PGSQL(db)
-         "SELECT id, forum_id, version, inheritance
+         "SELECT id, forum_id, version, \
+                 repository_kind, repository_path, wiki_container, wiki
           FROM ocsforge_right_areas
           WHERE id = $area"
      >>= function
@@ -374,14 +408,14 @@ let set_parent ~task_id ~parent =
              SET parent = $parent
              WHERE id = $task_id")
 
-let set_area_inheritance ~area_id ~area_inheritance =
-  let area_inh = Types.sql_of_right_area area_inheritance in
-  let area_id = Types.sql_of_right_area area_id in
+let set_deleted ~task_id ~deleted =
+  let task_id = Types.sql_of_task task_id in
       (fun db -> 
           PGSQL(db)
-            "UPDATE ocsforge_right_areas
-             SET inheritance = $area_inh
-             WHERE id = $area_id")
+            "UPDATE ocsforge_tasks
+             SET deleted = $deleted
+             WHERE id = $task_id")
+ 
 
 (*TODO : multiple field tamprers *)
 
@@ -523,3 +557,34 @@ let get_task_count () =
                  | [] | _::_::_ | [None] ->
                      failwith "Ocsforge_sql.get_task_count"
                  | [Some i] -> Lwt.return (Int64.to_int i)))
+
+let get_root_task () =
+  Sql.full_transaction_block
+    (fun db ->
+       PGSQL(db)
+       "SELECT id, parent, message, \
+               edit_author, edit_time, edit_version, \
+               length, progress, importance, \
+               deadline_time, deadline_version, kind, \
+               area, tree_min, tree_max, deleted \
+        FROM ocsforge_tasks
+        WHERE tree_min = 0"
+     >>= function
+         | [r]  -> Lwt.return (Types.get_task_info r)
+         | []   -> Lwt.fail Not_found
+         | r::_ -> failwith "Ocsforge_sql.get_root_task, more than one result")
+
+let is_area_root ~task =
+  let task = Types.sql_of_task task in
+  (fun db ->
+     PGSQL(db)
+       "SELECT parent FROM ocsforge_tasks WHERE id = $task"
+     >>= (Ocsforge_lang.apply_on_uniq_or_fail "Ocsforge_sql.is_area_root"
+            (fun ptask ->
+               PGSQL(db)
+                  "SELECT area
+                   FROM ocsforge_tasks
+                   WHERE id = $task OR id = $ptask"))
+     >>= function
+       | [ v1 ; v2 ] -> Lwt.return (v1 = v2)
+       | [] | _::[] | _::_::_::_ -> failwith "Ocsforge_sql.is_area_root unexpected query result")

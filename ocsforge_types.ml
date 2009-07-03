@@ -33,10 +33,13 @@ type task_history = task_history_arg Opaque.int32_t
 
 (** {3 For right tags : right management for project tree} *)
 type right_area_info = {
-  r_id          : right_area ;
-  r_forum       : Forum_sql.Types.forum ;
-  r_version     : string ;
-  r_inheritance : right_area ;
+  r_id                   : right_area ;
+  r_forum                : Forum_sql.Types.forum ;
+  r_version              : string ;
+  r_repository_kind      : string option ;
+  r_repository_path      : string option ;
+  r_wiki_container       : Wiki_types.wikibox option ;
+  r_wiki                 : Wiki_types.wiki ;
 }
 
 let right_area_of_sql (u : int32) = (Opaque.int32_t u : right_area)
@@ -50,14 +53,19 @@ let string_of_right_area i = Int32.to_string (sql_of_right_area i)
 let right_area_of_string s = (Opaque.int32_t (Int32.of_string s) : right_area)
 
 type raw_right_area_info =
-    (int32 * int32 * string * int32)
+    (int32 * int32 * string *
+     string option * string option * int32 option * int32)
 
-let get_right_area_info (id, forum_id, ver, inh) =
+let get_right_area_info (id, forum_id, ver, kind, path, cont, wik) =
   {
-    r_id          = right_area_of_sql id ;
-    r_forum       = Forum_sql.Types.forum_of_sql forum_id ;
-    r_version     = ver ;
-    r_inheritance = right_area_of_sql inh ;
+    r_id                   = right_area_of_sql id ;
+    r_forum                = Forum_sql.Types.forum_of_sql forum_id ;
+    r_version              = ver ;
+    r_repository_kind      = kind ;
+    r_repository_path      = path ;
+    r_wiki_container       = Ocsforge_lang.apply_on_opted
+                               Wiki_types.wikibox_of_sql cont ;
+    r_wiki                 = Wiki_types.wiki_of_sql wik ;
   }
 
 
@@ -81,11 +89,10 @@ type task_info = {
 
   t_area             : right_area;
 
-  t_repository_kind  : string option;
-  t_repository_path  : string option;
-
   t_tree_min         : int32;
   t_tree_max         : int32;
+
+  t_deleted          : bool;
 }
 
 
@@ -108,14 +115,14 @@ type raw_task_info =
      int32 * Calendar.t * string *
      Calendar.Period.t option * int32 option * int32 option
      * Calendar.t option * string option * string option *
-     int32 * string option * string option * int32 * int32)
+     int32 * int32 * int32 * bool)
 
 let get_task_info
       (id,  parent_id,
        message,
        edit_author, edit_time, edit_version,
        length,  progress,  importance,  deadline_time, deadline_version,  kind,
-       area, rep_kind, rep_path, tmin, tmax)
+       area, tmin, tmax, deleted)
       = 
   {
     t_id     = task_of_sql id;
@@ -137,11 +144,10 @@ let get_task_info
 
     t_area             = right_area_of_sql area;
 
-    t_repository_kind  = rep_kind;
-    t_repository_path  = rep_path;
-
     t_tree_max         = tmin;
     t_tree_min         = tmax;
+
+    t_deleted          = deleted;
   }
 
 
