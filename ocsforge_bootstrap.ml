@@ -93,7 +93,7 @@ let _ =
     Wiki_syntax.wikicreole_parser
     tree_widget
     Ocsforge_services_tasks.non_localized_service
-    Ocsforge_services_source.project_repository_service
+    Ocsforge_services_source.temp_service
   
 let _ = 
   Ocsforge_wikiext_source.register_wikiext 

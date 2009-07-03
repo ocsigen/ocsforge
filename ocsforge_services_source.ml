@@ -21,15 +21,52 @@
 let ( ** ) = Eliom_parameters.prod
 let ( >>= ) = Lwt.bind
 
+(* Hashtable (task id , service) *)
+let repos_services_table : 
+    (Ocsforge_types.task,
+    (Ocsforge_types.task * string, unit,
+        [ `Attached of
+          Eliom_services.get_attached_service_kind Eliom_services.a_s ],
+     [ `WithSuffix ],
+     [ `One of Ocsforge_types.task ] Eliom_parameters.param_name *
+       [ `One of string ] Eliom_parameters.param_name, unit,
+     [ `Registrable ])
+    Eliom_services.service) Hashtbl.t
+    = Hashtbl.create 50
 
-let project_repository_service = Eliom_duce.Xhtml.register_new_service 
+let add_service id service = Hashtbl.add repos_services_table id service
+
+let find_service id = 
+  try 
+    let service = Hashtbl.find repos_services_table id 
+    in Some(service)
+  with Not_found ->
+    None
+
+let project_repository_service project = Eliom_duce.Xhtml.register_new_service 
     (* Path a modifier pour mettre le NOM du projet *)
-    ~path:["sources"]
-    ~get_params:(Eliom_parameters.suffix 
+    ~path:[project;"sources"]
+    ~get_params:(Eliom_parameters.suffix
 		   ((Eliom_parameters.user_type
 		       Ocsforge_types.task_of_string
 		       Ocsforge_types.string_of_task "id") ** 
 		      Eliom_parameters.string "version"))
     (fun sp (id,version) () ->
-      Ocsforge_widgets_source.draw_repository_table ~sp ~id ~version >>= fun content ->
+      Ocsforge_widgets_source.draw_repository_table ~sp ~id ~version >>= 
+      fun content ->
 	Ocsimore_page.html_page ~sp content)
+
+(* service temporaire qui ne fait rien *)
+let temp_service = Eliom_predefmod.Action.register_new_service 
+    ~path:["tmp"]
+    ~get_params:(Eliom_parameters.suffix
+		   ((Eliom_parameters.user_type
+		       Ocsforge_types.task_of_string
+		       Ocsforge_types.string_of_task "id") ** 
+		      Eliom_parameters.string "version"))
+    (fun sp (project,path) () ->  Lwt.return ())
+
+
+(* TODO : enregistrer 1 service pour chaque zone *)
+let register_repository_services () = ()
+

@@ -487,16 +487,15 @@ object (self)
                [ `One of bool ] Params.param_name )),
              unit, [ `Unregistrable ])
             Eliom_services.service)
-       ~(repo_service :
-	   (Types.task * string, unit,
-            [ `Attached of
-              Eliom_services.get_attached_service_kind Eliom_services.a_s ],
-            [ `WithSuffix ],
-            [ `One of Types.task ] Eliom_parameters.param_name *
-            [ `One of string ] Eliom_parameters.param_name, unit,
-            [ `Registrable ])
-           Eliom_services.service
-	)
+         ~(temp_service :
+            ((Ocsforge_types.task * string, unit,
+               [ `Attached of
+               Eliom_services.get_attached_service_kind Eliom_services.a_s ],
+               [ `WithSuffix ],
+               [ `One of Types.task ] Eliom_parameters.param_name *
+               [ `One of string ] Eliom_parameters.param_name, unit,
+               [ `Registrable ])
+               Eliom_services.service))
       ?(width = 600) ?(padding = 10) ?(char_size = 12)
       ?sort
       () =
@@ -528,25 +527,38 @@ object (self)
                                    t.Types.t_progress)
                                 ten)))
           ::[]
-        in
-
+        in 
           Lwt.return
             {{ <tr class={: Ocsimore_lib.build_class_attr classes :} style="">[
                  <th align="left">[
                     <div class={: Ocsimore_lib.build_class_attr
                                     ["depth" ^ (string_of_int (min depth 9))]
                        :}>[
-		       {: EDuce.Xhtml.a
-                          ~service:repo_service
-                          ~sp
-                          {{ [ <img src={: EDuce.Xhtml.make_uri ~sp
-                                            ~service:(Eliom_services.static_dir
-                                                         ~sp)
-                                            ["open_repository.png"] :}
-                                   alt="go to repos page">[]
-                             ] }}
-                          (t.Types.t_id, "")
-                     :} 
+		       {: match Ocsforge_services_source.find_service t.Types.t_id with
+		           | None -> 
+			       EDuce.Xhtml.a
+				 ~service:temp_service
+				 ~sp
+				 {{ [ ] }}
+				 (*{{ [ <img src={: EDuce.Xhtml.make_uri ~sp
+						  ~service:(Eliom_services.static_dir
+                                                              ~sp)
+						  ["magnifier.png"] :}
+					alt="zoom to subtask">[]
+				    ] }}*)
+				 (t.Types.t_id, "")
+			   | Some(repo_service) ->
+			       EDuce.Xhtml.a
+			       ~service:repo_service 
+				 ~sp
+			       {{ [ <img src={: EDuce.Xhtml.make_uri ~sp
+					  ~service:(Eliom_services.static_dir 
+						      ~sp)
+						  ["open_repository.png"] :}
+					alt="go to repos page">[]
+				    ] }}
+				 (t.Types.t_id, "")
+			:} 
                      {: EDuce.Xhtml.a
                           ~service:nl_service
                           ~sp
