@@ -19,11 +19,11 @@
 
 
 val project_repository_service :
-    (string * string list, unit,
+    (Ocsforge_types.task * string, unit,
         [> `Attached of
                    [> `Internal of [> `Service ] * [> `Get ] ] Eliom_services.a_s ],
         [ `WithSuffix ],
-        [ `One of string ] Eliom_parameters.param_name *
-        [ `One of string list ] Eliom_parameters.param_name, unit,
+        [ `One of Ocsforge_types.task ] Eliom_parameters.param_name *
+        [ `One of string ] Eliom_parameters.param_name, unit,
         [> `Registrable ])
     Eliom_services.service

@@ -488,12 +488,12 @@ object (self)
              unit, [ `Unregistrable ])
             Eliom_services.service)
        ~(repo_service :
-	   (string * string list, unit,
+	   (Types.task * string, unit,
             [ `Attached of
               Eliom_services.get_attached_service_kind Eliom_services.a_s ],
             [ `WithSuffix ],
-            [ `One of string ] Eliom_parameters.param_name *
-            [ `One of string list ] Eliom_parameters.param_name, unit,
+            [ `One of Types.task ] Eliom_parameters.param_name *
+            [ `One of string ] Eliom_parameters.param_name, unit,
             [ `Registrable ])
            Eliom_services.service
 	)
@@ -545,7 +545,7 @@ object (self)
                                             ["open_repository.png"] :}
                                    alt="go to repos page">[]
                              ] }}
-                          (Types.string_of_task t.Types.t_id, [""])
+                          (t.Types.t_id, "")
                      :} 
                      {: EDuce.Xhtml.a
                           ~service:nl_service

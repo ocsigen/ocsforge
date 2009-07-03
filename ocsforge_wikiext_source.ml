@@ -56,9 +56,9 @@ let register_wikiext wp =
        	     let id = Ocsforge_types.task_of_string (List.assoc "id" args) in
 	     let version = List.assoc "version" args in
 	     let () =  send_css_up "ocsforge_tree.css" sp in
-	     Ocsforge_widgets_source.draw_repository_tree ~sp ~id ~version >>= 
-	     fun (b : {{ [ Xhtmltypes_duce.tr+ ] }}) ->
-	       Lwt.return {{ [<table> b] }}
+	     Ocsforge_widgets_source.draw_repository_table ~sp ~id ~version >>= 
+	     fun (b : {{ [ Xhtmltypes_duce.table ] }}) ->
+	       Lwt.return b
 	   )
 	   
 	   (function

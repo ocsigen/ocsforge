@@ -22,10 +22,13 @@ let ( ** ) = Eliom_parameters.prod
 let ( >>= ) = Lwt.bind
 
 
-let project_repository_service = Eliom_predefmod.Action.register_new_service 
+let project_repository_service = Eliom_duce.Xhtml.register_new_service 
     ~path:["sources"]
     ~get_params:(Eliom_parameters.suffix 
-		   (Eliom_parameters.string "project" ** 
-		      Eliom_parameters.all_suffix "path"))
-    (fun sp (project,path) () ->  Lwt.return ())
-
+		   ((Eliom_parameters.user_type
+		       Ocsforge_types.task_of_string
+		       Ocsforge_types.string_of_task "id") ** 
+		      Eliom_parameters.string "version"))
+    (fun sp (id,version) () ->
+      Ocsforge_widgets_source.draw_repository_table ~sp ~id ~version >>= fun content ->
+	Ocsimore_page.html_page ~sp content)

@@ -23,7 +23,7 @@ module Types = Ocsforge_types
 module STypes = Ocsforge_source_types
 module Vm = Ocsforge_version_managers
 
-let draw_repository_tree ~sp ~id ~version = 
+let create_repository_table_content ~sp ~id ~version = 
   Data.get_task sp id >>= fun t_infos -> 
     match (t_infos.Types.t_repository_kind,t_infos.Types.t_repository_path) with
     | (Some(kind),Some(path)) ->
@@ -70,3 +70,6 @@ let draw_repository_tree ~sp ~id ~version =
 			       <td> ['Error: unable to access the repository']]] }}
      
   
+let draw_repository_table ~sp ~id ~version =
+  create_repository_table_content ~sp ~id ~version >>= fun b ->
+    Lwt.return ({{ [<table> b] }} : {{ [ Xhtmltypes_duce.table ] }})
