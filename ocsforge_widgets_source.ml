@@ -42,9 +42,9 @@ let create_repository_table_content ~sp ~id ~version =
 		   ] ]
                  }} 
  	  | STypes.Dir (d, l) ->
-	      let rec aux list dir (res : {{ [ Xhtmltypes_duce.tr+ ] }}) = 
+	      let rec aux list dir (res : {{ [ Xhtmltypes_duce.tr* ] }}) = 
 		match list with
-	        | []   -> Lwt.return res 
+	        | []   -> Lwt.return res
 		| h::t -> 
 		    build_content h dir >>= fun built ->
 		      (aux t dir ({{ [ !res !built ] }}))
@@ -56,23 +56,27 @@ let create_repository_table_content ~sp ~id ~version =
 		else (current_dir^"/"^d)
 	      in
 	      let a = 
-		{{ <tr>[
-		   <td> {: new_dir :}
-		 ]
-		 }}
-              in
-              ((aux l new_dir {{ [ a ] }}) : {{ [ Xhtmltypes_duce.tr+ ] }} Lwt.t)
+		if (String.length new_dir > 0) then
+		{{ [<tr>[ <td> {: new_dir :} ]] }}
+		else {{ [ ] }}
+	      in
+              (({{aux l new_dir a}}) : {{ [ Xhtmltypes_duce.tr* ] }} Lwt.t)
 	  in
-	  fun_pack.STypes.vm_list ~id:version path >>= fun tree -> 
-	    ((build_content tree "") : {{ [ Xhtmltypes_duce.tr+ ] }} Lwt.t)
-	      
+	  begin match version with
+	  | None ->
+	      fun_pack.STypes.vm_list path >>= fun tree -> 
+		((build_content tree "") : {{ [ Xhtmltypes_duce.tr* ] }} Lwt.t)
+	  | Some(v) ->
+	      fun_pack.STypes.vm_list ~id:v path >>= fun tree -> 
+		((build_content tree "") : {{ [ Xhtmltypes_duce.tr* ] }} Lwt.t)
+	  end
     | (_,_) -> Lwt.return {{ [ <tr> [
 			       <td> ['Error: unable to access the repository']]] }}
   
 let table_header = 
   ({{ [<tr> [ <th> ['File'] 
-	     <th> ['Author']
-	     <th> ['Last version'] ] ]  }} : {{ [Xhtmltypes_duce.tr] }})
+	      <th> ['Author']
+	      <th> ['Latest version'] ] ]  }} : {{ [Xhtmltypes_duce.tr] }})
 
 let draw_repository_table ~sp ~id ~version =
   create_repository_table_content ~sp ~id ~version >>= fun b ->

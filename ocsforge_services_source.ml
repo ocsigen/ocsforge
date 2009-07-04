@@ -52,7 +52,12 @@ let project_repository_service project = Eliom_duce.Xhtml.register_new_service
 		       Ocsforge_types.string_of_task "id") ** 
 		      Eliom_parameters.string "version"))
     (fun sp (id,version) () ->
-      Ocsforge_widgets_source.draw_repository_table ~sp ~id ~version >>= 
+      let v = 
+	if (String.length version == 0) then
+	  None
+	else Some(version)
+      in
+      Ocsforge_widgets_source.draw_repository_table ~sp ~id ~version:v >>= 
       fun content ->
 	Ocsimore_page.html_page ~sp content)
 
