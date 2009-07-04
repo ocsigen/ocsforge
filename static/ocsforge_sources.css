@@ -1,0 +1,14 @@
+.sources_table table{
+    border:2px solid #000;
+    border-collapse:collapse;
+    text-align:left; 
+}
+
+.sources_table td{
+    border:1px solid #BBBBBB;
+}
+
+.sources_table th{
+    border:1px solid #BBBBBB;
+    background-color:#EEE;
+}

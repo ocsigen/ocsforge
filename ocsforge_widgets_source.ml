@@ -76,5 +76,5 @@ let table_header =
 
 let draw_repository_table ~sp ~id ~version =
   create_repository_table_content ~sp ~id ~version >>= fun b ->
-    Lwt.return ({{ [<table>  [!table_header !b]   ] }} : 
+    Lwt.return ({{ [<table class="sources_table">  [!table_header !b]   ] }} : 
 		  {{ [ Xhtmltypes_duce.table ] }})
