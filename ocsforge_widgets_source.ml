@@ -29,47 +29,52 @@ let create_repository_table_content ~sp ~id ~version =
     | (Some(kind),Some(path)) ->
 	Ocsforge_version_managers.get_fun_pack kind >>= fun fun_pack ->
 	  let rec build_content tree current_dir = match tree with
-	    | STypes.File(f,aut,rev)    ->
-		(*let file_URL = 
-		  if String.length current_dir == 0 then f
-		  else current_dir^"/"^f
+	  | STypes.File(f,aut,rev)    ->
+	      (*let file_URL = 
+		if String.length current_dir == 0 then f
+		else current_dir^"/"^f
 		in*)
-		Lwt.return
-                  {{ [ <tr>[
-                         <td>{: f :}
-		         <td>{: aut :}
-		         <td>{: rev :}
-		      ] ]
-                   }} 
- 	    | STypes.Dir (d, l) ->
-		let rec aux list dir (res : {{ [ Xhtmltypes_duce.tr+ ] }}) = 
-		  match list with
-	            | []   -> Lwt.return res 
-		    | h::t -> 
-			build_content h dir >>= fun built ->
-			  (aux t dir ({{ [ !res !built ] }}))
-		in
-		let new_dir = 
-		  if (String.length current_dir == 0) then   
-		    if (String.compare d "." != 0) then d
-		    else ""
-		  else (current_dir^"/"^d)
-		in
-		let a = 
-		  {{ <tr>[
-		     <td> {: new_dir :}
-		   ]
-		   }}
-                in
-                ((aux l new_dir {{ [ a ] }}) : {{ [ Xhtmltypes_duce.tr+ ] }} Lwt.t)
+	      Lwt.return
+                {{ [ <tr>[
+                     <td>{: f :}
+		       <td>{: aut :}
+		       <td>{: rev :}
+		   ] ]
+                 }} 
+ 	  | STypes.Dir (d, l) ->
+	      let rec aux list dir (res : {{ [ Xhtmltypes_duce.tr+ ] }}) = 
+		match list with
+	        | []   -> Lwt.return res 
+		| h::t -> 
+		    build_content h dir >>= fun built ->
+		      (aux t dir ({{ [ !res !built ] }}))
+	      in
+	      let new_dir = 
+		if (String.length current_dir == 0) then   
+		  if (String.compare d "." != 0) then d
+		  else ""
+		else (current_dir^"/"^d)
+	      in
+	      let a = 
+		{{ <tr>[
+		   <td> {: new_dir :}
+		 ]
+		 }}
+              in
+              ((aux l new_dir {{ [ a ] }}) : {{ [ Xhtmltypes_duce.tr+ ] }} Lwt.t)
 	  in
 	  fun_pack.STypes.vm_list ~id:version path >>= fun tree -> 
 	    ((build_content tree "") : {{ [ Xhtmltypes_duce.tr+ ] }} Lwt.t)
-	
+	      
     | (_,_) -> Lwt.return {{ [ <tr> [
 			       <td> ['Error: unable to access the repository']]] }}
-     
   
+let table_header = 
+  ({{ [<tr> [ <th> ['File'] 
+	     <th> ['Author']
+	     <th> ['Last version'] ] ]  }} : {{ [Xhtmltypes_duce.tr] }})
+
 let draw_repository_table ~sp ~id ~version =
   create_repository_table_content ~sp ~id ~version >>= fun b ->
-    Lwt.return ({{ [<table> b] }} : {{ [ Xhtmltypes_duce.table ] }})
+    Lwt.return ({{ [<table>  [!table_header !b]   ] }} : 
+		  {{ [ Xhtmltypes_duce.table ] }})

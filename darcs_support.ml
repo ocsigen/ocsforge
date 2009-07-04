@@ -10,14 +10,13 @@ let index_regexp = regexp "Index: "
 
 (** Stocke le contenu d'un input channel dans une string list *)
 let rec read_input_channel res chan =
-  catch
-    (fun () -> Lwt_chan.input_line chan >>= fun line ->
-               read_input_channel (res@[line]) chan)
+  try_bind 
+    (fun () -> Lwt_chan.input_line chan)
+    (fun line -> read_input_channel (line::res) chan)
     (function 
-      | End_of_file -> Lwt.return res
-      | _ ->  Lwt.return ("Unexpected Exception"::res))
-
-
+      | End_of_file -> Lwt.return (List.rev res)
+      | _ ->  Lwt.return (List.rev ("Unexpected Exception"::res)))
+  
 (** Execute une commande systeme et stockes le résultat affiché 
     dans une string list *)
 let exec_command command error_message = 
@@ -25,22 +24,17 @@ let exec_command command error_message =
   let pid = Unix.fork () in
   if (pid == 0) then begin
     Lwt_unix.close outpipe;
-    Unix.dup2 (inpipe) (Unix.stdout);
-    Lwt_unix.system command >>= function
-      | Unix.WEXITED(_) ->
-	  Unix.close inpipe;
-	  exit(0)
-      | Unix.WSIGNALED(_) 
-      | Unix.WSTOPPED(_) -> 
-	  Unix.close inpipe;
-	  exit(1)
+    Unix.dup2 inpipe Unix.stdout;
+    Unix.close inpipe;
+    Unix.execv "/bin/sh" [| "/bin/sh"; "-c"; command |]
   end
   else begin
     Unix.close inpipe;
-    Lwt_unix.wait () >>= function
+    (** A REMPLACER PAR LWT_UNIX WAIT_PID **)
+    read_input_channel [] (Lwt_chan.in_channel_of_descr outpipe) >>= fun res ->
+    match Unix.waitpid [] pid with
       | (_,Unix.WEXITED(i)) ->
 	  if (i == 0) then begin
-	    read_input_channel [] (Lwt_chan.in_channel_of_descr outpipe) >>= fun res ->
 	      Lwt_unix.close outpipe;
 	      Lwt.return res
 	  end
@@ -80,7 +74,8 @@ let rec update_tree tree auth version tree_changes = match tree_changes with
 	      update_tree (delete (Dir(name,[])) path tree) auth version t
 	| Add_file(f) ->
 	    format_name f >>= fun (path,name) ->
-	      update_tree (insert (File(name,auth,version)) path tree) auth version t
+	      update_tree (insert (File(name,auth,version)) path tree) 
+		auth version t
 	| Rm_file(f) ->
 	    format_name f >>= fun (path,name) ->
 	      let node = get_node name path tree in
@@ -88,10 +83,12 @@ let rec update_tree tree auth version tree_changes = match tree_changes with
 	| Move_file(oldF,newF) ->
 	    format_name oldF >>= fun (oldPath,oldName) ->
 	      format_name newF >>= fun (newPath,newName) ->
-		update_tree (move oldPath oldName newPath newName tree) auth version t
+		update_tree (move oldPath oldName newPath newName tree) 
+		  auth version t
 	| Modify_file(f) ->
 	    format_name f >>= fun (path,name) ->
-	      update_tree (update_infos path name auth version tree) auth version t
+	      update_tree (update_infos path name auth version tree) 
+		auth version t
       end
 
 (** Recupere la liste des patchs depuis le résultat de darcs changes *)
@@ -102,7 +99,8 @@ let rec extract_patch_list res l = match l with
         | [] -> Dir(".",[])
 	| _ -> (List.hd res).tree
       in
-      (update_tree oldTree h.xml_infos.xml_author h.xml_name h.xml_tree_changes) >>= fun newTree ->
+      (update_tree oldTree h.xml_infos.xml_author h.xml_name h.xml_tree_changes)
+	>>= fun newTree ->
 	let p = { id = ref(h.xml_infos.xml_hash);
 	          name =  ref(h.xml_name);
 		  author = ref(h.xml_infos.xml_author);
@@ -115,7 +113,8 @@ let rec extract_patch_list res l = match l with
 (** Stocke la liste des patchs présents dans un dépot Darcs dans une liste
     de types patch *)
 let get_patch_list rep =
-  let command = ("darcs changes --repodir "^rep^" --xml-output --reverse --summary") in
+  let command = ("darcs changes --repodir "^rep
+		 ^" --xml-output --reverse --summary") in
   let error_message = "Error while getting changelog (signal received)" in
   exec_command command error_message >>= function
     | [] -> Lwt.return []
@@ -174,19 +173,24 @@ let rec parse_diff diff_res parsed_res started = match diff_res with
 	else if (h.[0] == '+') then
 	  let new_res = {fileName = currentDiff.fileName;
 			 oldContent = currentDiff.oldContent;
-			 newContent = currentDiff.newContent@[(Diff,(string_after h 1))]}::(List.tl parsed_res)
+			 newContent = currentDiff.newContent
+			 @[(Diff,(string_after h 1))]}::(List.tl parsed_res)
 	  in
 	  parse_diff t new_res started
 	else if (h.[0] == '-') then
 	  let new_res = {fileName = currentDiff.fileName;
-			 oldContent = currentDiff.oldContent@[(Diff,(string_after h 1))];
-			 newContent = currentDiff.newContent}::(List.tl parsed_res)
+			 oldContent = currentDiff.oldContent
+			 @[(Diff,(string_after h 1))];
+			 newContent = 
+			 currentDiff.newContent}::(List.tl parsed_res)
 	  in
 	  parse_diff t new_res started
 	else if (h.[0] != '@') then
 	  let new_res = {fileName = currentDiff.fileName;
-			 oldContent = currentDiff.oldContent@[(Common,(string_after h 1))];
-			 newContent = currentDiff.newContent@[(Common,(string_after h 1))]}::(List.tl parsed_res)
+			 oldContent = currentDiff.oldContent
+			 @[(Common,(string_after h 1))];
+			 newContent = currentDiff.newContent
+			 @[(Common,(string_after h 1))]}::(List.tl parsed_res)
 	  in
 	  parse_diff t new_res started
 	else parse_diff t parsed_res started
@@ -210,9 +214,24 @@ let darcs_diff file rep from_patch to_patch =
 		 "' "^file^
 		 " -u --repodir "^rep) in
   exec_command command error_message >>= fun res ->
-    parse_diff res [{fileName=file; oldContent=[]; newContent=[]}] false >>= function 
-      | [] -> Lwt.return {fileName=file; oldContent=[]; newContent=[]}
-      | h::_ -> Lwt.return h 
+    parse_diff res [{fileName=file; oldContent=[]; newContent=[]}] false 
+      >>= function 
+	| [] -> Lwt.return {fileName=file; oldContent=[]; newContent=[]}
+	| h::_ -> Lwt.return h 
+
+
+let rec print_tree path tree = match tree with
+  | File(f,a,v) -> 
+      print_endline (path^f^"  aut:"^a^"   v:"^v)
+  | Dir(d,l) ->
+      print_endline (path^d);
+      let rec aux list =  match list with
+      | [] -> ()
+      | h::t -> 
+	  print_tree (path^d^"/") h;
+	  aux t
+      in aux l
+
 
 let _ = 
   let darcs_fun_pack = 
@@ -222,17 +241,19 @@ let _ =
       vm_diff = darcs_diff } in
   Ocsforge_version_managers.set_fun_pack "Darcs" darcs_fun_pack
 
-(*  
+(** TEST **)
+(*
+let _ = 
   let path = "/home/jh/lwt" in 
-  let file = "README" in
-  
-  print_endline "AVANT APPEL";
-  darcs_diff "Makefile" path "20080524180748-0445d-376c7e08ca4606283fd4e1d9768137d40f804138.gz" "20080525110836-0445d-13dc6bca37acfd22c32f3b543d5b01616c7e007d.gz"
-  (*darcs_cat ~patch:"0050804154654-e63a0-801e45ef2e1a81a413c975d8f507ee6613b11edf.gz" path file  *)
-  (*get_patch_list path*) >>= fun res ->
+  print_endline "AVANT APPEL DARCS";
+  (*darcs_diff "Makefile" path "20080524180748-0445d-376c7e08ca4606283fd4e1d9768137d40f804138.gz" "20080525110836-0445d-13dc6bca37acfd22c32f3b543d5b01616c7e007d.gz"*)
+  (*darcs_cat ~patch:"0050804154654-e63a0-801e45ef2e1a81a413c975d8f507ee6613b11edf.gz" path "README"  *)
+  darcs_list path >>= fun res ->(*
     List.iter (fun (_,p) -> print_endline p) res.oldContent;
     print_endline "********************************";
-    List.iter (fun (_,p) -> print_endline p) res.newContent;
-    Lwt.return (print_endline "FIN")
-      
-      *)
+    List.iter (fun (_,p) -> print_endline p) res.newContent;*)
+    print_endline "avant print_tree";
+      print_tree "" res;
+    Lwt.return (print_endline "FIN APPEL DARCS")
+     
+*)

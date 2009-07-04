@@ -60,3 +60,4 @@ val temp_service :
      [ `Registrable ])
     Eliom_services.service
 
+val register_repository_services : unit Lwt.t

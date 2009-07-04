@@ -213,6 +213,9 @@ val is_area_root :
   task:Ocsforge_types.task ->
   Sql.db_t -> bool Lwt.t
 
+val get_projects_path_list :
+  unit ->
+  string option list Lwt.t
 
 
 (**/**)

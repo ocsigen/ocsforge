@@ -29,12 +29,11 @@ let register_wikiext wp =
 	     let sp = bi.Wiki_widgets_interface.bi_sp in
        	     let id = Ocsforge_types.task_of_string (List.assoc "id" args) in
 	     let version = List.assoc "version" args in
-	     let () =  send_css_up "ocsforge_tree.css" sp in
+	     let () =  send_css_up "ocsforge_sources.css" sp in
 	     Ocsforge_widgets_source.draw_repository_table ~sp ~id ~version >>= 
 	     fun (b : {{ [ Xhtmltypes_duce.table ] }}) ->
 	       Lwt.return b
 	   )
-	   
 	   (function
 	     | Not_found | Failure _ -> 
 		 let s = Wiki_syntax.string_of_extension "raw" args content in

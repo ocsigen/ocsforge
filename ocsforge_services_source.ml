@@ -68,5 +68,16 @@ let temp_service = Eliom_predefmod.Action.register_new_service
 
 
 (* TODO : enregistrer 1 service pour chaque zone *)
-let register_repository_services () = ()
-
+let register_repository_services = 
+  let rec register_list l = match l with
+    | [] -> Lwt.return ()
+    | h::t -> 
+	begin match h with
+	| None -> register_list t
+	| Some(path) -> 
+	    project_repository_service path;
+	    register_list t
+	end
+  in
+  Ocsforge_sql.get_projects_path_list () >>= fun l ->
+    register_list l

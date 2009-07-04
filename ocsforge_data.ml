@@ -449,5 +449,3 @@ let swap_kinds ~sp ~area ~kinds =
     Sql.full_transaction_block
       (Ocsforge_sql.swap_kinds_for_area ~area_id:area ~kinds)
   else Lwt.fail Ocsimore_common.Permission_denied
-
-

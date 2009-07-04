@@ -255,11 +255,11 @@ let get_tasks_by_editor ~editor ?(with_deleted = false) () =
 
 let get_area_for_task ~task_id =
   let task = Types.sql_of_task task_id in
-    (fun db ->
-       PGSQL(db)
-         "SELECT area
-          FROM ocsforge_tasks
-          WHERE id = $task"
+  (fun db ->
+    PGSQL(db)
+      "SELECT area
+      FROM ocsforge_tasks
+      WHERE id = $task"
     >>= function
       | [r] -> Lwt.return (Types.right_area_of_sql r)
       | []  -> Lwt.fail Not_found
@@ -588,3 +588,12 @@ let is_area_root ~task =
      >>= function
        | [ v1 ; v2 ] -> Lwt.return (v1 = v2)
        | [] | _::[] | _::_::_::_ -> failwith "Ocsforge_sql.is_area_root unexpected query result")
+
+let get_projects_path_list () =
+  Sql.full_transaction_block(
+  (fun db ->
+    PGSQL(db)
+      "SELECT DISTINCT pages
+       FROM wikis
+       WHERE id in (SELECT wiki FROM ocsforge_right_areas)"))
+
