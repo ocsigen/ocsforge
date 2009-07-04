@@ -28,6 +28,7 @@ let create_repository_table_content ~sp ~id ~version =
     match (r_infos.Types.r_repository_kind,r_infos.Types.r_repository_path) with
     | (Some(kind),Some(path)) ->
 	Ocsforge_version_managers.get_fun_pack kind >>= fun fun_pack ->
+	  let cpt = ref 0 in
 	  let rec build_content tree current_dir = match tree with
 	  | STypes.File(f,aut,rev)    ->
 	      (*let file_URL = 
@@ -35,11 +36,24 @@ let create_repository_table_content ~sp ~id ~version =
 		else current_dir^"/"^f
 		in*)
 	      Lwt.return
-                {{ [ <tr>[
-                     <td>{: f :}
-		       <td>{: aut :}
-		       <td>{: rev :}
-		   ] ]
+                {{ [ <tr class={:
+				if (!cpt mod 2 == 0) then begin 
+				  cpt := !cpt + 1;
+				  "odd"
+				end
+				else begin
+				  cpt := !cpt + 1;
+				  "even"
+				end
+			       :}>
+		  [  <td class="sources_table"> [<img alt="file" 
+			      src={:Eliom_duce.Xhtml.make_uri ~sp
+				     ~service:(Eliom_services.static_dir ~sp)
+				     ["source_file.png"] :}>[]]
+                     <td class="sources_table">{: f :}
+		     <td class="sources_table">{: aut :}
+		     <td class="sources_table">{: rev :}
+		  ]]
                  }} 
  	  | STypes.Dir (d, l) ->
 	      let rec aux list dir (res : {{ [ Xhtmltypes_duce.tr* ] }}) = 
@@ -57,7 +71,14 @@ let create_repository_table_content ~sp ~id ~version =
 	      in
 	      let a = 
 		if (String.length new_dir > 0) then
-		{{ [<tr>[ <td> {: new_dir :} ]] }}
+		{{ [<tr class="folder">
+		  [ <td> [<img alt="folder" 
+			     src={:Eliom_duce.Xhtml.make_uri ~sp
+				    ~service:(Eliom_services.static_dir ~sp)
+                                    ["source_folder.png"] :}>[]]
+		    <td> {: new_dir :}
+		    <td> []
+		    <td> []] ] }}
 		else {{ [ ] }}
 	      in
               (({{aux l new_dir a}}) : {{ [ Xhtmltypes_duce.tr* ] }} Lwt.t)
@@ -74,9 +95,10 @@ let create_repository_table_content ~sp ~id ~version =
 			       <td> ['Error: unable to access the repository']]] }}
   
 let table_header = 
-  ({{ [<tr> [ <th> ['File'] 
-	      <th> ['Author']
-	      <th> ['Latest version'] ] ]  }} : {{ [Xhtmltypes_duce.tr] }})
+  ({{ [<tr> [ <th class="sources_table"> []
+	      <th class="sources_table"> ['File'] 
+	      <th class="sources_table"> ['Author']
+	      <th class="sources_table"> ['Latest version'] ] ]  }} : {{ [Xhtmltypes_duce.tr] }})
 
 let draw_repository_table ~sp ~id ~version =
   create_repository_table_content ~sp ~id ~version >>= fun b ->

@@ -1,14 +1,26 @@
-.sources_table table{
+table.sources_table{
     border:2px solid #000;
     border-collapse:collapse;
-    text-align:left; 
+    text-align:left;
 }
 
-.sources_table td{
+td.sources_table {
     border:1px solid #BBBBBB;
 }
 
-.sources_table th{
+th.sources_table {
     border:1px solid #BBBBBB;
     background-color:#EEE;
+}
+
+table.sources_table tr.folder {
+    background-color: #DDCAEF;
+}
+
+table.sources_table tr.odd {
+    background-color: #D5EFDA;
+}
+
+table.sources_table tr.even {
+    background-color: #C2F0CB;
 }
