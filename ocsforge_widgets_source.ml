@@ -93,14 +93,62 @@ let create_repository_table_content ~sp ~id ~version =
 	  end
     | (_,_) -> Lwt.return {{ [ <tr> [
 			       <td> ['Error: unable to access the repository']]] }}
+
   
-let table_header = 
+let create_source_code_content ~sp ~id ~file ~version =
+  let rec aux s l = 
+    match l with
+    | []   -> s
+    | h::t -> aux (s^"\n"^h) t
+  in
+  Data.get_area_for_task sp id >>= fun r_infos -> 
+    match (r_infos.Types.r_repository_kind,r_infos.Types.r_repository_path) with
+    | (Some(kind),Some(path)) ->
+	Ocsforge_version_managers.get_fun_pack kind >>= fun fun_pack ->
+	  begin match version with
+	  | None ->
+	      fun_pack.STypes.vm_cat path file >>= fun l -> 
+		Ocsforge_color.color (Lexing.from_string (aux "" l)) file >>= 
+		fun content ->
+		  Lwt.return 
+		    ({{ [<tr> [
+			<td> [
+			  <pre class="color"> {: content :}
+		      ]]]}} : {{ [ Xhtmltypes_duce.tr* ] }})
+	  | Some(v) ->
+	      fun_pack.STypes.vm_cat ~id:v path file >>= fun l -> 
+		Lwt.return 
+		  ( {{[<tr> [<td> ['Code du fichier']]] }}: {{ [ Xhtmltypes_duce.tr* ] }})
+	  end
+    | (_,_) -> Lwt.return ({{ [ <tr> [<td> ['Error: unable to access the repository']]] }})
+
+
+let repository_table_header = 
   ({{ [<tr> [ <th class="sources_table"> []
 	      <th class="sources_table"> ['File'] 
 	      <th class="sources_table"> ['Author']
-	      <th class="sources_table"> ['Latest version'] ] ]  }} : {{ [Xhtmltypes_duce.tr] }})
+	      <th class="sources_table"> ['Latest version'] ] ]  }} 
+     : {{ [Xhtmltypes_duce.tr] }})
+
+
+let code_table_header file version = 
+  ({{ [<tr> [ <th class="code_table"> {: 
+	       let s = match version with
+	       | None -> "head"
+	       | Some(v) -> v
+	       in
+	       (file^"@"^s) :}]] }} 
+	 : {{ [Xhtmltypes_duce.tr] }})
+  
 
 let draw_repository_table ~sp ~id ~version =
   create_repository_table_content ~sp ~id ~version >>= fun b ->
-    Lwt.return ({{ [<table class="sources_table">  [!table_header !b]   ] }} : 
-		  {{ [ Xhtmltypes_duce.table ] }})
+    Lwt.return ({{ [<table class="sources_table">  
+                   [!repository_table_header !b]] }} 
+		  : {{ [ Xhtmltypes_duce.table ] }})
+
+
+let draw_source_code_view ~sp ~id ~file ~version =
+  create_source_code_content ~sp ~id ~file ~version >>= fun b ->
+  Lwt.return ({{ [<table class="code_table"> 
+		 [!(code_table_header file version) !b]] }} : {{ [ Xhtmltypes_duce.table ] }})

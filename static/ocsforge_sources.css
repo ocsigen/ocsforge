@@ -1,3 +1,5 @@
+/** Repository content tree */
+
 table.sources_table{
     border:2px solid #000;
     border-collapse:collapse;
@@ -23,4 +25,55 @@ table.sources_table tr.odd {
 
 table.sources_table tr.even {
     background-color: #C2F0CB;
+}
+
+/** Syntax highlighting */
+
+pre.color {
+    position:relative;
+    float:center;
+    border-style:solid;
+    border-width:1px;
+    border-color: #3333FF;
+    background-color: #E8E8E8;
+}
+
+span.color_comment {
+  color: #FF7F00;
+}
+
+span.color_keyword{
+  color: #66CD00;
+}
+
+span.color_test{
+  color: #66CDAA;
+}
+
+span.color_string{
+  color: #FF0033;
+}
+
+span.color_ucid{
+  color: #DAA520;
+}
+
+span.color_hex{
+  color: brown;
+}
+
+span.color_oct{
+  color: brown;
+}
+
+span.color_bin{
+  color: brown;
+}
+
+span.color_int{
+  color: brown;
+}
+
+span.color_delimiter{
+  color: #9932CC;
 }

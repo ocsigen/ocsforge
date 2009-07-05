@@ -28,16 +28,26 @@ let register_wikiext wp =
 	   (fun () ->
 	     let sp = bi.Wiki_widgets_interface.bi_sp in
        	     let id = Ocsforge_types.task_of_string (List.assoc "id" args) in
+	     let file = 
+	       try Some(List.assoc "file" args)
+	       with Not_found -> None
+	     in
 	     let version = 
 	       let v = List.assoc "version" args in
 	       if (String.length v == 0) then
 		 None
 	       else Some(v)
 	     in
-	     let () =  send_css_up "ocsforge_sources.css" sp in
-	     Ocsforge_widgets_source.draw_repository_table ~sp ~id ~version >>= 
-	     fun (b : {{ [ Xhtmltypes_duce.table ] }}) ->
-	       Lwt.return b
+	     let () =  send_css_up "ocsforge_sources.css" sp in 
+	     match file with
+	       | None ->
+		   Ocsforge_widgets_source.draw_repository_table ~sp ~id ~version >>=
+		   fun (b: {{ [ Xhtmltypes_duce.table ] }}) ->
+		     Lwt.return b
+	       | Some f ->
+		   Ocsforge_widgets_source.draw_source_code_view ~sp ~id ~file:f ~version >>=
+		   fun (b: {{ [ Xhtmltypes_duce.table ] }}) ->
+		     Lwt.return b
 	   )
 	   (function
 	     | Not_found | Failure _ -> 
