@@ -50,6 +50,16 @@ val project_repository_service :
      [ `Registrable ])
     Eliom_services.service
 
+val temp_source_service :
+    (Ocsforge_types.task * string list, unit,
+        [ `Attached of
+          Eliom_services.get_attached_service_kind Eliom_services.a_s ],
+     [ `WithSuffix ],
+     [ `One of Ocsforge_types.task ] Eliom_parameters.param_name *
+       [ `One of string list] Eliom_parameters.param_name, unit,
+     [ `Registrable ])
+    Eliom_services.service
+
 val temp_service :
     (Ocsforge_types.task * string, unit,
         [ `Attached of

@@ -43,6 +43,24 @@ let find_service id =
   with Not_found ->
     None
 
+let temp_source_service = Eliom_duce.Xhtml.register_new_service
+    ~path:["sources"]
+    ~get_params:(Eliom_parameters.suffix
+		   ((Eliom_parameters.user_type
+		       Ocsforge_types.task_of_string
+		       Ocsforge_types.string_of_task "id") ** 
+		      Eliom_parameters.all_suffix "path"))
+    (fun sp (id,path) () -> 
+      let () =  Ocsforge_wikiext_common.send_css_up "ocsforge_sources.css" sp in
+      let page_content = match path with
+        | [file; version] ->
+	    Ocsforge_widgets_source.draw_source_code_view ~sp ~id ~file ~version:(Some(version)) 
+        | [file] ->
+	    Ocsforge_widgets_source.draw_source_code_view ~sp ~id ~file ~version:None    
+	| _ -> Lwt.return {{ [ <table> [<tr> [<td> ['Error']]]] }}
+      in page_content >>= fun pc ->
+	Ocsimore_page.html_page ~sp pc)
+      
 let project_repository_service project = Eliom_duce.Xhtml.register_new_service 
     (* Path a modifier pour mettre le NOM du projet *)
     ~path:[project;"sources"]
@@ -57,7 +75,7 @@ let project_repository_service project = Eliom_duce.Xhtml.register_new_service
 	  None
 	else Some(version)
       in
-      Ocsforge_widgets_source.draw_repository_table ~sp ~id ~version:v >>= 
+      Ocsforge_widgets_source.draw_repository_table ~sp ~id ~version:v ~src_service:temp_source_service>>= 
       fun content ->
 	Ocsimore_page.html_page ~sp content)
 

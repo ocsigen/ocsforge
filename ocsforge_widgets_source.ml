@@ -23,14 +23,23 @@ module Types = Ocsforge_types
 module STypes = Ocsforge_source_types
 module Vm = Ocsforge_version_managers
 
-let create_repository_table_content ~sp ~id ~version = 
+let create_repository_table_content ~sp ~id ~version 
+    ~(temp_source_service :
+        ((Ocsforge_types.task * string list, unit,
+          [ `Attached of
+            Eliom_services.get_attached_service_kind Eliom_services.a_s ],
+	  [ `WithSuffix ],
+	  [ `One of Ocsforge_types.task ] Eliom_parameters.param_name *
+	    [ `One of string list] Eliom_parameters.param_name, unit,
+	  [ `Registrable ])
+	   Eliom_services.service)) = 
   Data.get_area_for_task sp id >>= fun r_infos -> 
     match (r_infos.Types.r_repository_kind,r_infos.Types.r_repository_path) with
     | (Some(kind),Some(path)) ->
 	Ocsforge_version_managers.get_fun_pack kind >>= fun fun_pack ->
 	  let cpt = ref 0 in
 	  let rec build_content tree current_dir = match tree with
-	  | STypes.File(f,aut,rev)    ->
+	  | STypes.File(f,aut,rev) ->
 	      (*let file_URL = 
 		if String.length current_dir == 0 then f
 		else current_dir^"/"^f
@@ -45,15 +54,27 @@ let create_repository_table_content ~sp ~id ~version =
 				  cpt := !cpt + 1;
 				  "even"
 				end
-			       :}>
+				    :}>
 		  [  <td class="sources_table"> [<img alt="file" 
-			      src={:Eliom_duce.Xhtml.make_uri ~sp
-				     ~service:(Eliom_services.static_dir ~sp)
-				     ["source_file.png"] :}>[]]
-                     <td class="sources_table">{: f :}
-		     <td class="sources_table">{: aut :}
-		     <td class="sources_table">{: rev :}
-		  ]]
+						    src={:Eliom_duce.Xhtml.make_uri ~sp
+							   ~service:(Eliom_services.static_dir ~sp)
+							   ["source_file.png"] :}>[]]
+		      <td class="sources_table"> 
+			[{: Eliom_duce.Xhtml.a 
+			    ~service:temp_source_service 
+			    ~sp {{ {: f :} }}
+			    (id,
+			     let file_path =
+			     if (String.length current_dir != 0) then
+			       (current_dir^"/"^f)
+			     else f in
+			     match version with
+			     | None -> [file_path]
+			     | Some(v) -> [file_path;v])
+			    :}]
+			  <td class="sources_table">{: aut :}
+			      <td class="sources_table">{: rev :}
+		   ]]
                  }} 
  	  | STypes.Dir (d, l) ->
 	      let rec aux list dir (res : {{ [ Xhtmltypes_duce.tr* ] }}) = 
@@ -71,17 +92,17 @@ let create_repository_table_content ~sp ~id ~version =
 	      in
 	      let a = 
 		if (String.length new_dir > 0) then
-		{{ [<tr class="folder">
-		  [ <td> [<img alt="folder" 
-			     src={:Eliom_duce.Xhtml.make_uri ~sp
-				    ~service:(Eliom_services.static_dir ~sp)
-                                    ["source_folder.png"] :}>[]]
-		    <td> {: new_dir :}
-		    <td> []
-		    <td> []] ] }}
+		  {{ [<tr class="folder">
+		    [ <td> [<img alt="folder" 
+			       src={:Eliom_duce.Xhtml.make_uri ~sp
+				      ~service:(Eliom_services.static_dir ~sp)
+				      ["source_folder.png"] :}>[]]
+			<td> {: new_dir :}
+			<td> []
+			<td> []] ] }}
 		else {{ [ ] }}
 	      in
-              (({{aux l new_dir a}}) : {{ [ Xhtmltypes_duce.tr* ] }} Lwt.t)
+	      (({{aux l new_dir a}}) : {{ [ Xhtmltypes_duce.tr* ] }} Lwt.t)
 	  in
 	  begin match version with
 	  | None ->
@@ -93,8 +114,8 @@ let create_repository_table_content ~sp ~id ~version =
 	  end
     | (_,_) -> Lwt.return {{ [ <tr> [
 			       <td> ['Error: unable to access the repository']]] }}
-
-  
+	  
+	      
 let create_source_code_content ~sp ~id ~file ~version =
   let rec aux s l = 
     match l with
@@ -105,21 +126,20 @@ let create_source_code_content ~sp ~id ~file ~version =
     match (r_infos.Types.r_repository_kind,r_infos.Types.r_repository_path) with
     | (Some(kind),Some(path)) ->
 	Ocsforge_version_managers.get_fun_pack kind >>= fun fun_pack ->
-	  begin match version with
-	  | None ->
-	      fun_pack.STypes.vm_cat path file >>= fun l -> 
-		Ocsforge_color.color (Lexing.from_string (aux "" l)) file >>= 
-		fun content ->
-		  Lwt.return 
-		    ({{ [<tr> [
-			<td> [
-			  <pre class="color"> {: content :}
-		      ]]]}} : {{ [ Xhtmltypes_duce.tr* ] }})
-	  | Some(v) ->
-	      fun_pack.STypes.vm_cat ~id:v path file >>= fun l -> 
-		Lwt.return 
-		  ( {{[<tr> [<td> ['Code du fichier']]] }}: {{ [ Xhtmltypes_duce.tr* ] }})
-	  end
+	  let cat_call = 
+	    begin match version with
+	    | None -> fun_pack.STypes.vm_cat path file
+	    | Some(v) ->
+		fun_pack.STypes.vm_cat ~id:v path file
+	    end
+	  in cat_call >>= fun l -> 
+	    Ocsforge_color.color (Lexing.from_string (aux "" l)) file >>= 
+	    fun content ->
+	      Lwt.return 
+		({{ [<tr> [
+		      <td> [
+		      <pre class="color"> {: content :}
+		    ]]]}} : {{ [ Xhtmltypes_duce.tr* ] }})
     | (_,_) -> Lwt.return ({{ [ <tr> [<td> ['Error: unable to access the repository']]] }})
 
 
@@ -141,8 +161,8 @@ let code_table_header file version =
 	 : {{ [Xhtmltypes_duce.tr] }})
   
 
-let draw_repository_table ~sp ~id ~version =
-  create_repository_table_content ~sp ~id ~version >>= fun b ->
+let draw_repository_table ~sp ~id ~version ~src_service=
+  create_repository_table_content ~sp ~id ~version ~temp_source_service:src_service>>= fun b ->
     Lwt.return ({{ [<table class="sources_table">  
                    [!repository_table_header !b]] }} 
 		  : {{ [ Xhtmltypes_duce.table ] }})

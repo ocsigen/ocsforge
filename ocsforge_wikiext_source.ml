@@ -41,7 +41,7 @@ let register_wikiext wp =
 	     let () =  send_css_up "ocsforge_sources.css" sp in 
 	     match file with
 	       | None ->
-		   Ocsforge_widgets_source.draw_repository_table ~sp ~id ~version >>=
+		   Ocsforge_widgets_source.draw_repository_table ~sp ~id ~version ~src_service:Ocsforge_services_source.temp_source_service>>=
 		   fun (b: {{ [ Xhtmltypes_duce.table ] }}) ->
 		     Lwt.return b
 	       | Some f ->
