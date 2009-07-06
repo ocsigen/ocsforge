@@ -215,7 +215,7 @@ val is_area_root :
 
 val get_projects_path_list :
   unit ->
-  string option list Lwt.t
+  (string option * int32 option) list Lwt.t
 
 
 (**/**)

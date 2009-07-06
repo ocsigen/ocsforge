@@ -75,6 +75,7 @@ let project_repository_service project = Eliom_duce.Xhtml.register_new_service
 	  None
 	else Some(version)
       in
+      let () =  Ocsforge_wikiext_common.send_css_up "ocsforge_sources.css" sp in
       Ocsforge_widgets_source.draw_repository_table ~sp ~id ~version:v ~src_service:temp_source_service>>= 
       fun content ->
 	Ocsimore_page.html_page ~sp content)
@@ -94,12 +95,12 @@ let temp_service = Eliom_predefmod.Action.register_new_service
 let register_repository_services = 
   let rec register_list l = match l with
     | [] -> Lwt.return ()
-    | h::t -> 
-	begin match h with
-	| None -> register_list t
-	| Some(path) -> 
-	    project_repository_service path;
+    | (page,root_task)::t -> 
+	begin match (page,root_task) with
+	| (Some(path),Some(task)) -> 
+	    add_service (Ocsforge_types.task_of_sql task) (project_repository_service path);
 	    register_list t
+	| _ -> register_list t
 	end
   in
   Ocsforge_sql.get_projects_path_list () >>= fun l ->
