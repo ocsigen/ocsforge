@@ -47,9 +47,11 @@ let newline = ['\n' '\r']
 
 let alpha = ['a'-'z''A'-'Z''0'-'9''_']*
 
+let spaces = [' ']+
+
 rule token = parse
-  | ' ' 
-      { Space 1 }
+  | spaces as sp 
+      { Space(sp) }
   | newline as n
       { Newline n }
   | keyword as k             

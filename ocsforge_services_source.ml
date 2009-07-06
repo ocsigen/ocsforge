@@ -21,27 +21,15 @@
 let ( ** ) = Eliom_parameters.prod
 let ( >>= ) = Lwt.bind
 
-(* Hashtable (task id , service) *)
-let repos_services_table : 
-    (Ocsforge_types.task,
-    (Ocsforge_types.task * string, unit,
-        [ `Attached of
-          Eliom_services.get_attached_service_kind Eliom_services.a_s ],
-     [ `WithSuffix ],
-     [ `One of Ocsforge_types.task ] Eliom_parameters.param_name *
-       [ `One of string ] Eliom_parameters.param_name, unit,
-     [ `Registrable ])
-    Eliom_services.service) Hashtbl.t
-    = Hashtbl.create 50
-
-let add_service id service = Hashtbl.add repos_services_table id service
-
-let find_service id = 
-  try 
-    let service = Hashtbl.find repos_services_table id 
-    in Some(service)
-  with Not_found ->
-    None
+(* service temporaire qui ne fait rien *)
+let temp_service = Eliom_predefmod.Action.register_new_service 
+    ~path:["tmp"]
+    ~get_params:(Eliom_parameters.suffix
+		   ((Eliom_parameters.user_type
+		       Ocsforge_types.task_of_string
+		       Ocsforge_types.string_of_task "id") ** 
+		      Eliom_parameters.string "version"))
+    (fun sp (project,path) () ->  Lwt.return ())
 
 let temp_source_service = Eliom_duce.Xhtml.register_new_service
     ~path:["sources"]
@@ -60,7 +48,21 @@ let temp_source_service = Eliom_duce.Xhtml.register_new_service
 	| _ -> Lwt.return {{ [ <table> [<tr> [<td> ['Error']]]] }}
       in page_content >>= fun pc ->
 	Ocsimore_page.html_page ~sp pc)
+
+(* Service pour l'historique des versions d'un projet *)
+let log_service = Eliom_duce.Xhtml.register_new_service 
+    ~path:["log"]
+    ~get_params:(Eliom_parameters.suffix
+		   ((Eliom_parameters.user_type
+		       Ocsforge_types.task_of_string
+		       Ocsforge_types.string_of_task "id")))
+    (fun sp id () -> 
+      let () =  Ocsforge_wikiext_common.send_css_up "ocsforge_sources.css" sp in
+      Ocsforge_widgets_source.draw_log_table ~sp ~id ~void_service:temp_service 
+	>>= fun pc ->
+	Ocsimore_page.html_page ~sp pc)
       
+(* Service principal pour le dépot d'un projet *)
 let project_repository_service project = Eliom_duce.Xhtml.register_new_service 
     (* Path a modifier pour mettre le NOM du projet *)
     ~path:[project;"sources"]
@@ -76,32 +78,26 @@ let project_repository_service project = Eliom_duce.Xhtml.register_new_service
 	else Some(version)
       in
       let () =  Ocsforge_wikiext_common.send_css_up "ocsforge_sources.css" sp in
-      Ocsforge_widgets_source.draw_repository_table ~sp ~id ~version:v ~src_service:temp_source_service>>= 
+      Ocsforge_widgets_source.draw_repository_table ~sp ~id ~version:v 
+	~src_service:temp_source_service
+	~log_service:log_service >>= 
       fun content ->
 	Ocsimore_page.html_page ~sp content)
 
-(* service temporaire qui ne fait rien *)
-let temp_service = Eliom_predefmod.Action.register_new_service 
-    ~path:["tmp"]
-    ~get_params:(Eliom_parameters.suffix
-		   ((Eliom_parameters.user_type
-		       Ocsforge_types.task_of_string
-		       Ocsforge_types.string_of_task "id") ** 
-		      Eliom_parameters.string "version"))
-    (fun sp (project,path) () ->  Lwt.return ())
 
-
-(* TODO : enregistrer 1 service pour chaque zone *)
 let register_repository_services = 
   let rec register_list l = match l with
     | [] -> Lwt.return ()
     | (page,root_task)::t -> 
 	begin match (page,root_task) with
 	| (Some(path),Some(task)) -> 
-	    add_service (Ocsforge_types.task_of_sql task) (project_repository_service path);
+	    Ocsforge_services_hashtable.add_service 
+	      (Ocsforge_types.task_of_sql task) 
+	      (project_repository_service path);
 	    register_list t
 	| _ -> register_list t
 	end
   in
   Ocsforge_sql.get_projects_path_list () >>= fun l ->
     register_list l
+

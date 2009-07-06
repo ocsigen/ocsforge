@@ -4,6 +4,6 @@
 }
 
 rule token = parse
-  | ' '     { Space(1) } 
+  | ' '+ as s     { Space(s) } 
   | _ as c  { Default(c) }
   | eof     { Eof(0) }  

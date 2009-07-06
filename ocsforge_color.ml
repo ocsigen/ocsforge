@@ -66,10 +66,10 @@ let rec color lexbuf fileName = match ((getLexer fileName) lexbuf) with
         ({{ [<span> {: String.make 1 n :} !b] }} 
            : {{ [ Xhtmltypes_duce.span* ] }})
     (*(XHTML.M.pcdata n)::(color lexbuf fileName)*)
- | Space(_) -> 
+ | Space(s) -> 
     color lexbuf fileName >>= fun b ->
       Lwt.return 
-        ({{ [<span> {: " " :} !b] }} 
+        ({{ [<span> {: s :} !b] }} 
            : {{ [ Xhtmltypes_duce.span* ] }})
     (*(XHTML.M.pcdata " ")::(color lexbuf fileName)*)
  | Tab(_) -> 

@@ -561,7 +561,7 @@ object (self)
                     <div class={: Ocsimore_lib.build_class_attr
                                     ["depth" ^ (string_of_int (min depth 9))]
                        :}>[
-		       {: match Ocsforge_services_source.find_service t.Types.t_id with
+		       {: match Ocsforge_services_hashtable.find_service t.Types.t_id with
 		           | None -> 
 			       EDuce.Xhtml.a
 				 ~service:temp_service

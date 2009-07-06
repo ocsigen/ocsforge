@@ -143,6 +143,41 @@ let create_source_code_content ~sp ~id ~file ~version =
     | (_,_) -> Lwt.return ({{ [ <tr> [<td> ['Error: unable to access the repository']]] }})
 
 
+let create_log_table_content ~sp ~id ~src_service = 
+  let cpt = ref 0 in
+  let rec extract_result log_result = match log_result with
+    | [] -> Lwt.return {{ [] }} 
+    | p::t ->
+	extract_result t >>= fun b ->
+	  Lwt.return 
+	    ({{ [<tr class={:
+			    if (!cpt mod 2 == 0) then begin 
+			      cpt := !cpt + 1;
+			      "odd"
+			    end
+			    else begin
+			      cpt := !cpt + 1;
+			      "even"
+			    end
+				:}> 
+	      [<td class="sources_table"> 
+		[{: Eliom_duce.Xhtml.a
+		   ~service:src_service
+		   ~sp {{ {: !(p.STypes.name):}  }}
+		   (id, !(p.STypes.id))		   
+		:}] 
+	       <td class="sources_table"> {: !(p.STypes.author) :}
+	       <td class="sources_table"> {: !(p.STypes.date) :}
+	       <td class="sources_table"> {: !(p.STypes.comment) :}] !b]}} :{{ [Xhtmltypes_duce.tr*] }})
+  in
+  Data.get_area_for_task sp id >>= fun r_infos -> 
+    match (r_infos.Types.r_repository_kind,r_infos.Types.r_repository_path) with
+    | (Some(kind),Some(path)) ->
+	Ocsforge_version_managers.get_fun_pack kind >>= fun fun_pack ->
+	  fun_pack.STypes.vm_log path >>= fun log_result -> 
+	    extract_result log_result 	
+    | (_,_) -> Lwt.return ({{ [ <tr> [<td> ['Error: unable to access the repository']]] }})
+      
 let repository_table_header = 
   ({{ [<tr> [ <th class="sources_table"> []
 	      <th class="sources_table"> ['File'] 
@@ -159,16 +194,57 @@ let code_table_header file version =
 	       in
 	       (file^"@"^s) :}]] }} 
 	 : {{ [Xhtmltypes_duce.tr] }})
+
+let log_table_header = 
+  ({{ [<tr> [ <th class="sources_table"> ['Version']
+              <th class="sources_table"> ['Author'] 
+	      <th class="sources_table"> ['Date']
+	      <th class="sources_table"> ['Comment'] ] ]  }} 
+     : {{ [Xhtmltypes_duce.tr] }})
   
 
-let draw_repository_table ~sp ~id ~version ~src_service=
-  create_repository_table_content ~sp ~id ~version ~temp_source_service:src_service>>= fun b ->
-    Lwt.return ({{ [<table class="sources_table">  
-                   [!repository_table_header !b]] }} 
-		  : {{ [ Xhtmltypes_duce.table ] }})
+let draw_repository_table ~sp ~id ~version ~src_service ~log_service =
+  create_repository_table_content ~sp ~id ~version ~temp_source_service:src_service >>= fun b ->
+    Lwt.return ({{  [<div class="sources_div">
+		       [{: 
+			Eliom_duce.Xhtml.a 
+			~service:log_service
+			~sp {{ ['View repository history'] }}
+			(id)
+			:}]
+	              <p> [<br>[]]
+		      <table class="sources_table">  
+		      [!repository_table_header !b]] }} 
+		  : {{ [ Xhtmltypes_duce.block* ] }})
 
 
 let draw_source_code_view ~sp ~id ~file ~version =
   create_source_code_content ~sp ~id ~file ~version >>= fun b ->
-  Lwt.return ({{ [<table class="code_table"> 
-		 [!(code_table_header file version) !b]] }} : {{ [ Xhtmltypes_duce.table ] }})
+    Lwt.return ({{ [<table class="code_table"> 
+      [!(code_table_header file version) !b]] }} : {{ [ Xhtmltypes_duce.block* ] }})
+
+
+let draw_log_table ~sp ~id ~void_service = 
+  let src_service = match Ocsforge_services_hashtable.find_service id with
+  | None -> void_service
+  | Some(service) -> service
+  in
+  create_log_table_content ~sp ~id ~src_service >>= fun b ->
+    Lwt.return ({{ [<div class="sources_div">
+		       [{: 
+			
+			(*| None ->
+			    Eliom_duce.Xhtml.a
+			      ~service:void_service
+			      ~sp {{ ['Error : repository service not found'] }}
+			      (id, "")*)
+			(*| Some(service) ->*)
+			    Eliom_duce.Xhtml.a
+			      ~service:src_service
+			      ~sp {{ ['Back to repository content'] }}
+			      (id, "")
+			      :}]
+	             <p> [<br>[]]
+	             <table class="sources_table">
+		     [!log_table_header !b]]}}
+		  : {{ [ Xhtmltypes_duce.block* ] }})

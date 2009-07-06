@@ -17,10 +17,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 
-
-
-val project_repository_service :
-    string ->
+val repos_services_table : 
+    (Ocsforge_types.task,
     (Ocsforge_types.task * string, unit,
         [ `Attached of
           Eliom_services.get_attached_service_kind Eliom_services.a_s ],
@@ -28,35 +26,26 @@ val project_repository_service :
      [ `One of Ocsforge_types.task ] Eliom_parameters.param_name *
        [ `One of string ] Eliom_parameters.param_name, unit,
      [ `Registrable ])
-    Eliom_services.service
+    Eliom_services.service) Hashtbl.t		    
 
-val log_service :
-    (Ocsforge_types.task, unit,
-        [ `Attached of
-          Eliom_services.get_attached_service_kind Eliom_services.a_s ],
-     [ `WithSuffix ],
-     [ `One of Ocsforge_types.task ] Eliom_parameters.param_name, unit,
-     [ `Registrable ])
-    Eliom_services.service
-
-val temp_source_service :
-    (Ocsforge_types.task * string list, unit,
-        [ `Attached of
-          Eliom_services.get_attached_service_kind Eliom_services.a_s ],
-     [ `WithSuffix ],
-     [ `One of Ocsforge_types.task ] Eliom_parameters.param_name *
-       [ `One of string list] Eliom_parameters.param_name, unit,
-     [ `Registrable ])
-    Eliom_services.service
-
-val temp_service :
-    (Ocsforge_types.task * string, unit,
+val add_service : 
+    Ocsforge_types.task ->
+    ((Ocsforge_types.task * string, unit,
         [ `Attached of
           Eliom_services.get_attached_service_kind Eliom_services.a_s ],
      [ `WithSuffix ],
      [ `One of Ocsforge_types.task ] Eliom_parameters.param_name *
        [ `One of string ] Eliom_parameters.param_name, unit,
      [ `Registrable ])
-    Eliom_services.service
+    Eliom_services.service) -> unit
 
-val register_repository_services : unit Lwt.t
+val find_service :
+    Ocsforge_types.task -> 
+    ((Ocsforge_types.task * string, unit,
+        [ `Attached of
+          Eliom_services.get_attached_service_kind Eliom_services.a_s ],
+     [ `WithSuffix ],
+     [ `One of Ocsforge_types.task ] Eliom_parameters.param_name *
+       [ `One of string ] Eliom_parameters.param_name, unit,
+     [ `Registrable ])
+    Eliom_services.service) option

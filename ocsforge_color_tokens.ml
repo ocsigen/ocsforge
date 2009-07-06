@@ -3,7 +3,7 @@ type lexemes =
   | Keyword of string
   | ITE of string (* if | then | else *)
   | Newline of char
-  | Space of int
+  | Space of string
   | Tab of int
   | Int of string
   | Bin of string
