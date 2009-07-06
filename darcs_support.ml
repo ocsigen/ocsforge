@@ -244,7 +244,7 @@ let _ =
 (** TEST **)
 (*
 let _ = 
-  let path = "/home/jh/lwt" in 
+  let path = "/home/jh/ocsigen.dev" in 
   print_endline "AVANT APPEL DARCS";
   (*darcs_diff "Makefile" path "20080524180748-0445d-376c7e08ca4606283fd4e1d9768137d40f804138.gz" "20080525110836-0445d-13dc6bca37acfd22c32f3b543d5b01616c7e007d.gz"*)
   (*darcs_cat ~patch:"0050804154654-e63a0-801e45ef2e1a81a413c975d8f507ee6613b11edf.gz" path "README"  *)
@@ -255,5 +255,5 @@ let _ =
     print_endline "avant print_tree";
       print_tree "" res;
     Lwt.return (print_endline "FIN APPEL DARCS")
-     
-*)
+  *)   
+

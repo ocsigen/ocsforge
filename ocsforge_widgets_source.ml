@@ -143,7 +143,7 @@ let create_source_code_content ~sp ~id ~file ~version =
     | (_,_) -> Lwt.return ({{ [ <tr> [<td> ['Error: unable to access the repository']]] }})
 
 
-let create_log_table_content ~sp ~id ~src_service = 
+let create_log_table_content ~sp ~id ~repository_service = 
   let cpt = ref 0 in
   let rec extract_result log_result = match log_result with
     | [] -> Lwt.return {{ [] }} 
@@ -162,7 +162,7 @@ let create_log_table_content ~sp ~id ~src_service =
 				:}> 
 	      [<td class="sources_table"> 
 		[{: Eliom_duce.Xhtml.a
-		   ~service:src_service
+		   ~service:repository_service
 		   ~sp {{ {: !(p.STypes.name):}  }}
 		   (id, !(p.STypes.id))		   
 		:}] 
@@ -204,15 +204,36 @@ let log_table_header =
   
 
 let draw_repository_table ~sp ~id ~version ~src_service ~log_service =
-  create_repository_table_content ~sp ~id ~version ~temp_source_service:src_service >>= fun b ->
-    Lwt.return ({{  [<div class="sources_div">
+  create_repository_table_content ~sp ~id ~version 
+    ~temp_source_service:src_service >>= fun b ->
+      let title = match version with
+      | None -> "Repository - latest version"
+      | Some(v) -> ("Repository - version "^v)
+      in
+      Lwt.return ({{  [<p> {: title :}
+		       <div class="sources_div">
 		       [{: 
 			Eliom_duce.Xhtml.a 
 			~service:log_service
 			~sp {{ ['View repository history'] }}
 			(id)
 			:}]
-	              <p> [<br>[]]
+		      !{: 
+			match version with
+		        | None -> {{ [] }}
+			| Some(_) ->
+			    begin match Ocsforge_services_hashtable.find_service id with
+			    | None -> {{ [] }}
+			    | Some(service) ->
+				{{ [<div class="sources_div">
+				  [{: 
+				      Eliom_duce.Xhtml.a 
+				      ~service:service
+				      ~sp {{ ['Back to latest repository version'] }}
+				      (id,""):}]]}}
+			    end
+		      :}
+		      <p> [<br>[]]
 		      <table class="sources_table">  
 		      [!repository_table_header !b]] }} 
 		  : {{ [ Xhtmltypes_duce.block* ] }})
@@ -229,16 +250,9 @@ let draw_log_table ~sp ~id ~void_service =
   | None -> void_service
   | Some(service) -> service
   in
-  create_log_table_content ~sp ~id ~src_service >>= fun b ->
+  create_log_table_content ~sp ~id ~repository_service:src_service >>= fun b ->
     Lwt.return ({{ [<div class="sources_div">
 		       [{: 
-			
-			(*| None ->
-			    Eliom_duce.Xhtml.a
-			      ~service:void_service
-			      ~sp {{ ['Error : repository service not found'] }}
-			      (id, "")*)
-			(*| Some(service) ->*)
 			    Eliom_duce.Xhtml.a
 			      ~service:src_service
 			      ~sp {{ ['Back to repository content'] }}
