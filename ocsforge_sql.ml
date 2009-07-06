@@ -52,9 +52,9 @@ let new_task
            "SELECT tree_min, tree_max
             FROM ocsforge_tasks
             WHERE id = $parent_id"
-       >>= (function
-         | [] | _::_::_ -> failwith "Ocsforge_sql.new_task not one parent"
-         | [(tmin,tmax)] ->
+       >>= Ocsforge_lang.apply_on_uniq_or_fail
+             "Ocsforge_sql.new_task"
+            (fun (tmin,tmax) ->
              PGSQL(db)
                "UPDATE ocsforge_tasks \
                 SET tree_min = tree_min + 2 \
@@ -88,50 +88,52 @@ let new_area ?id ~forum ?(version = "0.0") ?repository_kind ?repository_path
   let wiki = Wiki_types.sql_of_wiki wiki in
    Sql.full_transaction_block
     (fun db ->
-       (match id with
-         | None ->
-             begin
-               PGSQL(db)
-                 "SELECT NEXTVAL('ocsforge_right_areas_id_seq')"
-               >>= (function
-                      | [] | _::_::_ -> failwith "Ocsforge_sql.new_area not one nextval"
-                      | [Some id] -> Lwt.return (Int64.to_int32 id)
-                      | [None] -> failwith "Ocsforge_sql.new_area nextval returned None")
-               >>= fun id ->
-                 PGSQL(db)
-                   "INSERT INTO ocsforge_right_areas \
-                           ( id,  forum_id, version, \
-                            repository_kind, repository_path, \
-                            wiki_container, wiki) \
-                    VALUES ($id, $forum,    $version, \
-                            $?repository_kind, $?repository_path, \
-                            $?wiki_container, $wiki)"
-              >>= fun () -> Lwt.return id
-             end
-         | Some id ->
-             let id = Types.sql_of_right_area id in
+      (match id with
+        | None ->
+           begin
              PGSQL(db)
-               "INSERT INTO ocsforge_right_areas \
-                       ( id,  forum_id, version, \
-                        repository_kind, repository_path, \
-                        wiki_container, wiki) \
-                VALUES ($id, $forum,    $version, \
-                        $?repository_kind, $?repository_path, \
-                        $?wiki_container, $wiki)"
-             >>= fun () -> Lwt.return id
-       )
-     >>= fun i -> Lwt.return (Types.right_area_of_sql i))
+               "SELECT NEXTVAL('ocsforge_right_areas_id_seq')"
+             >>= (function
+                    | [] | _::_::_ ->
+                        failwith "Ocsforge_sql.new_area not one nextval"
+                    | [Some id] -> Lwt.return (Int64.to_int32 id)
+                    | [None] ->
+                        failwith "Ocsforge_sql.new_area nextval returned None")
+             >>= fun id ->
+               PGSQL(db)
+                 "INSERT INTO ocsforge_right_areas \
+                         ( id,  forum_id, version, \
+                          repository_kind, repository_path, \
+                          wiki_container, wiki) \
+                  VALUES ($id, $forum,    $version, \
+                          $?repository_kind, $?repository_path, \
+                          $?wiki_container, $wiki)"
+            >>= fun () -> Lwt.return id
+           end
+        | Some id ->
+           let id = Types.sql_of_right_area id in
+           PGSQL(db)
+             "INSERT INTO ocsforge_right_areas \
+                     ( id,  forum_id, version, \
+                      repository_kind, repository_path, \
+                      wiki_container, wiki) \
+              VALUES ($id, $forum,    $version, \
+                      $?repository_kind, $?repository_path, \
+                      $?wiki_container, $wiki)"
+           >>= fun () -> Lwt.return id
+      )
+    >>= fun i -> Lwt.return (Types.right_area_of_sql i))
 
 let get_path_for_area ~area =
   let area = Types.sql_of_right_area area in
     (fun db ->
        PGSQL(db)
          "SELECT wiki FROM ocsforge_right_areas WHERE id = $area"
-       >>= function
-         | [] | _::_::_ -> failwith "Ocsforge_sql.get_path_for_area not one id"
-         | [ wikiid ] ->
-       PGSQL(db)
-         "SELECT pages FROM wikis WHERE id = $wikiid"
+       >>= Ocsforge_lang.apply_on_uniq_or_fail
+             "Ocsforge_sql.get_path_for_area"
+             (fun wikiid ->
+                PGSQL(db)
+                  "SELECT pages FROM wikis WHERE id = $wikiid")
          >>= (Olang.apply_on_uniq_or_fail "Ocsforge_sql.get_path_for_area"
                (Olang.apply_on_opted_lwt (Str.split (Str.regexp "/")))))
 
@@ -173,9 +175,10 @@ let get_task_by_id ~task_id ?(with_deleted = false) =
         FROM ocsforge_tasks
         WHERE id = $task_id AND (deleted = $with_deleted OR deleted = false)"
      >>= function
-         | [r]  -> Lwt.return (Types.get_task_info r)
-         | []   -> Lwt.fail Not_found
-         | r::_ -> failwith "Ocsforge_sql.get_task_by_id, more than one result")
+         | [r]     -> Lwt.return (Types.get_task_info r)
+         | []      -> Lwt.fail Not_found
+         | _::_::_ ->
+             failwith "Ocsforge_sql.get_task_by_id, more than one result")
 
 let get_task_history_by_id ~task_id =
   let task = Types.sql_of_task task_id in
@@ -186,9 +189,10 @@ let get_task_history_by_id ~task_id =
                  deadline_time, deadline_version, kind, \
                  area
           FROM ocsforge_tasks_history
-          WHERE id = $task"
-    >>= fun history -> get_task_by_id ~task_id db
-    >>= fun current ->
+          WHERE id = $task"             >>= fun history ->
+
+      get_task_by_id ~task_id db >>= fun current ->
+
       Lwt.return
         (current,
          List.map Types.get_task_history_info history))
@@ -215,19 +219,19 @@ let get_tasks_in_tree ~root ?(with_deleted = false) () db =
     "SELECT tree_min, tree_max
      FROM ocsforge_tasks
      WHERE id = $root"
-    >>= (function
-           | [] | _::_::_ -> failwith "Ocsforge_sql.get_task_in_tree not unique id"
-           | [(tmin, tmax)] ->
-  PGSQL(db)
-      "SELECT id, parent, message, \
-              edit_author, edit_time, edit_version, \
-              length, progress, importance, \
-              deadline_time, deadline_version, kind, \
-              area, tree_min, tree_max, deleted
-       FROM ocsforge_tasks
-       WHERE tree_min >= $tmin AND tree_max <= $tmax
-         AND (deleted = $with_deleted OR deleted = false)
-       ORDER BY tree_min")
+    >>= Ocsforge_lang.apply_on_uniq_or_fail
+          "Ocsforge_sql.get_task_in_tree"
+          (fun (tmin, tmax) ->
+             PGSQL(db)
+               "SELECT id, parent, message, \
+                       edit_author, edit_time, edit_version, \
+                       length, progress, importance, \
+                       deadline_time, deadline_version, kind, \
+                       area, tree_min, tree_max, deleted
+                FROM ocsforge_tasks
+                WHERE tree_min >= $tmin AND tree_max <= $tmax
+                  AND (deleted = $with_deleted OR deleted = false)
+                ORDER BY tree_min")
     >>= fun r -> (Lwt_util.map_serial
                     (fun t -> Lwt.return (Types.get_task_info t))
                     r)
@@ -441,18 +445,16 @@ let change_tree_marks ~task_id ~parent_id =
        "SELECT tree_min, tree_max
         FROM ocsforge_tasks
         WHERE id = $task"
-     >>= (function
-            | [] | _::_::_ -> failwith "Ocsforge_sql.move_task not one task"
-            | [(mi,ma)] -> Lwt.return (mi,ma))
-     >>= fun (mi,ma) ->
+     >>= Ocsforge_lang.apply_on_uniq_or_fail
+           "Ocsforge_lang.change_tree_marks"
+     (fun (mi,ma) ->
        PGSQL(db)
          "SELECT tree_max
           FROM ocsforge_tasks
           WHERE id = $parent"
-     >>= (function
-            | [] | _::_::_ -> failwith "Ocsforge_sql.move_task not one parent"
-            | [m] -> Lwt.return m)
-     >>= fun m ->
+     >>= Ocsforge_lang.apply_on_uniq_or_fail
+           "Ocsforge_lang.change_tree_marks"
+    (fun m ->
        let size = Int32.sub ma mi in
        let dist = Int32.sub m ma  in
          PGSQL(db)
@@ -464,7 +466,7 @@ let change_tree_marks ~task_id ~parent_id =
            "UPDATE ocsforge_tasks
             SET tree_min = tree_min - $size, tree_max = tree_max - $size
             WHERE tree_min > $ma AND tree_max < $m"
-    )
+    )))
 
 
 (** {3 Managing Kinds} *)

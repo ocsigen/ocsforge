@@ -19,7 +19,7 @@
 
 
 val nl_param :
-  (Ocsforge_types.task * (string * bool), (*[ `WithoutSuffix ],*)
+  (Ocsforge_types.task * (string * bool), [ `WithoutSuffix ],
    ([ `One of Ocsforge_types.task ] Eliom_parameters.param_name *
    ([ `One of string ] Eliom_parameters.param_name *
     [ `One of bool ] Eliom_parameters.param_name)))

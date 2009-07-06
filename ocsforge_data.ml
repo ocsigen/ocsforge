@@ -71,7 +71,7 @@ let new_task ~sp ~parent ~subject ~text
 
 let new_project ~sp ~parent ~name
       ?length ?importance ?deadline ?kind
-      ?repository_kind ?wiki_container () =
+      ?repository_kind ?repository_path ?wiki_container () =
 
   do_sql (Ocsforge_sql.get_area_for_task ~task_id:parent) >>= fun parent_area ->
   Roles.get_area_role sp parent_area                      >>= fun role ->
@@ -119,7 +119,7 @@ let new_project ~sp ~parent ~name
 
           (* create area *)
             Ocsforge_sql.new_area
-              ~id:c ~forum ~wiki ()
+              ~id:c ~forum ~wiki ?repository_kind ?repository_path ()
           >>= fun _ -> (* the result can't be anything but [c] *)
 
 (* link rights on area and rights on forum... Needs modifications on forum.ml
@@ -301,6 +301,7 @@ let move_task ~sp ~task ~parent =
 
   do_sql (Ocsforge_sql.is_area_root ~task) >>= fun area_root ->
   if area_root
+
   then
     (* adapt to the new parent inheritance : for a task *)
     Sql.full_transaction_block

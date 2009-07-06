@@ -30,7 +30,7 @@ open CalendarLib
 (* Non localized parameters... *)
 let nl_param =
   Params.make_non_localized_parameters
-    (*~name:"ocsforgetree"*)
+    ~name:"ocsforgetree"
     ((Params.user_type
        Types.task_of_string
        Types.string_of_task

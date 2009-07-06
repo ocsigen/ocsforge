@@ -490,7 +490,7 @@ object (self)
                           ^(Eliom_obrowser.jsmarshal
                             (td_id,
                              "deadline_v",
-                             Olang.unopt ~default:"" t.Types.t_deadline_version,
+                             Olang.unopt ~default:"None" t.Types.t_deadline_version,
                              t.Types.t_id))
                           ^")" :}>[
            <div>{: Olang.unopt ~default:"" t.Types.t_deadline_version :}
