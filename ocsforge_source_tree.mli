@@ -41,5 +41,6 @@ val update_infos :
     string ->
     string ->
     string ->
+    string ->
     rep_tree ->
     rep_tree

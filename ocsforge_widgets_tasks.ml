@@ -515,14 +515,13 @@ object (self)
              unit, [ `Unregistrable ])
             Eliom_services.service)
          ~(temp_service :
-            ((Ocsforge_types.task * string, unit,
-               [ `Attached of
+            ((string * string), unit,
+             [ `Attached of
                Eliom_services.get_attached_service_kind Eliom_services.a_s ],
-               [ `WithSuffix ],
-               [ `One of Types.task ] Eliom_parameters.param_name *
-               [ `One of string ] Eliom_parameters.param_name, unit,
-               [ `Registrable ])
-               Eliom_services.service))
+	     [ `WithSuffix ],
+	     [ `One of string ] Eliom_parameters.param_name *
+	     [ `One of string ] Eliom_parameters.param_name, unit,
+             [ `Registrable ]) Eliom_services.service)
       ?(width = 600) ?(padding = 10) ?(char_size = 12)
       ?sort
       () =
@@ -573,18 +572,18 @@ object (self)
 						  ["magnifier.png"] :}
 					alt="zoom to subtask">[]
 				    ] }}*)
-				 (t.Types.t_id, "")
-			   | Some(repo_service) ->
+				 ("", "")
+			   | Some(ps) ->
 			       EDuce.Xhtml.a
-			       ~service:repo_service 
+			       ~service:ps.Ocsforge_services_hashtable.sources_service
 				 ~sp
-			       {{ [ <img src={: EDuce.Xhtml.make_uri ~sp
-					  ~service:(Eliom_services.static_dir 
+				 {{ [ <img src={: EDuce.Xhtml.make_uri ~sp
+						  ~service:(Eliom_services.static_dir 
 						      ~sp)
 						  ["open_repository.png"] :}
 					alt="go to repos page">[]
 				    ] }}
-				 (t.Types.t_id, "")
+				 ([],(None,(None,None)))
 			:} 
                      {: EDuce.Xhtml.a
                           ~service:nl_service

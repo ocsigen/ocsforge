@@ -47,11 +47,6 @@ let exec_command command error_message =
 	  Lwt.return [error_message]
   end
 
-(** Recompose la chaine correspondant au résultat d'une commande *)
-let rec to_string l s = match l with
-  | [] -> Lwt.return s
-  | h::t -> to_string t (s^"\n"^h)
-
 (** A partir d'une chaine de type rep1/.../repN/file, renvoie 
     un couple ([rep1;...;repN],file)*)
 let format_name s = 
@@ -62,33 +57,33 @@ let format_name s =
 
 (** Mise à jour de l'aborescence des fichiers d'un patch à partir 
     de l'arborescence du patch précédent et des changements effectués *)
-let rec update_tree tree auth version tree_changes = match tree_changes with
+let rec update_tree tree auth versionName versionID tree_changes = match tree_changes with
   | [] -> Lwt.return tree
   | h::t -> 
       begin match h with
         | Add_dir(d) -> 
 	    format_name d >>= fun (path,name) ->
-	      update_tree (insert (Dir(name,[])) path tree) auth version t
+	      update_tree (insert (Dir(name,[])) path tree) auth versionName versionID t
 	| Rm_dir(d) ->
 	    format_name d >>= fun (path,name) ->
-	      update_tree (delete (Dir(name,[])) path tree) auth version t
+	      update_tree (delete (Dir(name,[])) path tree) auth versionName versionID t
 	| Add_file(f) ->
 	    format_name f >>= fun (path,name) ->
-	      update_tree (insert (File(name,auth,version)) path tree) 
-		auth version t
+	      update_tree (insert (File(name,auth,(versionName,versionID))) path tree) 
+		auth versionName versionID t
 	| Rm_file(f) ->
 	    format_name f >>= fun (path,name) ->
 	      let node = get_node name path tree in
-	      update_tree (delete node path tree) auth version t
+	      update_tree (delete node path tree) auth versionName versionID t
 	| Move_file(oldF,newF) ->
 	    format_name oldF >>= fun (oldPath,oldName) ->
 	      format_name newF >>= fun (newPath,newName) ->
 		update_tree (move oldPath oldName newPath newName tree) 
-		  auth version t
+		  auth versionName versionID t
 	| Modify_file(f) ->
 	    format_name f >>= fun (path,name) ->
-	      update_tree (update_infos path name auth version tree) 
-		auth version t
+	      update_tree (update_infos path name auth versionName versionID tree) 
+		auth versionName versionID t
       end
 
 (** Recupere la liste des patchs depuis le résultat de darcs changes *)
@@ -99,7 +94,7 @@ let rec extract_patch_list res l = match l with
         | [] -> Dir(".",[])
 	| _ -> (List.hd res).tree
       in
-      (update_tree oldTree h.xml_infos.xml_author h.xml_name h.xml_tree_changes)
+      (update_tree oldTree h.xml_infos.xml_author h.xml_name h.xml_infos.xml_hash h.xml_tree_changes)
 	>>= fun newTree ->
 	let p = { id = ref(h.xml_infos.xml_hash);
 	          name =  ref(h.xml_name);
@@ -119,10 +114,10 @@ let get_patch_list rep =
   exec_command command error_message >>= function
     | [] -> Lwt.return []
     | l -> 
-	to_string l "" >>= fun s ->
-	  let lexbuf = Lexing.from_string s in
-	  let res = Xml_parser.log Xml_lexer.token lexbuf in
-	  extract_patch_list [] res
+	let s = String.concat "\n" l in
+	let lexbuf = Lexing.from_string s in
+	let res = Xml_parser.log Xml_lexer.token lexbuf in
+	extract_patch_list [] res
     
 (** Recuperes l'arbre associé au patch précisé *)
 let darcs_list ?id rep = 
@@ -221,7 +216,7 @@ let darcs_diff file rep from_patch to_patch =
 
 
 let rec print_tree path tree = match tree with
-  | File(f,a,v) -> 
+  | File(f,a,(v,_)) -> 
       print_endline (path^f^"  aut:"^a^"   v:"^v)
   | Dir(d,l) ->
       print_endline (path^d);

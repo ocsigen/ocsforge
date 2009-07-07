@@ -1,7 +1,7 @@
 /** Repository content */
 
 table.sources_table{
-    border:2px solid #000;
+    /*border:2px solid #000;*/
     border-collapse:collapse;
     text-align:left;
 }
@@ -10,20 +10,38 @@ td.sources_table {
     border:1px solid #BBBBBB;
 }
 
+td.small_font {
+    border:1px solid #BBBBBB;
+    font-size: small;
+}
+
+td.small_ifont {
+    border:1px solid #BBBBBB;
+    font-size: small;
+    font-style: italic;
+}
+
+td.xsmall_font {
+    border:1px solid #BBBBBB;
+    font-size: x-small;
+}
+
 th.sources_table {
     border:1px solid #BBBBBB;
+    color: #53185B;
     background-color:#EEE;
 }
 
-table.sources_table tr.folder {
+tr.folder {
+    border: 2px solid #BBBBBB;
     background-color: #DDCAEF;
 }
 
-table.sources_table tr.odd {
+tr.odd {
     background-color: #D5EFDA;
 }
 
-table.sources_table tr.even {
+tr.even {
     background-color: #C2F0CB;
 }
 
@@ -33,6 +51,28 @@ div.sources_div {
     border:1px solid #BBBBBB;
     background-color: #EEE;
     text-align:center;
+}
+
+div.file_version_select{
+    border: 1px solid #BBBBBB;
+    width: 450px;
+    height: 50px;
+    background-color: #C8D6D6;
+    font-size:normal;
+}
+
+div.file_diff_select{
+    border: 1px solid #BBBBBB;
+    width: 450px;
+    height: 100px;
+    background-color: #C8D6D6;
+    font-size:normal;
+}
+
+
+
+a.sources_img_link img{
+    border:none
 }
 
 /** Syntax highlighting */

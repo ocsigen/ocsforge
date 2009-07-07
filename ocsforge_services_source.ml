@@ -1,5 +1,5 @@
 (* Ocsimore
- * Copyright (C) 2009
+ * Copyright (C) 2005
  * Laboratoire PPS - Université Paris Diderot - CNRS
  *
  * This program is free software; you can redistribute it and/or modify
@@ -17,72 +17,60 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 
-
 let ( ** ) = Eliom_parameters.prod
 let ( >>= ) = Lwt.bind
+module Sh = Ocsforge_services_hashtable
 
 (* service temporaire qui ne fait rien *)
-let temp_service = Eliom_predefmod.Action.register_new_service 
-    ~path:["tmp"]
-    ~get_params:(Eliom_parameters.suffix
-		   ((Eliom_parameters.user_type
-		       Ocsforge_types.task_of_string
-		       Ocsforge_types.string_of_task "id") ** 
-		      Eliom_parameters.string "version"))
-    (fun sp (project,path) () ->  Lwt.return ())
+let temp_service = Eliom_predefmod.Action.register_new_service
+    ~path:["voidservice"]
+    ~get_params:(Eliom_parameters.suffix_prod
+                   (Eliom_parameters.string "page_kind")
+		   (Eliom_parameters.string "version"))
+    (fun sp (page_kind,options) () -> Lwt.return ())
 
-let temp_source_service = Eliom_duce.Xhtml.register_new_service
-    ~path:["sources"]
-    ~get_params:(Eliom_parameters.suffix
-		   ((Eliom_parameters.user_type
-		       Ocsforge_types.task_of_string
-		       Ocsforge_types.string_of_task "id") ** 
-		      Eliom_parameters.all_suffix "path"))
-    (fun sp (id,path) () -> 
+let source_service path project = Eliom_duce.Xhtml.register_new_service
+    ~path:[path; project; "sources"; ""]
+    ~get_params:
+    (Eliom_parameters.suffix_prod
+       (Eliom_parameters.all_suffix "file")
+       (Eliom_parameters.opt (Eliom_parameters.string "version") **
+          ((Eliom_parameters.opt (Eliom_parameters.string "diff1") **
+		Eliom_parameters.opt (Eliom_parameters.string "diff2")))))
+    (fun sp (file,(version,(d1,d2))) () -> 
       let () =  Ocsforge_wikiext_common.send_css_up "ocsforge_sources.css" sp in
-      let page_content = match path with
-        | [file; version] ->
-	    Ocsforge_widgets_source.draw_source_code_view ~sp ~id ~file ~version:(Some(version)) 
-        | [file] ->
-	    Ocsforge_widgets_source.draw_source_code_view ~sp ~id ~file ~version:None    
-	| _ -> Lwt.return {{ [ <table> [<tr> [<td> ['Error']]]] }}
-      in page_content >>= fun pc ->
-	Ocsimore_page.html_page ~sp pc)
-
-(* Service pour l'historique des versions d'un projet *)
-let log_service = Eliom_duce.Xhtml.register_new_service 
-    ~path:["log"]
-    ~get_params:(Eliom_parameters.suffix
-		   ((Eliom_parameters.user_type
-		       Ocsforge_types.task_of_string
-		       Ocsforge_types.string_of_task "id")))
-    (fun sp id () -> 
-      let () =  Ocsforge_wikiext_common.send_css_up "ocsforge_sources.css" sp in
-      Ocsforge_widgets_source.draw_log_table ~sp ~id ~void_service:temp_service 
-	>>= fun pc ->
-	Ocsimore_page.html_page ~sp pc)
-      
-(* Service principal pour le dépot d'un projet *)
-let project_repository_service project = Eliom_duce.Xhtml.register_new_service 
-    (* Path a modifier pour mettre le NOM du projet *)
-    ~path:[project;"sources"]
-    ~get_params:(Eliom_parameters.suffix
-		   ((Eliom_parameters.user_type
-		       Ocsforge_types.task_of_string
-		       Ocsforge_types.string_of_task "id") ** 
-		      Eliom_parameters.string "version"))
-    (fun sp (id,version) () ->
-      let v = 
-	if (String.length version == 0) then
-	  None
-	else Some(version)
+      let id = Ocsforge_types.task_of_string project in
+      let page_content = match (file,(version,(d1,d2))) with
+        | ([],(None,(_,_))) 
+	| ([""],(None,(_,_))) ->
+            Ocsforge_widgets_source.draw_repository_table ~sp ~id ~version:None
+	| ([],(v,(_,_))) 
+	| ([""],(v,(_,_))) ->
+	    Ocsforge_widgets_source.draw_repository_table ~sp ~id ~version:v
+	| (l,(None,(None,None))) -> 
+	    Ocsforge_widgets_source.draw_file_page ~sp ~id ~target:l
+	| (l,(Some(v),(None,None))) ->
+	    if (String.compare v "latest" == 0) then
+	    Ocsforge_widgets_source.draw_source_code_view ~sp ~id ~target:l ~version:None	    
+	    else
+	    Ocsforge_widgets_source.draw_source_code_view ~sp ~id ~target:l ~version:(Some(v))
+	| (l,(None,(Some(diff1),Some(diff2)))) ->
+	    Ocsforge_widgets_source.draw_diff_view ~sp ~id ~target:l ~diff1 ~diff2
+	| _ -> (* TODO : gestion erreur ?*)
+            Ocsforge_widgets_source.draw_source_code_view ~sp ~id ~target:[] ~version:None
       in
+      page_content >>= fun pc ->
+   Ocsimore_page.html_page ~sp pc)
+
+let log_service path project = Eliom_duce.Xhtml.register_new_service
+    ~path: [path; project; "log"]
+    ~get_params:Eliom_parameters.unit
+    (fun sp () () ->
       let () =  Ocsforge_wikiext_common.send_css_up "ocsforge_sources.css" sp in
-      Ocsforge_widgets_source.draw_repository_table ~sp ~id ~version:v 
-	~src_service:temp_source_service
-	~log_service:log_service >>= 
-      fun content ->
-	Ocsimore_page.html_page ~sp content)
+      let s_id = Ocsforge_types.task_of_string project in
+      Ocsforge_widgets_source.draw_log_table ~sp ~id:s_id >>= fun pc ->
+	Ocsimore_page.html_page ~sp pc
+    )
 
 
 let register_repository_services = 
@@ -90,10 +78,14 @@ let register_repository_services =
     | [] -> Lwt.return ()
     | (page,root_task)::t -> 
 	begin match (page,root_task) with
-	| (Some(path),Some(task)) -> 
+	| (Some(path),Some(task)) ->
+	    let rt = Ocsforge_types.task_of_sql task in
+	    let st = Ocsforge_types.string_of_task rt in
 	    Ocsforge_services_hashtable.add_service 
-	      (Ocsforge_types.task_of_sql task) 
-	      (project_repository_service path);
+	      rt
+	      {Sh.sources_service = source_service path st;
+	       Sh.log_service = log_service path st;
+	     };
 	    register_list t
 	| _ -> register_list t
 	end

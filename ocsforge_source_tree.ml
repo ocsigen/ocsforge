@@ -111,11 +111,11 @@ let move oldPath oldName newPath newName tree =
   insert newNode newPath tmp 
   
 (** Changes l'auteur et la derniere version d'un noeud de l'arbre *)
-let update_infos path name newAut newVers tree = 
+let update_infos path name newAut newVersName newVersID tree = 
   let node = get_node name path tree in
   match node with
     | File(f,_,_) -> 
 	let tmp = delete node path tree in
-	let newNode = File(f,newAut,newVers) in
+	let newNode = File(f,newAut,(newVersName,newVersID)) in
 	insert newNode path tmp
     | Dir(_,_) -> tree

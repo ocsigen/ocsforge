@@ -43,12 +43,11 @@ let register_wikiext wp =
 	       | None ->
 		   Ocsforge_widgets_source.draw_repository_table ~sp ~id 
 		     ~version 
-		     ~src_service:Ocsforge_services_source.temp_source_service
-		     ~log_service:Ocsforge_services_source.log_service >>=
+		     >>=
 		   fun (b: {{ [ Xhtmltypes_duce.block* ] }}) ->
 		     Lwt.return b
 	       | Some f ->
-		   Ocsforge_widgets_source.draw_source_code_view ~sp ~id ~file:f ~version >>=
+		   Ocsforge_widgets_source.draw_source_code_view ~sp ~id ~target:[f] ~version >>=
 		   fun (b: {{ [ Xhtmltypes_duce.block* ] }}) ->
 		     Lwt.return b
 	   )

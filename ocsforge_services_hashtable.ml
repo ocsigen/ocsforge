@@ -17,20 +17,36 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 
-(* Hashtable (task id, service) *)
-let repos_services_table : 
-    (Ocsforge_types.task,
-    (Ocsforge_types.task * string, unit,
-        [ `Attached of
-          Eliom_services.get_attached_service_kind Eliom_services.a_s ],
-     [ `WithSuffix ],
-     [ `One of Ocsforge_types.task ] Eliom_parameters.param_name *
-       [ `One of string ] Eliom_parameters.param_name, unit,
-     [ `Registrable ])
-    Eliom_services.service) Hashtbl.t
-    = Hashtbl.create 50
+type project_services = 
+    { sources_service:
+	(string list * 
+	   (string option * ((string option * string option)))
+	   , unit,
+	 [ `Attached of
+	   Eliom_services.get_attached_service_kind Eliom_services.a_s ],
+	 [ `WithSuffix ],
+	 ([`One of string list] Eliom_parameters.param_name *
+	    ([ `One of string ] Eliom_parameters.param_name *
+	       ([ `One of string ] Eliom_parameters.param_name *
+		  [ `One of string ] Eliom_parameters.param_name))), unit,
+	 [ `Registrable ])
+	Eliom_services.service;
+      log_service:
+	(unit, unit,
+	 [ `Attached of
+	   Eliom_services.get_attached_service_kind Eliom_services.a_s ],
+	 [ `WithoutSuffix ],
+	 unit, unit,[ `Registrable ])
+	Eliom_services.service
+    }
 
-let add_service id service = Hashtbl.add repos_services_table id service
+
+(* Hashtable (task id, service) *)
+let repos_services_table : (Ocsforge_types.task,project_services) Hashtbl.t = 
+  Hashtbl.create 50
+
+let add_service id service = 
+  Hashtbl.add repos_services_table id service
 
 let find_service id = 
   try 
