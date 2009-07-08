@@ -5,10 +5,13 @@ open Xmltypes
 %token EOF
 %token CHANGELOG_OPEN
 %token CHANGELOG_CLOSE
+%token CREATED_AS_OPEN
+%token CREATED_AS_CLOSE
 %token PATCH_OPEN
 %token PATCH_CLOSE
 %token SUMMARY_OPEN
 %token SUMMARY_CLOSE
+%token <string> ORIGINAL_NAME
 %token <string*string> MOVE
 %token <string*string> AUTHOR
 %token <string> DATE
@@ -28,13 +31,16 @@ open Xmltypes
 %%
 
 log:
-| CHANGELOG_OPEN x=patch* CHANGELOG_CLOSE EOF
+| CHANGELOG_OPEN created_as* x=patch* CHANGELOG_CLOSE EOF
     { x }
 
+created_as:
+| CREATED_AS_OPEN n=ORIGINAL_NAME x=patch* CREATED_AS_CLOSE { n }
+
 patch:
-| PATCH_OPEN i=patch_infos n=NAME c=COMMENT s=summary PATCH_CLOSE
+| PATCH_OPEN i=patch_infos n=NAME c=COMMENT s=summary? PATCH_CLOSE
     { {xml_infos=i; xml_name=n; xml_comment=c; xml_tree_changes=s} }
-| PATCH_OPEN i=patch_infos n=NAME s=summary PATCH_CLOSE
+| PATCH_OPEN i=patch_infos n=NAME s=summary? PATCH_CLOSE
     { {xml_infos=i; xml_name=n; xml_comment=""; xml_tree_changes=s} }
 
 patch_infos:

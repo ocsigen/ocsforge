@@ -18,6 +18,8 @@ rule token = parse
       { EOF }
   | blank* "<changelog>"                    
       { CHANGELOG_OPEN }
+  | blank* "<created_as "                    
+      { CREATED_AS_OPEN }
   | blank* "<patch "                            
       { PATCH_OPEN }
   | blank* "<name>" (data as n) "</name>"        
@@ -36,6 +38,14 @@ rule token = parse
       { FILE_REMOVE(f) }
   | blank* "<remove_directory>" blank* (name* as d) blank* "</remove_directory>" 
       { DIR_REMOVE(d) }
+  | "original_name='"
+         {
+	  let n_start = lexeme_start_p lexbuf in
+	  let n_buf = Buffer.create 10 in
+	  let name = patch_field n_start n_buf lexbuf in
+	  lexbuf.lex_start_p <- n_start;
+	  ORIGINAL_NAME(name)
+	}
   | "author='"    
          {
 	  let aut_start = lexeme_start_p lexbuf in
@@ -85,9 +95,10 @@ rule token = parse
 	 let mv = move move_start 0 from_buf to_buf lexbuf in
 	 MOVE(mv)
         }
-  | blank* "</changelog>"  { CHANGELOG_CLOSE }
-  | blank*"</patch>"       { PATCH_CLOSE }
-  | blank*"</summary>"     { SUMMARY_CLOSE }
+  | blank* "</changelog>"   { CHANGELOG_CLOSE }
+  | blank* "</created_as>"  { CREATED_AS_CLOSE }
+  | blank* "</patch>"       { PATCH_CLOSE }
+  | blank* "</summary>"     { SUMMARY_CLOSE }
   
   
 and author start flag name_buf mail_buf = parse

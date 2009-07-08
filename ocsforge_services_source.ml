@@ -33,7 +33,7 @@ let source_service path project = Eliom_duce.Xhtml.register_new_service
     ~path:[path; project; "sources"; ""]
     ~get_params:
     (Eliom_parameters.suffix_prod
-       (Eliom_parameters.all_suffix "file")
+       (Eliom_parameters.all_suffix(*_user Neturl.split_path (Ocsigen_extensions.string_of_url_path ~encode:false)*) "file")
        (Eliom_parameters.opt (Eliom_parameters.string "version") **
           ((Eliom_parameters.opt (Eliom_parameters.string "diff1") **
 		Eliom_parameters.opt (Eliom_parameters.string "diff2")))))

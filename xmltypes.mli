@@ -16,7 +16,7 @@ type change =
 type xml_patch = {xml_infos:patch_infos;
 		  xml_name:string;
 		  xml_comment:string;
-		  xml_tree_changes:change list}
+		  xml_tree_changes:(change list) option}
 
 
 type changeLog = xml_patch list

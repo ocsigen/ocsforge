@@ -67,9 +67,9 @@ let create_repository_table_content ~sp ~id ~version
 					      src={:Eliom_duce.Xhtml.make_uri ~sp
 						     ~service:(Eliom_services.static_dir ~sp)
 						     ["source_file.png"] :}>[]] }}
-				  (([if (String.length current_dir != 0) then
-				    (current_dir^"/"^f)
-				  else f]),(None,(None,None)))
+				  ((if (String.length current_dir != 0) then
+				    (Neturl.split_path (current_dir^"/"^f))
+				  else [f]),(None,(None,None)))
 				  :}] }}
 			      :}
 		      {: match project_services with
@@ -87,9 +87,9 @@ let create_repository_table_content ~sp ~id ~version
 				     Eliom_duce.Xhtml.a 
 				     ~service:ps.Sh.sources_service 
 				     ~sp {{ {: f :} }}
-				     (([if (String.length current_dir != 0) then
-				       (current_dir^"/"^f)
-				     else f]),(rev,(None,None)))
+				     ((if (String.length current_dir != 0) then
+				       Neturl.split_path (current_dir^"/"^f)
+				     else [f]),(rev,(None,None)))
 				     :}] }}
 			  :}
 			  <td class="small_font"> {: aut :}
@@ -194,7 +194,7 @@ let create_log_table_content ~sp ~id ~project_services =
 			    end
 				:}> 
 	      [{: match project_services with 
-	          | None -> 
+	          | None ->
 		      {{ <td class="small_font"> {: !(p.STypes.name) :} }}
 		  | Some(ps) ->
 		      {{ <td class="small_font"> 
@@ -221,76 +221,110 @@ let create_log_table_content ~sp ~id ~project_services =
 let create_diff_view_content ~sp ~id ~file ~diff1 ~diff2 =
   Lwt.return ({{ [<h3> [!{: ("Diff entre "
 			   ^diff1^" et "
-			   ^diff2^" de "
-			   ^file) :}]]}} 
+			   ^diff2^" de ("
+			   ^file^")") :}]]}} 
 		: {{ [Xhtmltypes_duce.block*] }})
 
+
 (* TODO *)
-let create_file_page ~sp ~id ~path ~project_services = 
+let create_file_page ~sp ~id ~target ~project_services = 
   (* TODO : determiner si path est un fichier ou répertoire *)
   (* Seul le cas du fichier est traité pour l'instant *)
-  let file_version_select_form 
-    ((file,(version,(diff1,diff2)))
-    : ([`One of string list] Eliom_parameters.param_name *
-	([ `One of string ] Eliom_parameters.param_name *
-	   ([ `One of string ] Eliom_parameters.param_name *
-		 [ `One of string ] Eliom_parameters.param_name)))) =
-  {{[ <p> [
-      'Select a version  '
-        {: Eliom_duce.Xhtml.string_input
-           ~name:version
-           ~input_type:{: "text" :}
-           () :}
-      
-       {:Eliom_duce.Xhtml.string_button
-	   ~name:version
-	   ~value:""
-           {{ "View code" }}:}]] }}
-  in
-  let file_diff_form
-    ((file,(version,(diff1,diff2)))
-    : ([`One of string list] Eliom_parameters.param_name *
-	([ `One of string ] Eliom_parameters.param_name *
-	   ([ `One of string ] Eliom_parameters.param_name *
-		 [ `One of string ] Eliom_parameters.param_name)))) =
-    {{[ <p> [
-	  'Version 1 '
-          {: Eliom_duce.Xhtml.string_input
-             ~name:version
-             ~input_type:{: "text" :}
-             () :}
-	  <br> []
-	  'Version 2 '
-          {: Eliom_duce.Xhtml.string_input
-             ~name:version
-             ~input_type:{: "text" :}
-             () :}
-	  <br> []
-	  {:Eliom_duce.Xhtml.string_button
-	     ~name:version
-	     ~value:""
-             {{ "Execute diff" }}:}]] }}
-    
-  in
-  Lwt.return ({{ {:
-		   match project_services with
-		     | None -> {{ [<div> []] }}
-                     | Some(ps) ->
-			 {{[<div class="file_version_select"> 
-			     [ {: Eliom_duce.Xhtml.get_form
-				  ~service: ps.Sh.sources_service
-				  ~sp  
-				  file_version_select_form :} 
-			     ]
-			     <div class="file_diff_select"> 
-			     [ {: Eliom_duce.Xhtml.get_form
-				  ~service: ps.Sh.sources_service
-				  ~sp  
-				  file_diff_form :} 
-			     ]
-			   ] }} 
-			   :}  }} 
-		: {{ [Xhtmltypes_duce.block*] }})
+  Data.get_area_for_task sp id >>= fun r_infos -> 
+    match (r_infos.Types.r_repository_kind,r_infos.Types.r_repository_path) with
+    | (Some(kind),Some(path)) ->
+	Ocsforge_version_managers.get_fun_pack kind >>= fun fun_pack ->
+	  let file_path = match target with
+	    | [f] -> f
+	    | _ -> String.concat "/" target
+	  in
+	  fun_pack.STypes.vm_log ~file:file_path path >>= fun log_result -> 
+	    let file_version_select_form 
+		((file,(version,(diff1,diff2)))
+		   : ([`One of string list] Eliom_parameters.param_name *
+			([ `One of string ] Eliom_parameters.param_name *
+			   ([ `One of string ] Eliom_parameters.param_name *
+			      [ `One of string ] Eliom_parameters.param_name)))) =
+	      {{[ <p> [
+		  {:
+		     Eliom_duce.Xhtml.user_type_input
+		     (Ocsigen_extensions.string_of_url_path ~encode:false)
+		     ~input_type: {: "hidden" :}
+		     ~name: file
+		     ~value: target
+		     ()
+		     :}
+		    'Select a version  '
+		    {: 
+		       Eliom_duce.Xhtml.string_input
+		       ~name:version
+		       ~input_type:{: "text" :}
+		       () :}
+		    {: 
+		       Eliom_duce.Xhtml.button
+		       ~button_type: {: "submit" :}
+		       {{ "View code" }}
+		       :}
+		]] }}
+	    in
+	    let file_diff_form
+		((file,(version,(diff1,diff2)))
+		   : ([`One of string list] Eliom_parameters.param_name *
+			([ `One of string ] Eliom_parameters.param_name *
+			   ([ `One of string ] Eliom_parameters.param_name *
+			      [ `One of string ] Eliom_parameters.param_name)))) =
+	      {{[ <p> [
+		  {:
+		     Eliom_duce.Xhtml.user_type_input
+		     (Ocsigen_extensions.string_of_url_path ~encode:false)
+		     ~input_type: {: "hidden" :}
+		     ~name: file
+		     ~value: target 
+		     ()
+		     :}
+		    'Version 1 '
+		    {: Eliom_duce.Xhtml.string_input
+		       ~name:diff1
+		       ~input_type:{: "text" :}
+		       () :}
+		    <br> []
+		    'Version 2 '
+		    {: Eliom_duce.Xhtml.string_input
+		       ~name:diff2
+		       ~input_type:{: "text" :}
+		       () :}
+		    <br> []
+		    {: Eliom_duce.Xhtml.button
+		       ~button_type: {: "submit" :}
+		       {{ "Execute diff" }}
+		       :} 
+		]] }}
+	    in
+	    Lwt.return ({{ {:
+			    match project_services with
+			    | None -> {{ [<div> []] }}
+			    | Some(ps) ->
+				{{[<div class="file_version_select"> 
+				  [ {: Eliom_duce.Xhtml.get_form
+				       ~service: ps.Sh.sources_service
+				       ~sp  
+				       file_version_select_form :} 
+				  ]
+				    <div class="file_diff_select"> 
+				      [ {: Eliom_duce.Xhtml.get_form
+					   ~service: ps.Sh.sources_service
+					   ~sp  
+					   file_diff_form :} 
+				      ]
+				  ] }} 
+				  :}  }} 
+			  : {{ [Xhtmltypes_duce.block*] }})
+	      
+    | (_,_) -> Lwt.return 
+	  ({{ [<p> ['Error: unable to access the repository']] }})
+	  
+  
+
 
 let repository_table_header = 
   ({{ [<tr> [ <th class="sources_table"> []
@@ -362,7 +396,7 @@ let draw_repository_table ~sp ~id ~version  =
 let draw_source_code_view ~sp ~id ~target ~version =
   let file = match target with
     | [f] -> f  
-    | _ -> ""
+    | _ -> Ocsigen_extensions.string_of_url_path ~encode:false target 
   in
   create_source_code_content ~sp ~id ~file ~version >>= fun b ->
     Lwt.return ({{ [<table class="code_table"> 
@@ -399,7 +433,7 @@ let draw_diff_view ~sp ~id ~target ~diff1 ~diff2 =
   let project_services = Sh.find_service id in
   let file = match target with
     | [f] -> f
-    | _ -> "" 
+    | _ -> Ocsigen_extensions.string_of_url_path ~encode:false target
   in
   create_diff_view_content ~sp ~id ~file ~diff1 ~diff2 >>= fun b ->
     Lwt.return ({{ [ !b ]}}  : {{ [ Xhtmltypes_duce.block* ] }})
@@ -407,9 +441,5 @@ let draw_diff_view ~sp ~id ~target ~diff1 ~diff2 =
 (* TODO *)
 let draw_file_page ~sp ~id ~target =
   let project_services = Sh.find_service id in
-  let path = match target with
-    | [f] -> f
-    | _ -> String.concat "/" target
-  in
-  create_file_page ~sp ~id ~path ~project_services >>= fun b ->
+  create_file_page ~sp ~id ~target ~project_services >>= fun b ->
     Lwt.return ({{ [ !b ] }} : {{ [ Xhtmltypes_duce.block* ] }})

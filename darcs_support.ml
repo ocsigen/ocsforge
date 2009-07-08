@@ -1,12 +1,11 @@
 open Lwt
-open Netstring_str
+open Netstring_pcre
 open Ocsforge_source_types
 open Ocsforge_source_tree
 open Xmltypes
 
 (** Expression régulière utilisée pour darcs diff *)
 let index_regexp = regexp "Index: "
-
 
 (** Stocke le contenu d'un input channel dans une string list *)
 let rec read_input_channel res chan =
@@ -47,20 +46,33 @@ let exec_command command error_message =
 	  Lwt.return [error_message]
   end
 
+let rec eat_blanks s cpt =
+  if (s.[cpt] != ' ') then
+    string_after s cpt
+  else
+    eat_blanks s (cpt+1)
+
 (** A partir d'une chaine de type rep1/.../repN/file, renvoie 
     un couple ([rep1;...;repN],file)*)
 let format_name s = 
-  let tmp = split (regexp "/") s in
+  let tmp = split (regexp "/") (eat_blanks s 0) in
   let name = List.nth (List.rev tmp) 0 in
   let path = List.rev (List.tl (List.rev tmp)) in
-  Lwt.return (path,name)
+  (path,name)
+
+let format_path p = 
+  (split (regexp "/") p) 
 
 (** Mise à jour de l'aborescence des fichiers d'un patch à partir 
     de l'arborescence du patch précédent et des changements effectués *)
-let rec update_tree tree auth versionName versionID tree_changes = match tree_changes with
-  | [] -> Lwt.return tree
-  | h::t -> 
-      begin match h with
+(*
+let insert_changes2 tree auth versionName versionID tree_changes = match tree_changes with        
+| None -> Lwt.return tree
+| Some(changes) ->
+  let rec update_tree tree auth versionName versionID tree_changes = match tree_changes with
+    | [] -> Lwt.return tree
+    | h::t -> 
+	begin match h with
         | Add_dir(d) -> 
 	    format_name d >>= fun (path,name) ->
 	      update_tree (insert (Dir(name,[])) path tree) auth versionName versionID t
@@ -85,16 +97,17 @@ let rec update_tree tree auth versionName versionID tree_changes = match tree_ch
 	      update_tree (update_infos path name auth versionName versionID tree) 
 		auth versionName versionID t
       end
+  in update_tree tree auth versionName versionID changes
 
-(** Recupere la liste des patchs depuis le résultat de darcs changes *)
-let rec extract_patch_list res l = match l with
+
+let rec extract_patch_list2 res l = match l with
   | [] -> Lwt.return res 
   | h::t ->
       let oldTree = match res with
         | [] -> Dir(".",[])
 	| _ -> (List.hd res).tree
       in
-      (update_tree oldTree h.xml_infos.xml_author h.xml_name h.xml_infos.xml_hash h.xml_tree_changes)
+      (insert_changes2 oldTree h.xml_infos.xml_author h.xml_name h.xml_infos.xml_hash h.xml_tree_changes)
 	>>= fun newTree ->
 	let p = { id = ref(h.xml_infos.xml_hash);
 	          name =  ref(h.xml_name);
@@ -103,22 +116,204 @@ let rec extract_patch_list res l = match l with
 		  comment =  ref(h.xml_comment);
 		  tree = newTree }
 	in
-	extract_patch_list (p::res) t
+	extract_patch_list2 (p::res) t
+*)
+
+
+let rec handle_add_file tree patch content = match content with
+  | [] -> tree
+  | h::t ->
+      match h with 
+        | Simplexmlparser.PCData(s) -> 
+	    let (path,name) = format_name s in
+	    let new_tree = 
+	      insert (File(name,!(patch.author),(!(patch.name),!(patch.id))))
+		path tree in 
+	    handle_add_file new_tree patch t
+	| Simplexmlparser.Element(name,args,econtent) ->
+	    handle_add_file tree patch t
+	 
+
+let rec handle_remove_file tree patch content = match content with
+  | [] -> tree
+  | h::t ->
+      match h with 
+        | Simplexmlparser.PCData(s) -> 
+	    let (path,name) = format_name s in
+	    let node = get_node name path patch.tree in
+	    let new_tree = delete node path tree in
+	    handle_remove_file new_tree patch t
+	| Simplexmlparser.Element(name,args,econtent) ->
+	    handle_remove_file tree patch t
+
+let rec handle_add_directory tree patch content = match content with
+  | [] -> tree
+  | h::t ->
+      match h with 
+        | Simplexmlparser.PCData(s) -> 
+	    let (path,name) = format_name s in
+	    let new_tree = insert (Dir(name,[])) path tree in
+	    handle_add_directory new_tree patch t
+	| Simplexmlparser.Element(name,args,econtent) ->
+	    handle_add_directory tree patch t
+
+
+let rec handle_remove_directory tree patch content = match content with
+  | [] -> tree
+  | h::t ->
+      match h with 
+        | Simplexmlparser.PCData(s) -> 
+	    let (path,name) = format_name s in
+	    let new_tree = delete (Dir(name,[])) path tree in
+	    handle_remove_directory new_tree patch t
+	| Simplexmlparser.Element(name,args,econtent) ->
+	    handle_remove_directory tree patch t
+
+
+let handle_move tree patch args = match args with
+  | [("from",mv_from);("to",mv_to)] ->
+      let (from_path,from_name) = format_name mv_from in
+      let (to_path,to_name) = format_name mv_to in
+      move from_path from_name to_path to_name tree
+  | _ -> tree 
+  
+
+let rec handle_summary res patch content = match content with
+  | [] -> res
+  | h::t -> 
+      match h with
+        | Simplexmlparser.PCData(_) -> handle_summary res patch t 
+	| Simplexmlparser.Element(name,args,econtent) ->
+	    let next_res = 
+	      if (String.compare name "add_file" == 0) then
+		handle_add_file res patch econtent
+	      else if (String.compare name "remove_file" == 0) then
+		handle_remove_file res patch econtent
+	      else if (String.compare name "add_directory" == 0) then
+		handle_add_directory res patch econtent
+	      else if (String.compare name "remove_directory" == 0) then
+		handle_remove_directory res patch econtent
+	      else if (String.compare name "move" == 0) then 
+		handle_move res patch args
+	      else res
+	    in
+	    handle_summary next_res patch t
+
+      
+
+let handle_comment content = match content with
+  | [] -> ""
+  | h::_ -> 
+      match h with
+        | Simplexmlparser.PCData(comment) -> comment
+	| _ -> ""
+
+let handle_name content = match content with
+  | [] -> ""
+  | h::_ -> 
+      match h with
+        | Simplexmlparser.PCData(name) -> name
+	| _ -> ""
+
+let fill_patch_fields root_tree args = 
+  let res = {id = ref "";
+	     name = ref "";
+	     author = ref "";
+	     date = ref "";
+	     comment = ref "";
+	     tree = root_tree } 
+  in
+  let rec aux p args = match args with
+    | [] -> p
+    | (f,v)::t ->
+	if (String.compare f "author" == 0) then
+	  p.author := v
+	else if (String.compare f "local_date" == 0) then
+	  p.date := v
+	else if (String.compare f "hash" == 0) then
+	  p.id := v
+	else ();
+	aux p t
+  in
+  aux res args
+
+let rec handle_patch ?file patch content = match content with
+  | [] -> Lwt.return patch
+  | h::t -> 
+      match h with
+        | Simplexmlparser.PCData(_) -> handle_patch patch t 
+	| Simplexmlparser.Element(name,_,econtent) ->
+	    if (String.compare name "name" == 0) then begin
+	      patch.name := handle_name econtent;
+	      handle_patch patch t 
+	    end
+	    else if (String.compare name "comment" == 0) then begin
+	      patch.comment := handle_comment econtent;
+	      handle_patch patch t 
+	    end
+	    else if (String.compare name "summary" == 0) then
+	      handle_patch ({
+			    id = patch.id;
+			    name = patch.name;
+			    author = patch.author;
+			    date = patch.date;
+			    comment = patch.comment;
+			    tree = handle_summary 
+			      (patch.tree) patch econtent;}) t
+	    else handle_patch patch t 
+
+
+let rec handle_changelog ?file res content = match content with 
+  | [] -> Lwt.return res
+  | p::t ->
+      let root_tree = match res with
+        | [] -> Dir(".",[])
+	| _ -> (List.hd res).tree
+      in
+      match p with
+        | Simplexmlparser.PCData(_) -> handle_changelog res t 
+	| Simplexmlparser.Element(name,args,econtent) ->
+	    if (String.compare name "patch" == 0) then
+	      handle_patch (fill_patch_fields root_tree args) econtent >>=
+	      fun patch ->
+		handle_changelog (patch::res) t
+	    else 
+	      handle_changelog res t
+
+(** Recupere la liste des patchs depuis le résultat de darcs changes *)
+let rec extract_patch_list ?file res l = match l with
+  | [] -> Lwt.return res
+  | h::t ->
+      match h with
+        | Simplexmlparser.PCData(_) -> extract_patch_list res t
+	| Simplexmlparser.Element(name,_,content) ->
+	    if (String.compare name "changelog" == 0) then
+	      handle_changelog [] content
+	    else
+	      extract_patch_list res t
+	      
+	    
 
 (** Stocke la liste des patchs présents dans un dépot Darcs dans une liste
     de types patch *)
-let get_patch_list rep =
-  let command = ("darcs changes --repodir "^rep
-		 ^" --xml-output --reverse --summary") in
+let get_patch_list ?file rep =
+  let command = match file with
+  | None ->
+      ("darcs changes --repodir "^rep
+       ^" --xml-output --reverse --summary") 
+  | Some(f) ->
+      ("darcs changes --repodir "^rep
+       ^" --xml-output --reverse --summary "^f) 
+  in
   let error_message = "Error while getting changelog (signal received)" in
   exec_command command error_message >>= function
     | [] -> Lwt.return []
     | l -> 
 	let s = String.concat "\n" l in
-	let lexbuf = Lexing.from_string s in
-	let res = Xml_parser.log Xml_lexer.token lexbuf in
+	let res = Simplexmlparser.xmlparser_string s in
 	extract_patch_list [] res
-    
+
+
 (** Recuperes l'arbre associé au patch précisé *)
 let darcs_list ?id rep = 
   get_patch_list rep >>= fun pl -> match id with
