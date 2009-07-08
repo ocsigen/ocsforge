@@ -26,7 +26,7 @@ val get_node :
     string ->
     string list ->
     rep_tree ->
-    rep_tree
+    rep_tree option
 
 val move : 
     string list ->

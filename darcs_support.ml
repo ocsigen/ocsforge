@@ -54,8 +54,12 @@ let rec eat_blanks s cpt =
 
 (** A partir d'une chaine de type rep1/.../repN/file, renvoie 
     un couple ([rep1;...;repN],file)*)
-let format_name s = 
-  let tmp = split (regexp "/") (eat_blanks s 0) in
+let format_name s ~eatblanks =
+  let tmp = 
+  if (eatblanks) then
+    split (regexp "/") (eat_blanks s 0)
+  else
+    split (regexp "/") s in
   let name = List.nth (List.rev tmp) 0 in
   let path = List.rev (List.tl (List.rev tmp)) in
   (path,name)
@@ -121,62 +125,78 @@ let rec extract_patch_list2 res l = match l with
 
 
 let rec handle_add_file tree patch content = match content with
-  | [] -> tree
+  | [] -> (*print_endline "add_file";*)tree
   | h::t ->
       match h with 
         | Simplexmlparser.PCData(s) -> 
-	    let (path,name) = format_name s in
+	    let (path,name) = format_name s ~eatblanks:true in
 	    let new_tree = 
-	      insert (File(name,!(patch.author),(!(patch.name),!(patch.id))))
+	      insert (File(ref(name),!(patch.author),(!(patch.name),!(patch.id))))
 		path tree in 
 	    handle_add_file new_tree patch t
-	| Simplexmlparser.Element(name,args,econtent) ->
+	| _ ->
 	    handle_add_file tree patch t
 	 
 
 let rec handle_remove_file tree patch content = match content with
-  | [] -> tree
+  | [] -> (*print_endline "remove_file";*)tree
   | h::t ->
       match h with 
         | Simplexmlparser.PCData(s) -> 
-	    let (path,name) = format_name s in
-	    let node = get_node name path patch.tree in
-	    let new_tree = delete node path tree in
-	    handle_remove_file new_tree patch t
-	| Simplexmlparser.Element(name,args,econtent) ->
+	    let (path,name) = format_name s ~eatblanks:true in
+	    let node = get_node name path patch.tree in match node with
+	    | None -> handle_remove_file tree patch t
+	    | Some(n) ->
+		let new_tree = delete n path tree in
+		handle_remove_file new_tree patch t
+	| _ ->
 	    handle_remove_file tree patch t
 
 let rec handle_add_directory tree patch content = match content with
-  | [] -> tree
+  | [] -> (*print_endline "add_dir";*)tree
   | h::t ->
       match h with 
         | Simplexmlparser.PCData(s) -> 
-	    let (path,name) = format_name s in
-	    let new_tree = insert (Dir(name,[])) path tree in
+	    let (path,name) = format_name s ~eatblanks:true in
+	    let new_tree = insert (Dir(ref(name),[])) path tree in
 	    handle_add_directory new_tree patch t
-	| Simplexmlparser.Element(name,args,econtent) ->
+	| _ ->
 	    handle_add_directory tree patch t
 
 
 let rec handle_remove_directory tree patch content = match content with
-  | [] -> tree
+  | [] -> (*print_endline "remove_dir";*)tree
   | h::t ->
       match h with 
         | Simplexmlparser.PCData(s) -> 
-	    let (path,name) = format_name s in
-	    let new_tree = delete (Dir(name,[])) path tree in
+	    let (path,name) = format_name s ~eatblanks:true in
+	    let new_tree = delete (Dir(ref(name),[])) path tree in
 	    handle_remove_directory new_tree patch t
-	| Simplexmlparser.Element(name,args,econtent) ->
+	| _ ->
 	    handle_remove_directory tree patch t
 
 
 let handle_move tree patch args = match args with
   | [("from",mv_from);("to",mv_to)] ->
-      let (from_path,from_name) = format_name mv_from in
-      let (to_path,to_name) = format_name mv_to in
+      (*print_endline "move";*)
+      let (from_path,from_name) = format_name mv_from ~eatblanks:false in
+      let (to_path,to_name) = format_name mv_to ~eatblanks:false in
       move from_path from_name to_path to_name tree
   | _ -> tree 
   
+let rec handle_modify_file tree patch content = match content with
+  | [] -> (*print_endline "modify";*)tree
+  | h::t ->
+      match h with
+      | Simplexmlparser.PCData(s) ->
+	  let tmp = split (regexp "\n") s in
+	  let (path,name) = format_name (List.nth tmp 0) ~eatblanks:true in
+	  handle_modify_file (update_infos path name 
+				!(patch.author) 
+				!(patch.name) 
+				!(patch.id) tree) patch t
+      | _ -> handle_modify_file tree patch t
+
 
 let rec handle_summary res patch content = match content with
   | [] -> res
@@ -195,6 +215,8 @@ let rec handle_summary res patch content = match content with
 		handle_remove_directory res patch econtent
 	      else if (String.compare name "move" == 0) then 
 		handle_move res patch args
+	      else if (String.compare name "modify_file" == 0) then
+		handle_modify_file res patch econtent
 	      else res
 	    in
 	    handle_summary next_res patch t
@@ -267,7 +289,7 @@ let rec handle_changelog ?file res content = match content with
   | [] -> Lwt.return res
   | p::t ->
       let root_tree = match res with
-        | [] -> Dir(".",[])
+        | [] -> Dir(ref("."),[])
 	| _ -> (List.hd res).tree
       in
       match p with
@@ -309,6 +331,7 @@ let get_patch_list ?file rep =
   exec_command command error_message >>= function
     | [] -> Lwt.return []
     | l -> 
+	print_endline "avant parsing";
 	let s = String.concat "\n" l in
 	let res = Simplexmlparser.xmlparser_string s in
 	extract_patch_list [] res
@@ -319,12 +342,12 @@ let darcs_list ?id rep =
   get_patch_list rep >>= fun pl -> match id with
     | None ->  
 	begin match pl with
-	| [] -> Lwt.return (Dir("",[])) (* a traiter *)
+	| [] -> Lwt.return (Dir(ref(""),[])) (* a traiter *)
 	| _ -> Lwt.return ((List.hd pl).tree)
 	end
     | Some(hash) ->
 	let rec aux l = match l with
-        | [] -> Lwt.return (Dir("",[])) (* a traiter *)
+        | [] -> Lwt.return (Dir(ref(""),[])) (* a traiter *)
 	| p::t -> 
 	    if ((String.compare hash !(p.id)) == 0) then
 	      Lwt.return (p.tree)
@@ -412,13 +435,13 @@ let darcs_diff file rep from_patch to_patch =
 
 let rec print_tree path tree = match tree with
   | File(f,a,(v,_)) -> 
-      print_endline (path^f^"  aut:"^a^"   v:"^v)
+      print_endline (path^(!f)^"  aut:"^a^"   v:"^v)
   | Dir(d,l) ->
-      print_endline (path^d);
+      print_endline (path^(!d));
       let rec aux list =  match list with
       | [] -> ()
       | h::t -> 
-	  print_tree (path^d^"/") h;
+	  print_tree (path^(!d)^"/") h;
 	  aux t
       in aux l
 

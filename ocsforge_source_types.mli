@@ -4,8 +4,8 @@ open Lwt
    File(Nom Fichier, Nom auteur, (derniere version Nom * derniere version ID)) 
    | Dir(Nom repertoire, rep_tree list) *)
 type rep_tree = 
-  | File of (string * string * (string * string)) 
-  | Dir of (string * rep_tree list) 
+  | File of ((string ref) * string * (string * string)) 
+  | Dir of ((string ref) * rep_tree list) 
 
 (* type représentant un patch sous gestionnaire de version *)
 type patch = {id: string ref;

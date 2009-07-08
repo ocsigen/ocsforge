@@ -68,13 +68,13 @@ let create_repository_table_content ~sp ~id ~version
 						     ~service:(Eliom_services.static_dir ~sp)
 						     ["source_file.png"] :}>[]] }}
 				  ((if (String.length current_dir != 0) then
-				    (Neturl.split_path (current_dir^"/"^f))
-				  else [f]),(None,(None,None)))
+				    (Neturl.split_path (current_dir^"/"^(!f)))
+				  else [!f]),(None,(None,None)))
 				  :}] }}
 			      :}
 		      {: match project_services with
 		          | None -> 
-			      {{ <td class="sources_table"> {: f :} }}
+			      {{ <td class="sources_table"> {: !f :} }}
 			  | Some(ps) -> 
 			      {{
 			       <td class="sources_table"> 
@@ -86,10 +86,10 @@ let create_repository_table_content ~sp ~id ~version
 				     in
 				     Eliom_duce.Xhtml.a 
 				     ~service:ps.Sh.sources_service 
-				     ~sp {{ {: f :} }}
+				     ~sp {{ {: !f :} }}
 				     ((if (String.length current_dir != 0) then
-				       Neturl.split_path (current_dir^"/"^f)
-				     else [f]),(rev,(None,None)))
+				       Neturl.split_path (current_dir^"/"^(!f))
+				     else [!f]),(rev,(None,None)))
 				     :}] }}
 			  :}
 			  <td class="small_font"> {: aut :}
@@ -118,9 +118,9 @@ let create_repository_table_content ~sp ~id ~version
 	      in
 	      let new_dir = 
 		if (String.length current_dir == 0) then   
-		  if (String.compare d "." != 0) then d
+		  if (String.compare !d "." != 0) then !d
 		  else ""
-		else (current_dir^"/"^d)
+		else (current_dir^"/"^(!d))
 	      in
 	      let a = 
 		if (String.length new_dir > 0) then
