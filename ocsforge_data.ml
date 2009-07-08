@@ -221,8 +221,9 @@ let filter_task_list_for_reading sp tl =
 let filter_task_list_for_editing sp tl =
   Ocsimore_lib.lwt_filter (filter_aux_edit sp) tl
 
-let get_tree ~sp ~root =
-  Sql.full_transaction_block (Ocsforge_sql.get_tasks_in_tree ~root ())
+let get_tree ~sp ~root ?with_deleted ?depth () = (*TODO: use depth for sql transaction, not only for result sorting*)
+  Sql.full_transaction_block
+    (Ocsforge_sql.get_tasks_in_tree ~root ?with_deleted ())
     >>= (filter_task_list_for_reading sp)
     >>= fun tl ->
       let rec aux tree = function
@@ -234,17 +235,29 @@ let get_tree ~sp ~root =
                                e.Types.t_parent = p.Types.t_id))
               t
       in aux Types.Tree.Nil tl
-
-
+    >>= fun t ->
+      let rec aux tree = function
+        | 0 -> tree
+        | n -> (match tree with
+                  | Types.Tree.Nil -> Types.Tree.Nil
+                  | Types.Tree.Node (t, l) ->
+                     let l = List.map (fun t -> aux t (pred n))  l in
+                     Types.Tree.Node (t, l))
+      in
+        match depth with
+          | None -> Lwt.return t
+          | Some depth -> Lwt.return (aux t depth)
 
 let get_sub_tasks ~sp ~parent =
-  Sql.full_transaction_block (Ocsforge_sql.get_tasks_by_parent ~parent)
-    >>= (filter_task_list_for_reading sp)
+  Sql.full_transaction_block
+    (Ocsforge_sql.get_tasks_by_parent ~parent)
+  >>= (filter_task_list_for_reading sp)
 
 
 let get_tasks_edited_by ~sp ~editor =
-  Sql.full_transaction_block (Ocsforge_sql.get_tasks_by_editor ~editor ())
-    >>= (filter_task_list_for_reading sp)
+  Sql.full_transaction_block
+    (Ocsforge_sql.get_tasks_by_editor ~editor ())
+  >>= (filter_task_list_for_reading sp)
 
 
 let edit_task ~sp ~task

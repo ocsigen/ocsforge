@@ -84,7 +84,9 @@ val get_area :
 val get_tree :
   sp:Eliom_sessions.server_params ->
   root:Ocsforge_types.task ->
-  Ocsforge_types.task_info Ocsforge_types.Tree.tree Lwt.t
+  ?with_deleted:bool ->
+  ?depth:int ->
+  unit -> Ocsforge_types.task_info Ocsforge_types.Tree.tree Lwt.t
 
 (** Get tasks with a specified parent.
   * [get_sub_tasks sp parent] result in the list of desired tasks. *)

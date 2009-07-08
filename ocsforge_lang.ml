@@ -18,7 +18,7 @@
  *)
 
 open CalendarLib
-
+ (*TODO switch from Str to Netstring_pcre for the whole module*)
 
 (*Working with options*)
 let apply_on_opted f = function

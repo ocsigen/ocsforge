@@ -1,5 +1,7 @@
 (* This module factorizes some obrowser concept and patterns *)
 
+open JSOO
+
 
 module Encode =
 struct
@@ -175,11 +177,12 @@ struct
        | Some v1, Some v2 -> comp v1 v2)
 
 end
-(*
+
 module Events =
 struct
 
-  module type PARAMS = sig
+  module type PARAMS =
+  sig
     type v (* event valuation *)
     val name : string
     val destruct : obj -> v
@@ -188,32 +191,32 @@ struct
    * and the destruction failed *)
   end
 
-    module Make = functor (Params : PARAMS) ->
-    struct
-    open Params
-    exception Cannot_destruct of exn
-    let handlers_field = "caml_" ^ name ^ "_handlers"
+  module Make = functor (Params : PARAMS) ->
+  struct
+  open Params
+  exception Cannot_destruct of exn
+  let handlers_field = "caml_" ^ name ^ "_handlers"
 
-    let bind f obj =
-      let handlers =
-        try
-          Obj.obj (obj >>> get handlers_field >>> as_block)
-with Failure "as_block" ->
-  (* first event handler *)
-  let handlers = ref [] in
-    obj >>> set handlers_field (inject (Block (Obj.repr handlers))) ;
-    obj >>> set name
-      (wrap_event
-                                                                       (fun evt ->
-                                                                         let v =
-                                                                           try destruct evt with e ->
-                                                                             match default_value with
-                                                                               | Some v -> v
-                                                                               | None -> raise (Cannot_destruct e)
-  in
-    List.iter (fun f -> f v) !handlers)) ;
-                                       handlers
-  in handlers := f :: (List.filter ((!=) f) !handlers)
+  let bind f obj =
+    let handlers =
+      try
+        Obj.obj (obj >>> get handlers_field >>> as_block)
+      with Failure "as_block" ->
+        (* first event handler *)
+        let handlers = ref [] in
+        obj >>> set handlers_field (inject (Block (Obj.repr handlers))) ;
+        obj >>> set name
+          (wrap_event
+             (fun evt ->
+                let v =
+                  try destruct evt with e ->
+                    match default_value with
+                      | Some v -> v
+                      | None -> raise (Cannot_destruct e)
+                in
+                  List.iter (fun f -> f v) !handlers)) ;
+        handlers
+    in handlers := f :: (List.filter ((!=) f) !handlers)
 
   let unbind f obj =
     let handlers =
@@ -231,7 +234,6 @@ with Failure "as_block" ->
   let clear () obj =
     obj >>> set handlers_field (inject Nil) ;
     obj >>> set name (inject Nil)
-end
+  end
 
 end
- *)

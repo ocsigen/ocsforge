@@ -3,6 +3,7 @@ Ocsforge_types
 Ocsforge_sql
 Ocsforge_roles
 Ocsforge_data
+Ocsforge_xml_tree_dump
 Ocsforge_services_hashtable
 Ocsforge_services_source
 Ocsforge_services_tasks

@@ -218,6 +218,27 @@ let new_task_service =
           () >>= fun _ -> Lwt.return ())
 
 
+let register_dump_tree_service root =
+  Eliom_duce.Xml.register_new_service
+    ~path:[](*TODO: get path out of task*)
+    ~get_params:(  (Params.regexp
+                      (Netstring_pcre.regexp "(xml)") "$1" "format")
+                 **(  (Params.opt (Params.int "depth")))
+                    **(Params.bool "with_deleted"))
+    (fun sp (fmt, (depth, with_deleted)) () -> match fmt with
+       | "xml" ->
+           begin
+             Ocsforge_data.get_tree
+               ~sp ~root ~with_deleted ?depth () >>= fun t ->
+             Ocsforge_xml_tree_dump.xml_of_tree t >>= fun t ->
+               match t with
+                 | None -> failwith "TODO: send an appropriate error code"
+                 | Some t -> Lwt.return t
+           end
+       | _     -> failwith "Unsuported format")
+
+
+
 
 (*
 let new_project_service =

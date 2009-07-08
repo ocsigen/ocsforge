@@ -525,7 +525,7 @@ object (self)
       ?(width = 600) ?(padding = 10) ?(char_size = 12)
       ?sort
       () =
-    Data.get_tree ~sp ~root:root_task >>= fun tree ->
+    Data.get_tree ~sp ~root:root_task () >>= fun tree ->
       let show_line ~width ~depth ~task:t =
         self#task_snippet ~sp
           ~width ~depth ~padding ~char_size ~message:t.Types.t_message
@@ -683,5 +683,4 @@ object (self)
               }} ) : {{ [ Xhtmltypes_duce.block ] }})
 
 end
-
 
