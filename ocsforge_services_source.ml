@@ -51,7 +51,7 @@ let source_service path project = Eliom_duce.Xhtml.register_new_service
 	    Ocsforge_widgets_source.draw_file_page ~sp ~id ~target:l
 	| (l,(Some(v),(None,None))) ->
 	    if (String.compare v "latest" == 0) then
-	    Ocsforge_widgets_source.draw_source_code_view ~sp ~id ~target:l ~version:None	    
+	    Ocsforge_widgets_source.draw_source_code_view ~sp ~id ~target:l ~version:None
 	    else
 	    Ocsforge_widgets_source.draw_source_code_view ~sp ~id ~target:l ~version:(Some(v))
 	| (l,(None,(Some(diff1),Some(diff2)))) ->
@@ -68,7 +68,7 @@ let log_service path project = Eliom_duce.Xhtml.register_new_service
     (fun sp () () ->
       let () =  Ocsforge_wikiext_common.send_css_up "ocsforge_sources.css" sp in
       let s_id = Ocsforge_types.task_of_string project in
-      Ocsforge_widgets_source.draw_log_table ~sp ~id:s_id >>= fun pc ->
+      Ocsforge_widgets_source.draw_log_table ~sp ~id:s_id ~file:None >>= fun pc ->
 	Ocsimore_page.html_page ~sp pc
     )
 

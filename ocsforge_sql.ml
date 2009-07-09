@@ -595,7 +595,7 @@ let get_projects_path_list () =
   Sql.full_transaction_block(
   (fun db ->
     PGSQL(db)
-      "SELECT DISTINCT wikis.pages, ocsforge_right_areas.root_task
+      "SELECT wikis.pages, ocsforge_right_areas.root_task
        FROM wikis, ocsforge_right_areas
        WHERE wikis.id in (SELECT wiki FROM ocsforge_right_areas)"))
 

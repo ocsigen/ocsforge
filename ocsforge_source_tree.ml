@@ -105,15 +105,40 @@ let rec get_node name target tree = match (target,tree) with
       get_aux name target l
   | (_,_) -> failwith "File tree get node error : not a directory."
 	 
-(*
-let rename_node path oldName newName tree = 
-  *)
+
+let rec rename_node path oldName newName tree = match (path,tree) with
+   |([],Dir(_,l)) -> 
+      let rec find_aux l = match l with
+      | [] -> ()
+      | (Dir(n,_))::t
+      | (File(n,_,_))::t -> 
+	  if (String.compare !n oldName == 0) then
+	    n:=newName
+	  else find_aux t
+      in find_aux l
+  | (_,Dir(_,l)) -> 
+      let rec rename_aux name target content = match content with
+      | [] -> ()
+      | Dir(n,l)::t -> 
+	  if ((String.compare !n (List.hd target)) == 0) then
+	    rename_node (List.tl target) oldName newName (Dir(n,l))
+	  else
+	    rename_aux name target t
+      | File(_,_,_)::t -> rename_aux name target t
+      in
+      rename_aux oldName path l
+  | (_,_) -> ()
+	 
+
+  
 
 (** Deplace un élément de l'arbre *)
 let move oldPath oldName newPath newName tree =
-  (*if (oldPath = newPath) then 
-    rename_node oldPath oldName newName tree
-  else*)
+  if (oldPath = newPath) then begin
+    rename_node oldPath oldName newName tree;
+    tree
+  end
+  else
     let node_opt = get_node oldName oldPath tree in match node_opt with
     | None -> 
 	tree

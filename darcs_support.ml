@@ -31,7 +31,7 @@ let exec_command command error_message =
     Unix.close inpipe;
     (** A REMPLACER PAR LWT_UNIX WAIT_PID **)
     read_input_channel [] (Lwt_chan.in_channel_of_descr outpipe) >>= fun res ->
-    match Unix.waitpid [] pid with
+    Lwt_unix.waitpid [] pid >>= fun status -> match status with
       | (_,Unix.WEXITED(i)) ->
 	  if (i == 0) then begin
 	      Lwt_unix.close outpipe;
@@ -125,7 +125,7 @@ let rec extract_patch_list2 res l = match l with
 
 
 let rec handle_add_file tree patch content = match content with
-  | [] -> (*print_endline "add_file";*)tree
+  | [] -> tree
   | h::t ->
       match h with 
         | Simplexmlparser.PCData(s) -> 
@@ -139,21 +139,23 @@ let rec handle_add_file tree patch content = match content with
 	 
 
 let rec handle_remove_file tree patch content = match content with
-  | [] -> (*print_endline "remove_file";*)tree
+  | [] -> tree
   | h::t ->
       match h with 
         | Simplexmlparser.PCData(s) -> 
 	    let (path,name) = format_name s ~eatblanks:true in
-	    let node = get_node name path patch.tree in match node with
-	    | None -> handle_remove_file tree patch t
-	    | Some(n) ->
-		let new_tree = delete n path tree in
-		handle_remove_file new_tree patch t
+	    let node = get_node name path patch.tree in begin 
+	      match node with
+	        | None -> handle_remove_file tree patch t
+		| Some(n) ->
+		    let new_tree = delete n path tree in
+		    handle_remove_file new_tree patch t
+	    end
 	| _ ->
 	    handle_remove_file tree patch t
 
 let rec handle_add_directory tree patch content = match content with
-  | [] -> (*print_endline "add_dir";*)tree
+  | [] -> tree
   | h::t ->
       match h with 
         | Simplexmlparser.PCData(s) -> 
@@ -165,7 +167,7 @@ let rec handle_add_directory tree patch content = match content with
 
 
 let rec handle_remove_directory tree patch content = match content with
-  | [] -> (*print_endline "remove_dir";*)tree
+  | [] -> tree
   | h::t ->
       match h with 
         | Simplexmlparser.PCData(s) -> 
@@ -175,17 +177,21 @@ let rec handle_remove_directory tree patch content = match content with
 	| _ ->
 	    handle_remove_directory tree patch t
 
-
-let handle_move tree patch args = match args with
+let handle_move tree args = match args with
   | [("from",mv_from);("to",mv_to)] ->
-      (*print_endline "move";*)
       let (from_path,from_name) = format_name mv_from ~eatblanks:false in
       let (to_path,to_name) = format_name mv_to ~eatblanks:false in
       move from_path from_name to_path to_name tree
   | _ -> tree 
   
+let rec handle_move_list tree l = match l with
+  | Simplexmlparser.Element(_,args,_)::t ->
+      let new_tree = handle_move tree args in
+      handle_move_list new_tree t
+  | _ -> tree
+
 let rec handle_modify_file tree patch content = match content with
-  | [] -> (*print_endline "modify";*)tree
+  | [] -> tree
   | h::t ->
       match h with
       | Simplexmlparser.PCData(s) ->
@@ -198,28 +204,31 @@ let rec handle_modify_file tree patch content = match content with
       | _ -> handle_modify_file tree patch t
 
 
-let rec handle_summary res patch content = match content with
-  | [] -> res
+let rec handle_summary res patch content move_list = match content with
+  | [] -> res (*handle_move_list res (List.rev move_list)*)
   | h::t -> 
       match h with
-        | Simplexmlparser.PCData(_) -> handle_summary res patch t 
+        | Simplexmlparser.PCData(_) -> handle_summary res patch t []
 	| Simplexmlparser.Element(name,args,econtent) ->
-	    let next_res = 
-	      if (String.compare name "add_file" == 0) then
-		handle_add_file res patch econtent
-	      else if (String.compare name "remove_file" == 0) then
-		handle_remove_file res patch econtent
-	      else if (String.compare name "add_directory" == 0) then
-		handle_add_directory res patch econtent
-	      else if (String.compare name "remove_directory" == 0) then
-		handle_remove_directory res patch econtent
-	      else if (String.compare name "move" == 0) then 
-		handle_move res patch args
-	      else if (String.compare name "modify_file" == 0) then
-		handle_modify_file res patch econtent
-	      else res
-	    in
-	    handle_summary next_res patch t
+	    (*if (String.compare name "move" == 0) then 
+	      handle_summary res patch t (h::move_list)
+	    else*) 
+	      let next_res = 
+		if (String.compare name "add_file" == 0) then
+		  handle_add_file res patch econtent
+		else if (String.compare name "remove_file" == 0) then
+		  handle_remove_file res patch econtent
+		else if (String.compare name "add_directory" == 0) then
+		  handle_add_directory res patch econtent
+		else if (String.compare name "remove_directory" == 0) then
+		  handle_remove_directory res patch econtent
+		else if (String.compare name "modify_file" == 0) then
+		  handle_modify_file res patch econtent
+		else if (String.compare name "move" == 0) then 
+		  handle_move res args 
+		else res
+	      in
+	      handle_summary next_res patch t move_list
 
       
 
@@ -249,7 +258,8 @@ let fill_patch_fields root_tree args =
     | [] -> p
     | (f,v)::t ->
 	if (String.compare f "author" == 0) then
-	  p.author := v
+	  let parsed_author = split (regexp "&lt") v in
+	  p.author := List.hd (parsed_author)
 	else if (String.compare f "local_date" == 0) then
 	  p.date := v
 	else if (String.compare f "hash" == 0) then
@@ -281,7 +291,7 @@ let rec handle_patch ?file patch content = match content with
 			    date = patch.date;
 			    comment = patch.comment;
 			    tree = handle_summary 
-			      (patch.tree) patch econtent;}) t
+			      (patch.tree) patch econtent [];}) t
 	    else handle_patch patch t 
 
 
@@ -316,8 +326,8 @@ let rec extract_patch_list ?file res l = match l with
 	      
 	    
 
-(** Stocke la liste des patchs présents dans un dépot Darcs dans une liste
-    de types patch *)
+(** Stocke la liste des patchs présents dans un dépot Darcs ainsi que les 
+    modifications faites sur les fichiers dans une liste de types patch *)
 let get_patch_list ?file rep =
   let command = match file with
   | None ->
@@ -331,7 +341,22 @@ let get_patch_list ?file rep =
   exec_command command error_message >>= function
     | [] -> Lwt.return []
     | l -> 
-	print_endline "avant parsing";
+	let s = String.concat "\n" l in
+	let res = Simplexmlparser.xmlparser_string s in
+	extract_patch_list [] res
+
+let darcs_log ?file rep =
+  let command = match file with
+  | None ->
+      ("darcs changes --repodir "^rep
+       ^" --xml-output --reverse") 
+  | Some(f) ->
+      ("darcs changes --repodir "^rep
+       ^" --xml-output --reverse "^f) 
+  in let error_message = "Error while getting changelog (signal received)" in
+  exec_command command error_message >>= function
+    | [] -> Lwt.return []
+    | l -> 
 	let s = String.concat "\n" l in
 	let res = Simplexmlparser.xmlparser_string s in
 	extract_patch_list [] res
@@ -450,7 +475,7 @@ let _ =
   let darcs_fun_pack = 
     { vm_list = darcs_list;
       vm_cat = darcs_cat;
-      vm_log = get_patch_list;
+      vm_log = darcs_log;
       vm_diff = darcs_diff } in
   Ocsforge_version_managers.set_fun_pack "Darcs" darcs_fun_pack
 
