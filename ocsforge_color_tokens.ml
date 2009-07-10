@@ -15,4 +15,4 @@ type lexemes =
   | String of string
   | UpperCaseID of string
   | Eof of int
-  | Default of char
+  | Default_lexer_token of string

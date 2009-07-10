@@ -20,6 +20,7 @@
 let ( ** ) = Eliom_parameters.prod
 let ( >>= ) = Lwt.bind
 module Sh = Ocsforge_services_hashtable
+module Vm = Ocsforge_version_managers
 
 (* service temporaire qui ne fait rien *)
 let temp_service = Eliom_predefmod.Action.register_new_service
@@ -35,8 +36,8 @@ let source_service path project = Eliom_duce.Xhtml.register_new_service
     (Eliom_parameters.suffix_prod
        (Eliom_parameters.all_suffix(*_user Neturl.split_path (Ocsigen_extensions.string_of_url_path ~encode:false)*) "file")
        (Eliom_parameters.opt (Eliom_parameters.string "version") **
-          ((Eliom_parameters.opt (Eliom_parameters.string "diff1") **
-		Eliom_parameters.opt (Eliom_parameters.string "diff2")))))
+          ((Eliom_parameters.opt (Eliom_parameters.user_type Vm.string_to_pair Vm.pair_to_string "diff1") **
+	      Eliom_parameters.opt (Eliom_parameters.user_type Vm.string_to_pair Vm.pair_to_string "diff2")))))
     (fun sp (file,(version,(d1,d2))) () -> 
       let () =  Ocsforge_wikiext_common.send_css_up "ocsforge_sources.css" sp in
       let id = Ocsforge_types.task_of_string project in
@@ -51,9 +52,9 @@ let source_service path project = Eliom_duce.Xhtml.register_new_service
 	    Ocsforge_widgets_source.draw_file_page ~sp ~id ~target:l
 	| (l,(Some(v),(None,None))) ->
 	    if (String.compare v "latest" == 0) then
-	    Ocsforge_widgets_source.draw_source_code_view ~sp ~id ~target:l ~version:None
+	      Ocsforge_widgets_source.draw_source_code_view ~sp ~id ~target:l ~version:None
 	    else
-	    Ocsforge_widgets_source.draw_source_code_view ~sp ~id ~target:l ~version:(Some(v))
+	      Ocsforge_widgets_source.draw_source_code_view ~sp ~id ~target:l ~version:(Some(v))
 	| (l,(None,(Some(diff1),Some(diff2)))) ->
 	    Ocsforge_widgets_source.draw_diff_view ~sp ~id ~target:l ~diff1 ~diff2
 	| _ -> (* TODO : gestion erreur ?*)

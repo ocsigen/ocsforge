@@ -35,3 +35,16 @@ let get_fun_pack vm_name =
     (function | _ -> Lwt.fail Manager_not_supported)
 
 let get_managers_list () = fst (List.split (!fun_list))
+
+let pair_to_string p =
+  if (snd p == -1) then
+    fst p 
+  else
+    ((fst p)^":"^(Int32.to_string (Int32.of_int (snd p))))
+
+let string_to_pair s =
+  let l = Netstring_pcre.split (Netstring_pcre.regexp ":") s in match l with
+  | [hash;pos] ->
+    (hash,Int32.to_int (Int32.of_string pos))
+  | [hash] -> (hash,-1)
+  | _ -> ("",-1)

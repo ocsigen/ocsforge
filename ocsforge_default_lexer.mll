@@ -5,5 +5,5 @@
 
 rule token = parse
   | ' '+ as s     { Space(s) } 
-  | _ as c  { Default(c) }
   | eof     { Eof(0) }  
+  | _* as d  { Default_lexer_token(d) }

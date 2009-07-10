@@ -49,6 +49,8 @@ let alpha = ['a'-'z''A'-'Z''0'-'9''_']*
 
 let spaces = [' ']+
 
+let default = [^' ' '\n' '\r']
+
 rule token = parse
   | spaces as sp 
       { Space(sp) }
@@ -89,7 +91,7 @@ rule token = parse
         let (text,c_close) = (comment comment_start (Buffer.create 10) lexbuf) in
         lexbuf.lex_start_p <- comment_start;
         Comment (c_open,text,c_close) }
-  | _  as c  { Default(c) }
+  
 
 
 (* start est la position de depart du tout premier commentaire,

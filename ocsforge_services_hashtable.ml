@@ -20,15 +20,15 @@
 type project_services = 
     { sources_service:
 	(string list * 
-	   (string option * ((string option * string option)))
+	   (string option * ((string * int) option * (string * int) option))
 	   , unit,
 	 [ `Attached of
 	   Eliom_services.get_attached_service_kind Eliom_services.a_s ],
 	 [ `WithSuffix ],
 	 ([`One of string list] Eliom_parameters.param_name *
 	    ([ `One of string ] Eliom_parameters.param_name *
-	       ([ `One of string ] Eliom_parameters.param_name *
-		  [ `One of string ] Eliom_parameters.param_name))), unit,
+	       ([ `One of (string * int) ] Eliom_parameters.param_name *
+		   ([ `One of (string * int)] Eliom_parameters.param_name)))), unit,
 	 [ `Registrable ])
 	Eliom_services.service;
       log_service:

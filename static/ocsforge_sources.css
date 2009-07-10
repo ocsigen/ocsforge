@@ -1,14 +1,22 @@
-/** Repository content */
+a.sources_img_link img { border:none }
+
+h3 {
+    text-align: center;
+    border-top: 1px solid;
+    border-bottom: 1px solid;
+    font-family: arial,sans-serif;
+}
+
+body { font-family: arial, sans-serif; }
+
+/** Repository content informations */
 
 table.sources_table{
-    /*border:2px solid #000;*/
     border-collapse:collapse;
     text-align:left;
 }
 
-td.sources_table {
-    border:1px solid #BBBBBB;
-}
+td.sources_table { border:1px solid #BBBBBB; }
 
 td.small_font {
     border:1px solid #BBBBBB;
@@ -37,21 +45,14 @@ tr.folder {
     background-color: #DDCAEF;
 }
 
-tr.odd {
-    background-color: #D5EFDA;
-}
+tr.odd { background-color: #D5EFDA; }
 
-tr.even {
-    background-color: #C2F0CB;
-}
+tr.even { background-color: #C2F0CB; }
 
-tr.sources {
-    background-color: #E8E8E8;
-}
+tr.sources { background-color: #E8E8E8; }
 
 div.sources_div {
     width:25%;
-    /*height:25px;*/
     float:left;
     border:1px solid #BBBBBB;
     background-color: #EEE;
@@ -60,6 +61,8 @@ div.sources_div {
     -moz-border-radius: 10px;
     -webkit-border-radius: 10px;
 }
+
+/** File options page */
 
 div.file_version_select{
     border: 1px solid #BBBBBB;
@@ -80,6 +83,7 @@ div.file_diff_select{
     -webkit-border-radius: 10px;
 }
 
+/** File diff page */
 
 div.diff {
     border: 1px solid #BBBBBB;
@@ -91,71 +95,41 @@ div.diff {
     -webkit-border-radius: 10px;
 }
 
-pre.diff {
-    overflow:auto;
-}
+pre.diff { overflow:auto; }
 
-span.new {
-    background-color: #5CED76
-}
+span.new { background-color: #5CED76 }
 
-span.old {
-    background-color: #F86565
-}
+span.old { background-color: #F86565 }
 
-a.sources_img_link img{
-    border:none
-}
+span.blank { background-color: #E4D4D4 }
+
+
 
 /** Syntax highlighting */
 
 pre.color {
     position:relative;
-    /**float:center;*)
-    border-style:solid;
-    border-width:1px;
-    border-color: #3333FF;*/
     width:100%;
     height: 100%;
     background-color: #E8E8E8;
 }
 
-span.color_comment {
-    color: #FF7F00;
-}
+span.color_comment { color: #FF7F00; }
 
-span.color_keyword{
-    color: #66CD00;
-}
+span.color_keyword { color: #66CD00; }
 
-span.color_test{
-    color: #66CDAA;
-}
+span.color_test { color: #66CDAA; }
 
-span.color_string{
-    color: #FF0033;
-}
+span.color_string { color: #FF0033; }
 
-span.color_ucid{
-    color: #DAA520;
-}
+span.color_ucid { color: #DAA520; }
 
-span.color_hex{
-    color: brown;
-}
+span.color_hex { color: brown; }
 
-span.color_oct{
-    color: brown;
-}
+span.color_oct { color: brown; }
 
-span.color_bin{
-    color: brown;
-}
+span.color_bin { color: brown; }
 
-span.color_int{
-    color: brown;
-}
+span.color_int { color: brown; }
 
-span.color_delimiter{
-    color: #9932CC;
-}
+span.color_delimiter { color: #9932CC; }

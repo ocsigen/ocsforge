@@ -26,7 +26,7 @@ type cat_result = string list Lwt.t
 
 (* Type permettant de différencier les lignes 
    identiques/différentes lors d'un diff *)
-type rowType = Common | Diff
+type rowType = Common | Diff | Blank
 
 (* Type représentant les différences entre 2 versions d'un fichier *)
 type file_diff = {fileName: string; 

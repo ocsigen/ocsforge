@@ -67,63 +67,6 @@ let format_name s ~eatblanks =
 let format_path p = 
   (split (regexp "/") p) 
 
-(** Mise à jour de l'aborescence des fichiers d'un patch à partir 
-    de l'arborescence du patch précédent et des changements effectués *)
-(*
-let insert_changes2 tree auth versionName versionID tree_changes = match tree_changes with        
-| None -> Lwt.return tree
-| Some(changes) ->
-  let rec update_tree tree auth versionName versionID tree_changes = match tree_changes with
-    | [] -> Lwt.return tree
-    | h::t -> 
-	begin match h with
-        | Add_dir(d) -> 
-	    format_name d >>= fun (path,name) ->
-	      update_tree (insert (Dir(name,[])) path tree) auth versionName versionID t
-	| Rm_dir(d) ->
-	    format_name d >>= fun (path,name) ->
-	      update_tree (delete (Dir(name,[])) path tree) auth versionName versionID t
-	| Add_file(f) ->
-	    format_name f >>= fun (path,name) ->
-	      update_tree (insert (File(name,auth,(versionName,versionID))) path tree) 
-		auth versionName versionID t
-	| Rm_file(f) ->
-	    format_name f >>= fun (path,name) ->
-	      let node = get_node name path tree in
-	      update_tree (delete node path tree) auth versionName versionID t
-	| Move_file(oldF,newF) ->
-	    format_name oldF >>= fun (oldPath,oldName) ->
-	      format_name newF >>= fun (newPath,newName) ->
-		update_tree (move oldPath oldName newPath newName tree) 
-		  auth versionName versionID t
-	| Modify_file(f) ->
-	    format_name f >>= fun (path,name) ->
-	      update_tree (update_infos path name auth versionName versionID tree) 
-		auth versionName versionID t
-      end
-  in update_tree tree auth versionName versionID changes
-
-
-let rec extract_patch_list2 res l = match l with
-  | [] -> Lwt.return res 
-  | h::t ->
-      let oldTree = match res with
-        | [] -> Dir(".",[])
-	| _ -> (List.hd res).tree
-      in
-      (insert_changes2 oldTree h.xml_infos.xml_author h.xml_name h.xml_infos.xml_hash h.xml_tree_changes)
-	>>= fun newTree ->
-	let p = { id = ref(h.xml_infos.xml_hash);
-	          name =  ref(h.xml_name);
-		  author = ref(h.xml_infos.xml_author);
-		  date  =  ref(h.xml_infos.xml_local_date);
-		  comment =  ref(h.xml_comment);
-		  tree = newTree }
-	in
-	extract_patch_list2 (p::res) t
-*)
-
-
 let rec handle_add_file tree patch content = match content with
   | [] -> tree
   | h::t ->
@@ -391,49 +334,157 @@ let darcs_cat ?id rep file =
 		       "' --repodir "^rep^
 		       " "^file) in
 	exec_command command error_message
-  
+
+
+let rec get_nb_cancel_char cancel_char nb_cur_char res l = match l with
+  | [] -> res
+  | h::t ->
+      if ((nb_cur_char == 0) || (String.length h == 0)) then res
+      else if (h.[0] == cancel_char) then
+	  get_nb_cancel_char cancel_char (nb_cur_char-1) (res+1) t
+      else res
+(*
+let rec get_nb_char cur_char res l = match l with
+  | [] -> 0
+  | h::t ->
+      if (String.length h > 0) && (h.[0] == cur_char) then
+	get_nb_char cur_char (res+1) t
+      else if (res > 0) then
+	if (cur_char == '+') then
+	  get_nb_cancel_char '-' res 0 t
+	else
+	  get_nb_cancel_char '+' res 0 t
+*)
+(*
+let parse_diff_aux parsed_res nb_to_add nb_added cur_char l = 
+  match l with
+    | [] -> (parsed_res,[])
+    | h::t -> 
+	if  
+*)
 
 (** Parse le résultat de darcs diff pour stocker son contenu dans 
     une liste de types file_diff *)
 let rec parse_diff diff_res parsed_res started = match diff_res with
-  | [] -> Lwt.return parsed_res
-  | h::t ->  
+  | [] -> 
+      let currentDiff = List.hd parsed_res in
+      Lwt.return {fileName=currentDiff.fileName;
+		  oldContent = List.rev(currentDiff.oldContent);
+		  newContent = List.rev(currentDiff.newContent)}
+  | h::i::t ->  
       let currentDiff = List.hd parsed_res in
       if 
 	(String.length h > 2 &&
 	 ((h.[0] == '-' && h.[1] == '-' && h.[2] == '-')
        || (h.[0] == '+' && h.[1] == '+' && h.[2] == '+'))) then
-	parse_diff t parsed_res true
+	parse_diff (i::t) parsed_res true 
       else if (started == false) then
-	parse_diff t parsed_res started
+	parse_diff (i::t) parsed_res started 
       else begin
-	if (String.length h == 0) then parse_diff t parsed_res started
+	if (String.length h == 0) then parse_diff (i::t) parsed_res started 
+	else if (h.[0] == '+') then
+	  if (String.length i > 0) && (i.[0] == '-') then
+	    let new_res = {fileName = currentDiff.fileName;
+			   oldContent = ((Diff,(string_after i 1))::
+					 currentDiff.oldContent);
+			   newContent = ((Diff,(string_after h 1))::
+					 currentDiff.newContent)}::
+	      (List.tl parsed_res)
+	    in parse_diff t new_res started
+	  else if (String.length i > 0) then
+	    let new_res = {fileName = currentDiff.fileName;
+			   oldContent = 
+			   ((Blank,(String.make (String.length h -1) ' '))::
+			    currentDiff.oldContent);
+			   newContent = ((Diff,(string_after h 1))::
+					 currentDiff.newContent)}::
+	      (List.tl parsed_res)
+	    in
+	    parse_diff (i::t) new_res started
+	  else
+	    let new_res = {fileName = currentDiff.fileName;
+			   oldContent = currentDiff.oldContent;
+			   newContent = ((Diff,(string_after h 1))::
+					 currentDiff.newContent)}::
+	      (List.tl parsed_res)
+	    in
+	    parse_diff t new_res started
+	else if (h.[0] == '-') then
+	  if (String.length i > 0) && (i.[0] == '+') then
+	    let new_res = {fileName = currentDiff.fileName;
+			   oldContent = ((Diff,(string_after h 1))::
+					 currentDiff.oldContent);
+			   newContent = ((Diff,(string_after i 1))::
+					 currentDiff.newContent)}::
+	      (List.tl parsed_res)
+	    in parse_diff t new_res started
+	  else if (String.length i > 0) then
+	    let new_res = ({fileName = currentDiff.fileName;
+			    oldContent = 
+			    ((Diff,(string_after h 1))::currentDiff.oldContent);
+			    newContent = 
+			    (Blank,(String.make (String.length h -1) ' '))::currentDiff.newContent})::
+	      (List.tl parsed_res)
+	    in
+	    parse_diff (i::t) new_res started 
+	  else
+	    let new_res = ({fileName = currentDiff.fileName;
+			    oldContent = 
+			    ((Diff,(string_after h 1))::currentDiff.oldContent);
+			    newContent = currentDiff.newContent})::
+	      (List.tl parsed_res)
+	    in
+	    parse_diff t new_res started
+	else if (h.[0] != '@') then
+	  let new_res = {fileName = currentDiff.fileName;
+			 oldContent = ((Common,(string_after h 1))::
+				       currentDiff.oldContent);
+			 newContent = ((Common,(string_after h 1))::
+				       currentDiff.newContent)}
+	    ::(List.tl parsed_res)
+	  in
+	  parse_diff (i::t) new_res started 
+	else parse_diff (i::t) parsed_res started 
+      end
+  | [h] ->
+      let t = [] in
+      let currentDiff = List.hd parsed_res in
+      if 
+	(String.length h > 2 &&
+	 ((h.[0] == '-' && h.[1] == '-' && h.[2] == '-')
+       || (h.[0] == '+' && h.[1] == '+' && h.[2] == '+'))) then
+	parse_diff t parsed_res true 
+      else if (started == false) then
+	parse_diff t parsed_res started 
+      else begin
+	if (String.length h == 0) then parse_diff t parsed_res started 
 	else if (h.[0] == '+') then
 	  let new_res = {fileName = currentDiff.fileName;
 			 oldContent = currentDiff.oldContent;
-			 newContent = currentDiff.newContent
-			 @[(Diff,(string_after h 1))]}::(List.tl parsed_res)
+			 newContent = ((Diff,(string_after h 1))::
+				       currentDiff.newContent)}::
+	    (List.tl parsed_res)
 	  in
-	  parse_diff t new_res started
+	  parse_diff t new_res started 
 	else if (h.[0] == '-') then
-	  let new_res = {fileName = currentDiff.fileName;
-			 oldContent = currentDiff.oldContent
-			 @[(Diff,(string_after h 1))];
-			 newContent = 
-			 currentDiff.newContent}::(List.tl parsed_res)
+	  let new_res = ({fileName = currentDiff.fileName;
+			  oldContent = 
+			  ((Diff,(string_after h 1))::currentDiff.oldContent);
+			  newContent = currentDiff.newContent})::
+	    (List.tl parsed_res)
 	  in
-	  parse_diff t new_res started
+	  parse_diff t new_res started 
 	else if (h.[0] != '@') then
 	  let new_res = {fileName = currentDiff.fileName;
-			 oldContent = currentDiff.oldContent
-			 @[(Common,(string_after h 1))];
-			 newContent = currentDiff.newContent
-			 @[(Common,(string_after h 1))]}::(List.tl parsed_res)
+			 oldContent = ((Common,(string_after h 1))::
+				       currentDiff.oldContent);
+			 newContent = ((Common,(string_after h 1))::
+				       currentDiff.newContent)}
+	    ::(List.tl parsed_res)
 	  in
-	  parse_diff t new_res started
-	else parse_diff t parsed_res started
+	  parse_diff t new_res started 
+	else parse_diff t parsed_res started 
       end
-     
 
 
 (** Execute la commande darcs diff et applique parse_diff sur le résultat *)
@@ -452,10 +503,9 @@ let darcs_diff file rep from_patch to_patch =
 		 "' "^file^
 		 " -u --repodir "^rep) in
   exec_command command error_message >>= fun res ->
-    parse_diff res [{fileName=file; oldContent=[]; newContent=[]}] false 
-      >>= function 
-	| [] -> Lwt.return {fileName=file; oldContent=[]; newContent=[]}
-	| h::_ -> Lwt.return h 
+    parse_diff res [{fileName=file; oldContent=[]; newContent=[]}] false
+	(*| [] -> Lwt.return {fileName=file; oldContent=[]; newContent=[]}
+	| h::_ -> Lwt.return h *)
 
 
 let rec print_tree path tree = match tree with

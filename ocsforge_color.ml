@@ -146,10 +146,10 @@ let rec color lexbuf fileName = match ((getLexer fileName) lexbuf) with
     (*(XHTML.M.span
     ~a: [a_class ["colorModule"]]
     [XHTML.M.pcdata m])::(color lexbuf fileName)*)
- | Default(c) -> 
+ | Default_lexer_token(s) -> 
      color lexbuf fileName >>= fun b ->
       Lwt.return 
-        ({{ [<span> {: String.make 1 c :} !b] }} 
+        ({{ [<span> {: s :} !b] }} 
            : {{ [ Xhtmltypes_duce.span* ] }})
     (*(XHTML.M.pcdata (String.make 1 c))::(color lexbuf fileName)*)
  | Eof(_) -> Lwt.return {{ [] }}
