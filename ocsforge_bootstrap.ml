@@ -85,12 +85,15 @@ let _ =
 (*let add_message_widget = new Forum_widgets.add_message_widget services in *)
   let tree_widget = new Ocsforge_widgets_tasks.tree_widget in
 (*let new_task_widget = new Ocsforge_widgets.new_task_widget in*)
+  let error_box = new Widget.widget_with_error_box in
+  let inline_widget = new Wiki_widgets.frozen_wikibox error_box in
   
   Ocsforge_wikiext_tasks.register_wikiext
     Wiki_syntax.wikicreole_parser
     tree_widget
     Ocsforge_services_tasks.non_localized_service
     Ocsforge_services_source.temp_service
+    inline_widget
   
 let _ = 
   Ocsforge_wikiext_source.register_wikiext 
