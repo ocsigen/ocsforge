@@ -30,7 +30,9 @@ open CalendarLib
 (* Non localized parameters... *)
 let nl_param =
   Params.make_non_localized_parameters
-    ~name:"ocsforgetree"
+    ~prefix:"ocsforge"
+    ~name:"tree"
+    ~persistent:true
     ((Params.user_type
        Types.task_of_string
        Types.string_of_task
@@ -222,7 +224,7 @@ let register_dump_tree_service root =
   Eliom_duce.Xml.register_new_service
     ~path:[](*TODO: get path out of task*)
     ~get_params:(  (Params.regexp
-                      (Netstring_pcre.regexp "(xml)") "$1" "format")
+                      (Netstring_pcre.regexp "(xml)") "$1" ((*TODO: give the real needed function*)fun s -> s) "format")
                  **(  (Params.opt (Params.int "depth")))
                     **(Params.bool "with_deleted"))
     (fun sp (fmt, (depth, with_deleted)) () -> match fmt with

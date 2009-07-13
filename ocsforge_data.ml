@@ -87,9 +87,13 @@ let new_project ~sp ~parent ~name
            (* get area code *)
            Ocsforge_sql.next_right_area_id db             >>= fun c ->
 
+             let title_syntax = 
+               Wiki_syntax.wikicreole_inline_content_type (fun c -> {{ [ <h1>c ] }})
+             in
            (* create forum *)
            Forum.create_forum (*TODO: use Forum_data.new_forum ? *)
               ~wiki_model:Ocsisite.wikicreole_model (*TODO : give the real wiki model*)
+              ~title_syntax (*TODO:givce the real title_syntax*)
               ~title:("Ocsforge area"^(Types.string_of_right_area c)^" forum")
               ~descr:("Messages about tasks in the area"
                       ^ (Types.string_of_right_area c))

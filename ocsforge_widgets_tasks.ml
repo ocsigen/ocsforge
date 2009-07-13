@@ -202,9 +202,10 @@ object
         [<p>[
            'Creating sub task for : '
            !{: to_utf8
-                 (Olang.unopt
+             "TODO: use the new editable title feature !"
+                 (*(Olang.unopt
                     ~default:"undescribed task"
-                    p_msg.Forum_sql.Types.m_subject)
+                    p_msg.Forum_sql.Types.m_subject)*)
            :}
            <br>[]
            {: EDuce.Xhtml.string_input
@@ -411,7 +412,10 @@ object (self)
     in
     let res =
       shorten
+        "TODO: use the new forum title thingy"
+        (*
         (Olang.unopt ~default:"\"NONE\"" msg.Forum_sql.Types.m_subject)
+        *)
         depth width padding char_size
     in
 
