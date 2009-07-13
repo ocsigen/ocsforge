@@ -36,7 +36,8 @@
     <extension findlib-package="ocsigen.ext.userconf"/>
     <extension findlib-package="ocsigen.ext.extendconfiguration"/>
     <extension findlib-package="ocsigen.ext.redirectmod"/>
-    <!-- END personal pages -->
+    <extension module="_build/ocsforge_svn.cma"/>    
+    <!-- END personal pages -->			     
 
 
     <host defaulthostname="localhost">
