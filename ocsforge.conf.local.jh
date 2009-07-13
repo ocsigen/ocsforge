@@ -36,6 +36,7 @@
     <extension findlib-package="ocsigen.ext.userconf"/>
     <extension findlib-package="ocsigen.ext.extendconfiguration"/>
     <extension findlib-package="ocsigen.ext.redirectmod"/>
+    <extension module="_build/ocsforge_svn.cma"/>
     <!-- END personal pages -->
 
 
@@ -70,7 +71,6 @@
 
       <!-- The following option has effect only the first time, and creates the
            specified wiki. Already created wikis are automatically reloaded -->
-
       <eliommodule module="_build/ocsforge.cma">
       </eliommodule>
 

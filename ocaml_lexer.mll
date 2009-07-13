@@ -43,7 +43,7 @@ let delimiter = ("{" | "}" | "(" | ")" | "[" | "]" | "( " )
 
 let comment = ("(*" | "(**")
 
-let newline = ['\n' '\r']
+let newline_char = ['\n' '\r']
 
 let alpha = ['a'-'z''A'-'Z''0'-'9''_']*
 
@@ -54,8 +54,9 @@ let default = [^' ' '\n' '\r']
 rule token = parse
   | spaces as sp 
       { Space(sp) }
-  | newline as n
-      { Newline n }
+  | newline_char
+      { newline lexbuf;
+	Newline lexbuf.lex_curr_p.pos_lnum }
   | keyword as k             
       { Keyword k }
   | delimiter as d 
@@ -78,24 +79,21 @@ rule token = parse
       { Operator o }
   | eof                      
       { Eof(0) }
-      
-(* Lexing des chaines "  " *)
   | '\"'
       { let string_start = lexeme_start_p lexbuf in
         let s = (string string_start (Buffer.create 10) lexbuf) in
         lexbuf.lex_start_p <- string_start;
         String s }
-(* Lexing des commentaires *)
   | comment as c_open
       { let comment_start = lexeme_start_p lexbuf in
         let (text,c_close) = (comment comment_start (Buffer.create 10) lexbuf) in
         lexbuf.lex_start_p <- comment_start;
         Comment (c_open,text,c_close) }
+  | _ as c 
+      { Unknown(c) }
   
 
 
-(* start est la position de depart du tout premier commentaire,
-   lstart celle des commentaires imbriques, le plus recent en premier *)
 and comment start buf = parse
   | "\\n"
       { Buffer.add_char buf '\n';
@@ -107,7 +105,7 @@ and comment start buf = parse
       { (Buffer.contents buf,"*)") }
   | "**)"
       { (Buffer.contents buf,"**)")}
-  | newline
+  | newline_char
       { newline lexbuf;
 	Buffer.add_char buf '\n';
         comment start buf lexbuf }
@@ -117,11 +115,10 @@ and comment start buf = parse
   | eof
       { (Buffer.contents buf, "") }
 
-(* start est la position de depart de la chaine, buf le buffer contenant
-   la partie deja lue de la chaine *)
 and string start buf = parse
    | "\\n"
-      { Buffer.add_char buf '\n';
+      { Buffer.add_char buf '\\';
+	Buffer.add_char buf 'n';
         string start buf lexbuf }
   | "\\\""
       { Buffer.add_char buf '\\';
@@ -129,7 +126,7 @@ and string start buf = parse
         string start buf lexbuf }
   | '"'
       { Buffer.contents buf }
-  | newline
+  | newline_char
       { newline lexbuf;
         Buffer.add_char buf '\n';
         string start buf lexbuf }

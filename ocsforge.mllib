@@ -20,6 +20,5 @@ Ocsforge_color
 Ocsforge_color_tokens
 Ocsforge_default_lexer
 Ocaml_lexer
-Xml_lexer
-Xml_parser
 Darcs_support
+Svn_support

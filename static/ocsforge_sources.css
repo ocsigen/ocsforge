@@ -7,6 +7,12 @@ h3 {
     font-family: arial,sans-serif;
 }
 
+h5 {
+    text-align: center;
+    border-bottom: 1px solid;
+    font-family: arial,sans-serif;
+}
+
 body { font-family: arial, sans-serif; }
 
 /** Repository content informations */
@@ -16,6 +22,11 @@ table.sources_table{
     text-align:left;
 }
 
+table.lines_table{
+    border: 1px solid #BBBBBB;
+    border-collapse: collapse;
+}
+
 td.sources_table { border:1px solid #BBBBBB; }
 
 td.small_font {
@@ -23,10 +34,24 @@ td.small_font {
     font-size: small;
 }
 
+td.small_font_center {
+    border:1px solid #BBBBBB;
+    font-size: small;
+    text-align: center;
+    padding: 2px;
+}
+
 td.small_ifont {
     border:1px solid #BBBBBB;
     font-size: small;
     font-style: italic;
+}
+
+td.small_ifont_center {
+    border:1px solid #BBBBBB;
+    font-size: small;
+    font-style: italic;
+    text-align: center;
 }
 
 td.xsmall_font {
@@ -49,7 +74,37 @@ tr.odd { background-color: #D5EFDA; }
 
 tr.even { background-color: #C2F0CB; }
 
-tr.sources { background-color: #E8E8E8; }
+td.sources { empty-cells:hide; background-color: #E8E8E8; }
+
+tr.sources { border: 1px solid #BBBBBB; }
+
+pre.left_lines {
+    text-align:right;
+    padding: 2px;
+    background-color: #DEF4F6;
+}
+
+pre.right_lines {
+    text-align:left;
+    padding: 2px;
+    background-color: #DEF4F6;
+}
+
+div.lines {
+    border: 1px solid #BBBBBB;
+    float:  left;
+    background-color: #DEF4F6;
+}
+
+span.line_num { font-weight: 500}
+
+div.source_code{
+    border: 1px solid #BBBBBB;
+    background-color: #E8E8E8; 
+    width: 80%;
+    overflow: auto;
+    float:left;
+}
 
 div.sources_div {
     width:25%;
@@ -104,14 +159,11 @@ span.old { background-color: #F86565 }
 span.blank { background-color: #E4D4D4 }
 
 
-
 /** Syntax highlighting */
 
 pre.color {
-    position:relative;
-    width:100%;
-    height: 100%;
     background-color: #E8E8E8;
+    padding: 2px;
 }
 
 span.color_comment { color: #FF7F00; }

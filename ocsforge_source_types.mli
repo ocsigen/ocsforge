@@ -39,6 +39,6 @@ type diff_result = file_diff Lwt.t
 (* Type représentant l'ensemble des fonctions dont ont besoin les pages du site*)
 type fun_pack = {vm_list: (?id:string -> string -> list_result);
 		 vm_cat: (?id:string -> string -> string -> cat_result);
-		 vm_log: (?file:string -> string -> log_result);
+		 vm_log: (?file:string -> ?id:string -> string -> log_result);
 		 vm_diff: (string -> string -> string -> string -> diff_result)}
   

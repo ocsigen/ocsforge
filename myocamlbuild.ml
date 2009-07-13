@@ -34,6 +34,10 @@ let find_syntaxes () = ["camlp4o"; "camlp4r"]
 (* ocamlfind command *)
 let ocamlfind x = S[A"./myocamlfind.byte"; x]
 
+let svn_includes = "-I/usr/include/subversion-1 -I/usr/include/apr-1.0 -D_LARGEFILE64_SOURCE"
+let svn_client = "-lsvn_client-1"
+let swig_svn = "swig_svn_wrap.o swig_svn.o"
+let headers = ["swig_svn.h"]
 
 let _ = dispatch begin function
    | Before_options ->         
@@ -98,6 +102,13 @@ let _ = dispatch begin function
        (* With obrowser's standard library *)
        flag ["ocaml"; "compile"; "pkg_obrowser"] & (S[A"-nostdlib"]);
        flag ["ocaml"; "link"; "pkg_obrowser"] & (S[A"-nostdlib"]);
+       
+       flag ["c"; "compile"; "include_swig"] (S[A"-ccopt"; A svn_includes]);
+       
+       flag ["ocaml"; "link"; "use_swig_svn"; "use_svn_client"] 
+	 (S[A"swig.cmo"; A"swig_svn.cmo"; A"-cclib"; A svn_client; A"-custom"; A swig_svn]);
+
+       dep  ["compile"; "c"] headers; 
 (*
        flag ["ocaml"; "compile"; "pkg_obrowser"] & (S[A"-nostdlib"; A"-I" ; A"/home/balat/kroko/obrowser/trunk/rt/caml"]);
        flag ["ocaml"; "link"; "pkg_obrowser"] & (S[A"-nostdlib"; A"-I" ; A"/home/balat/kroko/obrowser/trunk/rt/caml"]);

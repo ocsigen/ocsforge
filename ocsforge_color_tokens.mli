@@ -2,7 +2,7 @@ type lexemes =
   | Comment of string*string*string (* open comment + comment text + close comment *)
   | Keyword of string
   | ITE of string (* if | then | else *)
-  | Newline of char
+  | Newline of int
   | Space of string
   | Tab of int
   | Int of string
@@ -16,3 +16,4 @@ type lexemes =
   | UpperCaseID of string
   | Eof of int
   | Default_lexer_token of string
+  | Unknown of char

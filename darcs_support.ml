@@ -29,7 +29,6 @@ let exec_command command error_message =
   end
   else begin
     Unix.close inpipe;
-    (** A REMPLACER PAR LWT_UNIX WAIT_PID **)
     read_input_channel [] (Lwt_chan.in_channel_of_descr outpipe) >>= fun res ->
     Lwt_unix.waitpid [] pid >>= fun status -> match status with
       | (_,Unix.WEXITED(i)) ->
@@ -271,16 +270,15 @@ let rec extract_patch_list ?file res l = match l with
 
 (** Stocke la liste des patchs présents dans un dépot Darcs ainsi que les 
     modifications faites sur les fichiers dans une liste de types patch *)
-let get_patch_list ?file rep =
-  let command = match file with
-  | None ->
-      ("darcs changes --repodir "^rep
-       ^" --xml-output --reverse --summary") 
-  | Some(f) ->
-      ("darcs changes --repodir "^rep
-       ^" --xml-output --reverse --summary "^f) 
-  in
-  let error_message = "Error while getting changelog (signal received)" in
+let get_patch_list ?id rep =
+  let command = match id with
+      | None ->
+	  ("darcs changes --repodir "^rep
+	   ^" --xml-output --summary --reverse")
+      | Some(matching) ->
+	  ("darcs changes --repodir "^rep
+	   ^" --to-match 'hash "^matching^"' --xml-output --summary --reverse")
+  in let error_message = "Error while getting changelog (signal received)" in
   exec_command command error_message >>= function
     | [] -> Lwt.return []
     | l -> 
@@ -288,14 +286,28 @@ let get_patch_list ?file rep =
 	let res = Simplexmlparser.xmlparser_string s in
 	extract_patch_list [] res
 
-let darcs_log ?file rep =
+
+
+let darcs_log ?file ?id rep =
   let command = match file with
   | None ->
-      ("darcs changes --repodir "^rep
-       ^" --xml-output --reverse") 
+      begin match id with
+      | None ->
+	  ("darcs changes --repodir "^rep
+	   ^" --xml-output --reverse")
+      | Some(matching) ->
+	  ("darcs changes --repodir "^rep
+	   ^" --to-match 'hash "^matching^"' --xml-output --reverse")
+      end
   | Some(f) ->
-      ("darcs changes --repodir "^rep
-       ^" --xml-output --reverse "^f) 
+      begin match id with
+      | None ->
+	  ("darcs changes --repodir "^rep
+	   ^" --xml-output --reverse "^f) 
+      | Some(matching) ->
+	  ("darcs changes --repodir "^rep
+	   ^" --to-match 'hash "^matching^"' --xml-output --reverse "^f)
+      end
   in let error_message = "Error while getting changelog (signal received)" in
   exec_command command error_message >>= function
     | [] -> Lwt.return []
@@ -307,7 +319,11 @@ let darcs_log ?file rep =
 
 (** Recuperes l'arbre associé au patch précisé *)
 let darcs_list ?id rep = 
-  get_patch_list rep >>= fun pl -> match id with
+  let list_cmd = match id with
+  | None -> get_patch_list rep
+  | Some(i) -> get_patch_list ~id:i rep
+  in
+  list_cmd >>= fun pl -> match id with
     | None ->  
 	begin match pl with
 	| [] -> Lwt.return (Dir(ref(""),[])) (* a traiter *)

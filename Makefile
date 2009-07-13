@@ -28,6 +28,8 @@ DISPLAYFLAG := -classic-display
 
 OCAMLFIND := ocamlfind
 OCAMLBUILD := ocamlbuild -X nis_chkpwd $(DISPLAYFLAG)
+OCAMLBUILD_SWIG := ocamlbuild -cflag swig_svn.o -cflag swig_svn_wrap.o -X nis_chkpwd
+SWIG := swig -ocaml
 
 MYOCAMLFIND := _build/myocamlfind.byte
 TARGETS := ocsforge.otarget
@@ -40,12 +42,33 @@ STATICFILES :=
 
 all: $(MYOCAMLFIND) ocsforge
 
-ocsforge: $(MYOCAMLFIND)
+ocsforge: $(MYOCAMLFIND) _build/ocsforge_svn.cma
 	PGUSER=$(DBUSER) PGDATABASE=$(DATABASE) PGPASSWORD=$(PASSWORD) \
 	$(OCAMLBUILD) $(TARGETS)
 
+
 $(MYOCAMLFIND): myocamlfind.ml
 	$(OCAMLBUILD) -no-plugin $(subst _build/,,$@)
+
+_build/ocsforge_svn.cma: 
+	ocamlc -c swig.mli
+	ocamlc -c swig.ml
+	$(SWIG) -ocaml swig_svn.i
+	ocamlc -c swig_svn.mli
+	ocamlc -c swig_svn.ml
+	ocamlfind ocamlc -thread -package ocsigen -c ocsforge_source_types.mli
+	ocamlfind ocamlc -thread -package ocsigen -c ocsforge_source_types.ml
+	ocamlfind ocamlc -thread -package ocsigen -c ocsforge_version_managers.ml
+	ocamlc -c ocsforge_source_tree.mli
+	ocamlc -c ocsforge_source_tree.ml
+	ocamlc -c -ccopt "-I/usr/include/subversion-1 -I/usr/include/apr-1.0 -D_LARGEFILE64_SOURCE" swig_svn_wrap.c
+	ocamlc -c -ccopt "-I/usr/include/subversion-1 -I/usr/include/apr-1.0 -D_LARGEFILE64_SOURCE" swig_svn.c
+	ocamlmklib -o ocsforge_svn -L/usr/lib swig_svn.o swig_svn_wrap.o \
+	swig.cmo swig_svn.cmo ocsforge_version_managers.cmo ocsforge_source_tree.cmo -lsvn_client-1
+#	rm -rf _build
+#	mkdir _build
+	mv *.o *.a *.so _build
+	mv *.cm* _build
 
 install:
 
