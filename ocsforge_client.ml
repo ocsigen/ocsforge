@@ -17,9 +17,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 
+(*open AXOLang*)
 module Lang = Obrowser_lang
-
-
 
 let auto_update_string (parent, param_name, value, id) =
   let parent_node = Js.get_element_by_id parent in
@@ -257,8 +256,126 @@ struct
        )
    ;;
 end
+(*
+module Task_xchange = struct
+
+  exception Unexpected_xml_element
+
+  (*TODO: use every aviable field*)
+  type t =
+      {
+        title : string ;
+        id : int32 ;
+        parent : int32 ;
+        progress : int option ;
+        editable : bool ;
+        leaf : bool ;
+      }
+  let t_of_raw ti id pa pr ed le =
+    {
+      title    = ti ;
+      id       = Int32.of_string id ;
+      parent   = Int32.of_string pa ;
+      progress = LOption.apply_on_opted int_of_string pr ;
+      editable = bool_of_string (LOption.unopt ~default:"false" ed) ;
+      leaf     = bool_of_string (LOption.unopt ~default:"false" le) ;
+    }
+
+  let get_raw_tasks id = AXOCom.dynload "tasks" [("id",(Int32.to_string id))]
+
+  let tree_of_xml xmllist =
+    let make attrs text =
+      try t_of_raw
+            text
+            (List.assoc "id" attrs)
+            (List.assoc "parent" attrs)
+            (LOption.assoc_opt "progress" attrs)
+            (LOption.assoc_opt "editable" attrs)
+            (LOption.assoc_opt "leaf" attrs)
+      with Not_found -> Unexpected_xml_element
+    in
+    let rec aux = function
+      | AXOCom.Element ("task", attrs, ( AXOCom.PCData s ) :: subtasks) ->
+          LTree.node (make attrs s) (aux subtasks)
+      | _ -> raise Unexpected_xml_element
+    in aux xmllist
+
+  let render_percent ?attrs p =
+    AXOHtml.High.table ?attrs
+      ~colgroup:[ AXOHtml.High.colgroup
+                    (fun p ->
+                       AXOHtml.Low.col
+                         ~attrs:[("style","width: " ^ string_of_int p ^ "%")]
+                         ())
+                    [p ; 100 - p]
+      ]
+      ~tbody:[
+        AXOHtml.Low.tr
+          ~children:[
+            AXOHtml.Low.td
+              ~attrs:[("style","background-color: blue;")]
+              () ;
+            AXOHtml.Low.td
+              ()
+          ]
+          ()
+      
+      ]
+      ()
+
+  let print_tree t =
+    let renderer
+          ({ title = ti ; id = id ; parent = pa ;
+            progress = pr ; editable = ed ; leaf = le ; } as t)
+          _ depth =
+      let button =
+        if le
+        then new AXOWidgets.text_button ~activated:false "x "
+        else new AXOWidgets.cyclic_button (AXOHtml.Low.span ())
+               (AXOJs.Node.text "> ", true) (AXOJs.Node.text "v ", false)
+      in
+      let kids_ground =
+        AXOHtml.Low.ul
+          ~attrs:[("style", "margin: 0px ; padding: 0px; position: relative;")]
+          ()
+      in
+      let content =
+        AXOHtml.Low.span
+          ~attrs:[("style",
+                   "padding-left: "^(string_of_int (15 * depth))^"px")]
+          ~children:[
+            button # get_obj ;
+            AXOJs.Node.text ti ;
+          ]
+          ()
+      in
+      let line = AXOHtml.Low.div
+                   ~children:[
+                     LOption.unopt ~default:(AXOHtml.Low.div ())
+                       (LOption.apply_on_opted
+                          (render_percent
+                             ~attrs:[("style",
+                                      "position: absolute; left:-280px")]
+                          )
+                          pr) ;
+                     content ;
+                   ]
+                   ()
+      in
+        {
+          AXOToolkit.dnd_node        =           t ;
+          AXOToolkit.dnd_line        =        line ;
+          AXOToolkit.dnd_dragg       =     content ;
+          AXOToolkit.dnd_drop        =     content ;
+          AXOToolkit.dnd_kids_ground = kids_ground ;
+        }
+    in match tree with
+      | { LTree.content = t ; LTree.children = l ; } ->
+          aux t
 
 
+end
+ *)
 
 let _ =
   let reg = Eliom_obrowser_client.register_closure in

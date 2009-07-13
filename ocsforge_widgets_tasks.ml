@@ -27,10 +27,24 @@ module Services = Ocsforge_services_tasks
 module Params = Eliom_parameters
 module EDuce = Eliom_duce
 module Olang = Ocsforge_lang
+module FTypes = Forum_sql.Types
 
 open CalendarLib
 
 let to_utf8 = Ocamlduce.Utf8.make
+
+let draw_message_title ~sp ~message
+      (inline_widget : Wiki_widgets_interface.frozen_wikibox) =
+  Forum_data.get_message ~sp ~message_id:message >>= fun minfo ->
+  match minfo.FTypes.m_subject with
+    | None -> Lwt.return {{ <h1>['Undescribed task'] }}
+    | Some s -> (*TODO: get rid of Wiki_sql uses *)
+        Wiki_sql.wikibox_wiki minfo.FTypes.m_wikibox  >>= fun wiki ->
+        Wiki_sql.get_wiki_info_by_id wiki      >>= fun winfo ->
+        let rights = Wiki_models.get_rights winfo.Wiki_types.wiki_model in
+        Wiki.default_bi ~sp ~wikibox:s ~rights >>= fun bi ->
+        inline_widget#display_frozen_wikibox ~bi ~classes:[] ~wikibox:s
+
 
 (** draw a select field for optional values.
 * If a list of alternative is provided, it makes it selectable.*)
@@ -167,14 +181,16 @@ object
 
   val add_task_class = "ocsforge_add_task_form"
 
-  method display ~sp ~parent ?(rows = 6) ?(cols = 50) () =
+  method display ~sp ~parent
+                 (inline_widget : Wiki_widgets_interface.frozen_wikibox) =
     Data.get_task ~sp ~task:parent               >>= fun p_info ->
     Data.get_area ~sp ~area:p_info.Types.t_area  >>= fun p_a_info ->
     Data.get_kinds ~sp ~area:p_a_info.Types.r_id >>= fun alt_k ->
-    Forum_data.get_message ~sp ~message_id:p_info.Types.t_message
-                                                 >>= fun p_msg ->
+(*    Forum_data.get_message ~sp ~message_id:p_info.Types.t_message
+                                                 >>= fun p_msg ->*)
 
     let draw_form
+          inline_widget
           ((parent_name,
             (subject_name,
              (text_name,
@@ -198,22 +214,19 @@ object
                      ([ `One of string option ] Params.param_name *
                       [ `One of bool ] Params.param_name))))))))
            )) =
+      draw_message_title
+        ~sp ~message:p_info.Types.t_message inline_widget >>= fun title ->
+      Lwt.return
       {{
         [<p>[
-           'Creating sub task for : '
-           !{: to_utf8
-             "TODO: use the new editable title feature !"
-                 (*(Olang.unopt
-                    ~default:"undescribed task"
-                    p_msg.Forum_sql.Types.m_subject)*)
-           :}
+           'Creating sub task '
            <br>[]
            {: EDuce.Xhtml.string_input
                 ~a:{{ { size="40%" } }}
                 ~input_type:{: "text" :}
                 ~name:subject_name () :}
            <br>[]
-           {: EDuce.Xhtml.textarea ~name:text_name ~rows ~cols () :}
+           {: EDuce.Xhtml.textarea ~name:text_name ~rows:1 ~cols:60 () :}
          ]
         <p>[
           'length : '
@@ -276,9 +289,9 @@ object
      }}
     in
       Lwt.return
-        (EDuce.Xhtml.post_form
+        (EDuce.Xhtml.lwt_post_form
            ~service:Services.new_task_service
-           ~sp draw_form ())
+           ~sp (draw_form inline_widget) ())
 
 
 end
@@ -402,24 +415,10 @@ object (self)
            :}
          ] ] ] }} : {{ [ Xhtmltypes_duce.colgroup Xhtmltypes_duce.thead ] }} )
 
-  method private task_snippet ~sp ~width ~depth ~padding ~char_size ~message =
-    Forum_data.get_message ~sp ~message_id:message >>= fun msg ->
-    let shorten str dep wid pad siz =
-      let max_size = (wid - (dep * pad)) / siz in
-      if String.length str > max_size
-      then (String.sub str 0 max_size) ^ "..."
-      else str
-    in
-    let res =
-      shorten
-        "TODO: use the new forum title thingy"
-        (*
-        (Olang.unopt ~default:"\"NONE\"" msg.Forum_sql.Types.m_subject)
-        *)
-        depth width padding char_size
-    in
+  method private task_snippet ~sp ~message inline_widget =
+    draw_message_title ~sp ~message inline_widget
+    
 
-    Lwt.return res
 
   method private show_static_field ~field ~task:t =
     match field with
@@ -508,7 +507,7 @@ object (self)
     | _ -> {{ <td>[<p>[ 'unknwown' ]] }}
 
 
-  method display ~sp ~root_tasks:(root_task, top_root) ~fields
+  method display ~sp ~root_tasks:(root_task, top_root) ~fields inline_widget
         ~(nl_service :
             (unit * (Types.task * (string * bool)), unit,
              [ `Nonattached of 'a Eliom_services.na_s ], [ `WithoutSuffix ],
@@ -526,15 +525,12 @@ object (self)
 	     [ `One of string ] Eliom_parameters.param_name *
 	     [ `One of string ] Eliom_parameters.param_name, unit,
              [ `Registrable ]) Eliom_services.service)
-      ?(width = 600) ?(padding = 10) ?(char_size = 12)
       ?sort
       () =
     Data.get_tree ~sp ~root:root_task () >>= fun tree ->
-      let show_line ~width ~depth ~task:t =
-        self#task_snippet ~sp
-          ~width ~depth ~padding ~char_size ~message:t.Types.t_message
+      let show_line ~depth ~task:t =
+        self#task_snippet ~sp ~message:t.Types.t_message inline_widget
                                                                >>= fun snip ->
-        let snip = to_utf8 snip in
         Roles.get_area_role sp t.Types.t_area                  >>= fun role ->
         !!(role.Roles.task_property_editor)                    >>= fun editor ->
         Data.get_kinds ~sp ~area:t.Types.t_area                >>= fun alt_k ->
@@ -608,7 +604,7 @@ object (self)
                               src={: EDuce.Xhtml.make_uri ~sp
                                         ~service:(Eliom_services.static_dir ~sp)
                                         ["add.png"] :}>[]]
-                     !snip
+                     snip
                    ]
                  ]
                  !{: 
@@ -633,15 +629,15 @@ object (self)
 
             }}
       in
-      let rec show_tree ~width ~depth ~tree:t = match t with
+      let rec show_tree ~depth ~tree:t = match t with
         | Types.Tree.Nil -> (*TODO: raise a Ocsimore_common.Permission_denied*)
             let err = to_utf8 "Undefined task id." in
             Lwt.return ({{ [ <tr>[ <td>err ] ] }} : {{ [Xhtmltypes_duce.tr] }} )
         | Types.Tree.Node (t,l) ->
-            (show_line ~width ~depth ~task:t
+            (show_line ~depth ~task:t
                >>= fun a ->
              Lwt_util.map_serial
-               (fun tree -> show_tree ~width ~depth:(succ depth) ~tree)
+               (fun tree -> show_tree ~depth:(succ depth) ~tree)
                l
                >>= fun b ->
              let b = List.fold_left
@@ -659,7 +655,7 @@ object (self)
         | None      -> tree
         | Some comp -> Types.Tree.sort ~tree ~comp
       in
-        show_tree ~width ~depth:0 ~tree
+        show_tree ~depth:0 ~tree
           >>= fun core ->
         let core : {{ [ Xhtmltypes_duce.tr+ ] }} = core in
         let head =
@@ -670,8 +666,7 @@ object (self)
                         | Types.Tree.Nil -> root_task
                         | Types.Tree.Node (t, _) -> t.Types.t_parent)
           in
-            self#header
-              ~fields ~sp ~id:root_task ?parent ~nl_service
+            self#header ~fields ~sp ~id:root_task ?parent ~nl_service
         in
           Lwt.return
             (({{ [

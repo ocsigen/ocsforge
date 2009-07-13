@@ -376,7 +376,7 @@ let move_task ~sp ~task ~parent =
            else Lwt.fail Ocsimore_common.Permission_denied
          )
 
-let make_project ~sp ~task = (*TODO*) Lwt.return ()
+let make_project ~sp:_ ~task:_ = (*TODO*) Lwt.return ()
 (* link rights on area and rights on forum... Needs modifications on forum.ml
          Lwt_util.iter_serial
            (fun (ar,fr) -> User.add_to_group ~user:(ar $ c) ~group:(fr $ cwiki))

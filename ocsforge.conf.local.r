@@ -75,9 +75,9 @@
       <eliommodule module="_build/ocsforge.cma">
       </eliommodule>
 
-<!--      <eliommodule module="../../ocsimore/_build/forum/ocsicreateforum.cmo">
+      <eliommodule module="../ocsimore/_build/forum/ocsicreateforum.cmo">
         <name>task_forum</name>
-      </eliommodule> -->
+      </eliommodule>
 
       <eliom/>
 

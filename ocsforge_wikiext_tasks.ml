@@ -23,6 +23,7 @@ let register_wikiext wp
       (tree_widget : Ocsforge_widgets_tasks.tree_widget)
       nl_service
       temp_service
+      inline_widget
      =
 
   Wiki_syntax.add_extension
@@ -104,7 +105,7 @@ let register_wikiext wp
               ~fields
               ~nl_service
 	      ~temp_service
-              ?sort ()
+              ?sort inline_widget ()
                                    >>= fun b ->
               Lwt.return {{  b }}
            )
