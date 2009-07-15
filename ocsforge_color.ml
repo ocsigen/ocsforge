@@ -42,48 +42,58 @@ let rec generate_lines_num nblines total_nb =
 	:} ] }} : {{ [Xhtmltypes_duce.span*] }})      
   
 
-let rec color lexbuf fileName nblines = match ((getLexer fileName) lexbuf) with
+let rec color lexbuf fileName = match ((getLexer fileName) lexbuf) with
   | Comment(c_open,text,c_close) ->
-     color lexbuf fileName nblines >>= fun (a,b) ->
-       Lwt.return 
-	 ((a,{{ [<span class="color_comment"> {: (c_open^text^c_close) :} !b] }}) 
-	    : (({{[Xhtmltypes_duce.span*]}})*({{ [Xhtmltypes_duce.span*] }})))
- | Keyword(k) -> 
-    color lexbuf fileName nblines >>= fun (a,b) ->
-      Lwt.return 
-        ((a,{{ [<span class="color_keyword"> {: k :} !b] }}) 
-           : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }}))
-      (*(XHTML.M.span 
-	 ~a: [a_class ["colorKeyWord"]]
-	 [XHTML.M.pcdata k])::(color lexbuf fileName)*)
- | ITE(t) ->
-    color lexbuf fileName nblines >>= fun (a,b) ->
-      Lwt.return 
-        ((a,{{ [<span class="color_test"> {: t :} !b] }}) 
-           : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }}))
- (*(XHTML.M.span 
- ~a: [a_class ["colorTest"]]
- [XHTML.M.pcdata t])::(color lexbuf fileName)*)
- | Newline(n) -> 
-    color lexbuf fileName n >>= fun (a,b) ->
-      Lwt.return 
-        ((a,{{ [<span> {: "\n" :} !b] }}) 
-           : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }}))
-    (*(XHTML.M.pcdata n)::(color lexbuf fileName)*)
- | Space(s) -> 
-    color lexbuf fileName nblines >>= fun (a,b) ->
-      Lwt.return 
-        ((a,{{ [<span> {: s :} !b] }})
-           : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }}))
-    (*(XHTML.M.pcdata " ")::(color lexbuf fileName)*)
- | Tab(_) -> 
-    color lexbuf fileName nblines >>= fun (a,b) ->
-      Lwt.return 
-        ((a,{{ [<span> {: "      " :} !b] }})
-           : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }}))
-    (*(XHTML.M.pcdata "      ")::(color lexbuf fileName)*)
+     color lexbuf fileName >>= fun (a,b) ->
+       let str = (c_open^text^c_close) in
+       Lwt.try_bind
+         (fun () -> Lwt.return (Ocamlduce.Utf8.make str))
+         (fun utf8 -> 
+           Lwt.return 
+             ((a,{{ [<span class="color_comment"> 
+               {: utf8 :} !b] }}) 
+                : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }})))
+         (function _ ->
+           Lwt.return 
+             ((a,{{ [<span class="color_comment"> 
+               {: str :} !b] }}) 
+                : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }})))
+  | Keyword(k) -> 
+      color lexbuf fileName >>= fun (a,b) ->
+        Lwt.return 
+          ((a,{{ [<span class="color_keyword"> {: k :} !b] }}) 
+             : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }}))
+          (*(XHTML.M.span 
+	    ~a: [a_class ["colorKeyWord"]]
+	    [XHTML.M.pcdata k])::(color lexbuf fileName)*)
+  | ITE(t) ->
+      color lexbuf fileName  >>= fun (a,b) ->
+        Lwt.return 
+          ((a,{{ [<span class="color_test"> {: t :} !b] }}) 
+             : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }}))
+          (*(XHTML.M.span 
+            ~a: [a_class ["colorTest"]]
+            [XHTML.M.pcdata t])::(color lexbuf fileName)*)
+  | Newline(_) -> 
+      color lexbuf fileName >>= fun (a,b) ->
+        Lwt.return 
+          ((a,{{ [<span> {: "\n" :} !b] }}) 
+             : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }}))
+          (*(XHTML.M.pcdata n)::(color lexbuf fileName)*)
+  | Space(s) -> 
+      color lexbuf fileName  >>= fun (a,b) ->
+        Lwt.return 
+          ((a,{{ [<span> {: s :} !b] }})
+             : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }}))
+          (*(XHTML.M.pcdata " ")::(color lexbuf fileName)*)
+  | Tab(_) -> 
+      color lexbuf fileName  >>= fun (a,b) ->
+        Lwt.return 
+          ((a,{{ [<span> {: "      " :} !b] }})
+             : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }}))
+          (*(XHTML.M.pcdata "      ")::(color lexbuf fileName)*)
  | Int(i) -> 
-    color lexbuf fileName nblines >>= fun (a,b) ->
+    color lexbuf fileName  >>= fun (a,b) ->
       Lwt.return 
         ((a,{{ [<span class="color_int"> {: i :} !b] }})
            : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }}))
@@ -91,7 +101,7 @@ let rec color lexbuf fileName nblines = match ((getLexer fileName) lexbuf) with
     ~a: [a_class ["colorInt"]]
     [XHTML.M.pcdata i])::(color lexbuf fileName)*)
  | Bin(bin) -> 
-    color lexbuf fileName nblines >>= fun (a,b) ->
+    color lexbuf fileName  >>= fun (a,b) ->
       Lwt.return 
         ((a,{{ [<span class="color_bin"> {: bin :} !b] }}) 
            : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }}))
@@ -99,7 +109,7 @@ let rec color lexbuf fileName nblines = match ((getLexer fileName) lexbuf) with
     ~a: [a_class ["colorBin"]]
     [XHTML.M.pcdata b])::(color lexbuf fileName)*)
  | Oct(o) -> 
-    color lexbuf fileName nblines >>= fun (a,b) ->
+    color lexbuf fileName  >>= fun (a,b) ->
       Lwt.return 
         ((a,{{ [<span class="color_oct"> {: o :} !b] }})
            : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }}))
@@ -107,7 +117,7 @@ let rec color lexbuf fileName nblines = match ((getLexer fileName) lexbuf) with
     ~a: [a_class ["colorOct"]]
     [XHTML.M.pcdata o])::(color lexbuf fileName)*)
  | Hex(h) -> 
-    color lexbuf fileName nblines >>= fun (a,b) ->
+    color lexbuf fileName  >>= fun (a,b) ->
       Lwt.return 
         ((a,{{ [<span class="color_hex"> {: h :} !b] }})
            : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }}))
@@ -115,13 +125,13 @@ let rec color lexbuf fileName nblines = match ((getLexer fileName) lexbuf) with
     ~a: [a_class ["colorHex"]]
     [XHTML.M.pcdata h])::(color lexbuf fileName)*)
  | Operator(o) -> 
-    color lexbuf fileName nblines >>= fun (a,b) ->
+    color lexbuf fileName  >>= fun (a,b) ->
       Lwt.return 
         ((a,{{ [<span> {: o :} !b] }}) 
            : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }}))
     (*(XHTML.M.pcdata o)::(color lexbuf fileName)*)
  | Delimiter(d) ->
-    color lexbuf fileName nblines >>= fun (a,b) ->
+    color lexbuf fileName  >>= fun (a,b) ->
       Lwt.return 
         ((a,{{ [<span class="color_delimiter"> {: d :} !b] }})
            : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }}))
@@ -129,39 +139,69 @@ let rec color lexbuf fileName nblines = match ((getLexer fileName) lexbuf) with
     ~a: [a_class ["colorDelimiter"]]
     [XHTML.M.pcdata d])::(color lexbuf fileName)*)
  | Id(i) -> 
-    color lexbuf fileName nblines >>= fun (a,b) ->
+    color lexbuf fileName  >>= fun (a,b) ->
       Lwt.return 
         ((a,{{ [<span> {: i :} !b] }})
            : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }}))
     (*(XHTML.M.pcdata i)::(color lexbuf fileName)*)
  | String(s) -> 
-    color lexbuf fileName nblines >>= fun (a,b) ->
-      Lwt.return 
-        ((a,{{ [<span class="color_string"> {: ("\""^s^"\"") :} !b] }})
-           : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }}))
+    color lexbuf fileName  >>= fun (a,b) ->
+      let str = ("\""^s^"\"") in 
+      Lwt.try_bind
+        (fun () -> Lwt.return (Ocamlduce.Utf8.make str))
+        (fun utf8 -> 
+          Lwt.return 
+            ((a,{{ [<span class="color_string"> 
+              {: utf8 :} !b] }}) 
+               : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }})))
+        (function _ ->
+          Lwt.return 
+            ((a,{{ [<span class="color_string"> 
+              {: str :} !b] }}) 
+               : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }})))
     (*(XHTML.M.span
     ~a: [a_class ["colorString"]]
     [XHTML.M.pcdata ("\""^s^"\"")])::(color lexbuf fileName)*)
  | UpperCaseID(u) -> 
-    color lexbuf fileName nblines >>= fun (a,b) ->
+    color lexbuf fileName  >>= fun (a,b) ->
       Lwt.return 
-        ((a,{{ [<span class="color_ucid"> {: u :} !b] }})
+        ((a,{{ [<span class="color_ucid"> {: Ocamlduce.Utf8.make u :} !b] }})
            : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }}))
     (*(XHTML.M.span
     ~a: [a_class ["colorModule"]]
     [XHTML.M.pcdata m])::(color lexbuf fileName)*)
  | Default_lexer_token(s) -> 
-     color lexbuf fileName nblines >>= fun (a,b) ->
-      Lwt.return 
-        ((a,{{ [<span> {: s :} !b] }})
-           : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }}))
+     color lexbuf fileName  >>= fun (a,b) ->
+       Lwt.try_bind
+         (fun () -> Lwt.return (Ocamlduce.Utf8.make s))
+         (fun utf8 ->
+           Lwt.return 
+             ((a,{{ [<span> 
+                      {: utf8 :} !b] }}) 
+                : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }})))
+         (function _ ->
+           Lwt.return 
+             ((a,{{ [<span> 
+                      {: s :} !b] }}) 
+                : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }})))
  | Unknown(c) ->
-     color lexbuf fileName nblines >>= fun (a,b) ->
-       Lwt.return ((a,{{ [<span> {: (String.make 1 c) :} !b] }}) 
-		     : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }}))
-    (*(XHTML.M.pcdata (String.make 1 c))::(color lexbuf fileName nblines)*)
- | Eof(_) -> 
-     generate_lines_num nblines nblines >>= fun b ->
-     Lwt.return (b,{{ [] }})
+     color lexbuf fileName  >>= fun (a,b) ->
+       let s = String.make 1 c in
+       Lwt.try_bind 
+         (fun () -> Lwt.return (Ocamlduce.Utf8.make s))
+         (fun utf8 -> 
+           Lwt.return 
+             ((a,{{ [<span> 
+                      {: utf8 :} !b] }}) 
+                : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }})))
+         (function _ ->
+           Lwt.return 
+             ((a,{{ [<span> 
+                      {: s :} !b] }}) 
+                : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }})))
+         (*(XHTML.M.pcdata (String.make 1 c))::(color lexbuf fileName )*)
+ | Eof(n) -> 
+     generate_lines_num n n >>= fun b ->
+       Lwt.return (b,{{ [] }})
     
 

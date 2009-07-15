@@ -21,5 +21,5 @@ rule token = parse
   | newline_char  
       { newline lexbuf;
 	Newline lexbuf.lex_curr_p.pos_lnum }
-  | eof     { Eof(0) }  
+  | eof     { Eof(lexbuf.lex_curr_p.pos_lnum) }  
   | default_token as d  { Default_lexer_token(d) }

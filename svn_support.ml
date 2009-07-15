@@ -91,7 +91,7 @@ let svn_list ?id rep =
 				       Swig.C_string(rep);
       				       Swig.C_int(-1)]))
   | Some(s) ->
-      let r = Int32.to_int (Int32.of_string s) in
+      let r = int_of_string s in
       extract_list (Swig_svn._svn_support_list (Swig.C_list[
 				       Swig.C_string(rep);
 				       Swig.C_int(r)]))
@@ -288,8 +288,8 @@ let rec parse_diff diff_res parsed_res started = match diff_res with
 (** Stocke le résultat du diff sur file@rev1 / file@rev2 
     dans une liste de type file_diff *)
 let svn_diff file rep id1 id2 =
-  let rev1 = Int32.to_int (Int32.of_string id1) in
-  let rev2 = Int32.to_int (Int32.of_string id2) in
+  let rev1 = int_of_string id1 in
+  let rev2 = int_of_string id2 in 
   let diff_res =  
     List.map (fun s -> 
       match s with
@@ -308,17 +308,45 @@ let svn_cat ?id rep file =
   let cat_res = match id with
   | None ->
       extract_list (Swig_svn._svn_support_cat(
-			      Swig.C_list[Swig.C_string(file_path);Swig.C_int(-1)]))
+		    Swig.C_list[Swig.C_string(file_path);Swig.C_int(-1)]))
   | Some(s) -> 
-      let r = Int32.to_int (Int32.of_string s) in
+      let r = int_of_string s in
       extract_list (Swig_svn._svn_support_cat(
-			      Swig.C_list[Swig.C_string(file_path);Swig.C_int(r)]))
+		    Swig.C_list[Swig.C_string(file_path);Swig.C_int(r)]))
   in
   Lwt_util.map(fun s ->
     match s with
     | Swig.C_string(s) -> Lwt.return s
     | _ -> Lwt.return "") (cat_res) 
 
+
+let rec extract_annot_result step res l = match l with
+  | [] -> Lwt.return (List.rev res)
+  | h::t ->
+      if (step mod 2 == 0) then (* author *)
+        extract_annot_result (step+1) ((h,"")::res) t
+      else (* line *)
+        let aut = fst (List.hd res) in
+        extract_annot_result (step+1) ((aut,h)::(List.tl res)) t
+
+
+let svn_annot ?id rep file = 
+  let file_path = (rep^"/"^file) in
+  let annot_res = match id with
+  | None ->
+      extract_list (Swig_svn._svn_support_blame(
+                    Swig.C_list[Swig.C_string(file_path);Swig.C_int(-1)]))
+  | Some(s) ->
+      let r = int_of_string s in
+      extract_list (Swig_svn._svn_support_blame(
+		    Swig.C_list[Swig.C_string(file_path);Swig.C_int(r)]))
+  in
+  Lwt_util.map 
+    (fun s -> match s with
+    | Swig.C_string(s) -> Lwt.return s
+    | _ -> Lwt.return "")
+    (annot_res) >>= fun l ->
+      extract_annot_result 0 [] l
 
 let _ = 
   (** test svn list *)
@@ -340,8 +368,9 @@ let _ =
 	*)
 	let svn_fun_pack = 
 	{vm_list = svn_list;
-	vm_cat = svn_cat;
-	vm_log = svn_log;
-	vm_diff = svn_diff} in
+	 vm_cat = svn_cat;
+	 vm_log = svn_log;
+	 vm_diff = svn_diff;
+         vm_annot = svn_annot} in
 	Ocsforge_version_managers.set_fun_pack "SVN" svn_fun_pack
       

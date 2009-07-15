@@ -4,10 +4,12 @@
 #include "svn_string.h"
 #include "svn_fs.h"
 #include "svn_utf.h"
+#include "svn_props.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
+
 
 /* création d'un stringbuf dont la chaine se termine par un "\n" */
 svn_stringbuf_t *stringbuf_endline_utf8(const char *string,apr_pool_t *pool)
@@ -92,7 +94,7 @@ svn_error_t* log_callback(void *baton, svn_log_entry_t *log_entry, apr_pool_t *p
 				APR_HASH_KEY_STRING))){
     message = message_s->data;
     if (strcmp(message,"") == 0) {
-      parsed_message = svn_stringbuf_create("Pas de commentaire.\n",pool);
+      parsed_message = svn_stringbuf_create(" \n",pool);
     }
     else {
       message_array = svn_cstring_split(message,"\n",TRUE,pool);
@@ -101,7 +103,7 @@ svn_error_t* log_callback(void *baton, svn_log_entry_t *log_entry, apr_pool_t *p
     }
   }
   else{
-    parsed_message = svn_stringbuf_create("Pas de commentaire.\n",pool);
+    parsed_message = svn_stringbuf_create(" \n",pool);
   }   
    
   svn_stringbuf_appendstr((svn_stringbuf_t *)baton,(const svn_stringbuf_t *)revnum);
@@ -109,6 +111,26 @@ svn_error_t* log_callback(void *baton, svn_log_entry_t *log_entry, apr_pool_t *p
   svn_stringbuf_appendstr((svn_stringbuf_t *)baton,(const svn_stringbuf_t *)day);
   svn_stringbuf_appendstr((svn_stringbuf_t *)baton,(const svn_stringbuf_t *)parsed_time);
   svn_stringbuf_appendstr((svn_stringbuf_t *)baton,(const svn_stringbuf_t *)parsed_message);
+  return SVN_NO_ERROR;
+}
+
+svn_error_t* blame_callback(void *baton, apr_int64_t line_no, 
+                            svn_revnum_t revision, const char *author,
+                            const char *date, svn_revnum_t merged_revision,
+                            const char *merged_author, const char *merged_date,
+                            const char *merged_path, const char *line, 
+                            apr_pool_t *pool){
+  
+  svn_stringbuf_t *aut = stringbuf_endline_utf8(author,pool);
+  svn_stringbuf_t *contents;
+  if (strcmp(line,"") == 0) {
+    contents = stringbuf_endline_utf8(" ",pool);
+  }
+  else
+    contents = stringbuf_endline_utf8(line,pool);
+  svn_stringbuf_appendstr((svn_stringbuf_t *)baton,(const svn_stringbuf_t *)aut);
+  svn_stringbuf_appendstr((svn_stringbuf_t *)baton,(const svn_stringbuf_t *)contents);
+  
   return SVN_NO_ERROR;
 }
 
@@ -152,16 +174,17 @@ svn_client_ctx_t *initialize_context(apr_pool_t *pool)
 		  pool);
   
   // -- Initialisation des parametres d'authentification --
-  svn_cmdline_setup_auth_baton(&ctx->auth_baton,
-			       FALSE,
-			       NULL,
-			       NULL,
-			       NULL,
-			       FALSE,
-			       cfg,
-			       cancel,
-			       ctx->cancel_baton,
-			       pool);
+  svn_cmdline_create_auth_baton(&ctx->auth_baton,
+                                FALSE,
+                                NULL,
+                                NULL,
+                                NULL,
+                                FALSE,
+                                TRUE,
+                                cfg,
+                                cancel,
+                                ctx->cancel_baton,
+                                pool);
   return ctx;
 }
 
@@ -280,7 +303,7 @@ apr_array_header_t *svn_support_log(char *rep_path)
   if (err) {
     svn_handle_error2(err, stderr, FALSE, "svn_support: ");
   }
-  svn_cstring_split_append(list_result,res->data,"\n",TRUE,pool);
+  svn_cstring_split_append(list_result,res->data,"\n",FALSE,pool);
   return list_result;
 }
 
@@ -409,7 +432,13 @@ void svn_cstring_split_endline_append (apr_array_header_t *array,
       start = end+1;
     }
   }
-
+  if (start < end) {
+    char *sub = apr_pstrndup(pool,(input+start),(len-start));
+    *(char **)apr_array_push(array) = sub;
+  }
+  else if (input[len-1] == '\n') {
+    *(char **)apr_array_push(array) = " ";
+  }
 } 	
 
 /* fonction simulant la commande svn cat */
@@ -456,9 +485,71 @@ apr_array_header_t *svn_support_cat(char *file_path, int revision){
 		  ctx,
 		  pool);
 
-  /* réécrire cette fonction pour que le tableau puisse contenir 
-     des chaines vides lorsqu'il y a plusieurs \n consécutifs */
   svn_cstring_split_endline_append(list_result,res->data,pool);
+  return list_result;
+}
+
+
+apr_array_header_t *svn_support_blame(char *file_path, int revision){
+  apr_pool_t *pool ;
+  svn_error_t *err;
+  svn_client_ctx_t *ctx; 
+  svn_opt_revision_t peg_rev,start,end;
+  svn_diff_file_options_t *diff_options;
+
+  if (svn_cmdline_init ("svn_support", stderr) != EXIT_SUCCESS)
+    return NULL;
+  
+  pool = svn_pool_create(NULL);
+  err = svn_fs_initialize(pool);
+  
+  if (err) {
+    svn_handle_error2 (err, stderr, FALSE, "svn_support: ");
+    return NULL;
+  }
+
+  // -- Initialisation du contexte --
+  ctx = initialize_context(pool);
+ 
+  // -- Initialisation des révisions --
+  if (revision != -1) {
+    peg_rev.kind = end.kind = svn_opt_revision_number;
+    peg_rev.value.number = end.value.number = revision;
+    
+  }
+  else {
+    peg_rev.kind = svn_opt_revision_unspecified;
+    end.kind = svn_opt_revision_head;
+  }
+  
+  start.kind = svn_opt_revision_number;
+  start.value.number = 1;
+
+  // -- Initialisation des diff_options --
+
+  diff_options = svn_diff_file_options_create(pool);
+  
+
+  // -- Initialisation du tableau et du buffer de résultats -- 
+  apr_array_header_t *list_result = apr_array_make(pool, 1, sizeof (const char *));
+  svn_stringbuf_t *res = svn_stringbuf_create("",pool);
+  
+
+  err = svn_client_blame4(file_path,
+                          &peg_rev,
+                          &start,
+                          &end,
+                          diff_options,
+                          FALSE, // ignore_mime_type
+                          FALSE,  // include_merged_revisions
+                          blame_callback,
+                          res,
+                          ctx,
+                          pool);
+  if (err) {
+    svn_handle_error2(err, stderr, FALSE, "svn_support: ");
+  }
+  svn_cstring_split_append(list_result,res->data,"\n",FALSE,pool);
   return list_result;
 }
 

@@ -34,6 +34,7 @@ val new_task :
   ?deadline_version:string ->
   ?kind:string ->
   area:Ocsforge_types.right_area ->
+  ?area_root:bool ->
   unit -> Ocsforge_types.task Lwt.t
 
 (**Insert a new area in the database.

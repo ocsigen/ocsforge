@@ -34,35 +34,36 @@ let source_service path project = Eliom_duce.Xhtml.register_new_service
     ~path:[path; project; "sources"; ""]
     ~get_params:
     (Eliom_parameters.suffix_prod
-       (Eliom_parameters.all_suffix(*_user Neturl.split_path (Ocsigen_extensions.string_of_url_path ~encode:false)*) "file")
+       (Eliom_parameters.all_suffix "file")
        (Eliom_parameters.opt (Eliom_parameters.string "version") **
           (Eliom_parameters.bool "browse" **
-	     ((Eliom_parameters.opt (Eliom_parameters.user_type 
-				       Vm.string_to_pair 
-				       Vm.pair_to_string "diff1") **
-		 Eliom_parameters.opt (Eliom_parameters.user_type 
-					 Vm.string_to_pair 
-					 Vm.pair_to_string "diff2"))))))
-    (fun sp (file,(version,(browse,(d1,d2)))) () -> 
+             (Eliom_parameters.bool "annot" **
+	        (Eliom_parameters.opt (Eliom_parameters.user_type 
+				         Vm.string_to_pair 
+				         Vm.pair_to_string "diff1") **
+		   Eliom_parameters.opt (Eliom_parameters.user_type 
+					   Vm.string_to_pair 
+					   Vm.pair_to_string "diff2"))))))
+    (fun sp (file,(version,(browse,(annot,(d1,d2))))) () -> 
       let () =  Ocsforge_wikiext_common.send_css_up "ocsforge_sources.css" sp in
       let id = Ocsforge_types.task_of_string project in
-      let page_content = match (file,(version,(browse,(d1,d2)))) with
+      let page_content = match (file,(version,(browse,(annot,(d1,d2))))) with
         | ([],(None,(_,_))) 
 	| ([""],(None,(_,_))) ->
             Ocsforge_widgets_source.draw_repository_table ~sp ~id ~version:None
 	| ([],(v,(_,_))) 
 	| ([""],(v,(_,_))) ->
 	    Ocsforge_widgets_source.draw_repository_table ~sp ~id ~version:v
-	| (l,(None,(true,(None,None)))) -> 
+	| (l,(_,(true,(_,(None,None))))) -> 
 	    Ocsforge_widgets_source.draw_file_page ~sp ~id ~target:l ~version
-	| (l,(Some(v),(true,(None,None)))) -> 
-	    Ocsforge_widgets_source.draw_file_page ~sp ~id ~target:l ~version
-	| (l,(Some(v),(false,(None,None)))) ->
+	| (l,(_,(false,(true,(None,None))))) ->
+            Ocsforge_widgets_source.draw_annotate ~sp ~id ~target:l ~version
+	| (l,(Some(v),(false,(false,(None,None))))) ->
 	    if (String.compare v "latest" == 0) then
 	      Ocsforge_widgets_source.draw_source_code_view ~sp ~id ~target:l ~version:None
 	    else
 	      Ocsforge_widgets_source.draw_source_code_view ~sp ~id ~target:l ~version:(Some(v))
-	| (l,(None,(_,(Some(diff1),Some(diff2))))) ->
+	| (l,(None,(_,(_,(Some(diff1),Some(diff2)))))) ->
 	    Ocsforge_widgets_source.draw_diff_view ~sp ~id ~target:l ~diff1 ~diff2
 	| _ -> (* TODO : gestion erreur ?*)
             Ocsforge_widgets_source.draw_source_code_view ~sp ~id ~target:[] ~version:None

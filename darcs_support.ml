@@ -255,18 +255,78 @@ let rec handle_changelog ?file res content = match content with
 	      handle_changelog res t
 
 (** Recupere la liste des patchs depuis le résultat de darcs changes *)
-let rec extract_patch_list ?file res l = match l with
+(** /!\ UTILISER FILE LORS D'UN LOG SUR UN FICHIER POUR NE PAS CONSTRUIRE D'ARBRE INUTILE /!\ **)
+let rec handle_log_xml_list ?file res l = match l with
   | [] -> Lwt.return res
   | h::t ->
       match h with
-        | Simplexmlparser.PCData(_) -> extract_patch_list res t
+        | Simplexmlparser.PCData(_) -> handle_log_xml_list res t
 	| Simplexmlparser.Element(name,_,content) ->
 	    if (String.compare name "changelog" == 0) then
 	      handle_changelog [] content
 	    else
-	      extract_patch_list res t
-	      
-	    
+	      handle_log_xml_list res t
+	
+
+let rec handle_annot_patch args = match args with
+  | [] -> ""
+  | (f,v)::t -> 
+      if (String.compare f "author" == 0) then
+        let parsed_author = split (regexp "&lt") v in
+	List.hd (parsed_author)
+      else
+        handle_annot_patch t
+
+
+let rec handle_added_by l = match l with
+  | [] -> ""
+  | h::t ->
+      match h with
+      | Simplexmlparser.PCData(_) -> 
+          handle_added_by t
+      | Simplexmlparser.Element(name,args,content) ->
+          if (String.compare name "patch" == 0) then 
+            handle_annot_patch args
+          else
+            handle_added_by t
+
+
+let rec handle_normal_line aut l = match l with
+  | [] -> Lwt.return ((aut^"\n"),"\n")
+  | h::t -> 
+      match h with
+        | Simplexmlparser.PCData(line) ->
+            Lwt.return ((aut^"\n"),(line^"\n"))
+        | Simplexmlparser.Element(name,args,content) ->
+            if (String.compare name "added_by" == 0) then
+              handle_normal_line (handle_added_by content) t
+            else handle_normal_line aut t
+            
+
+let rec handle_file res l = match l with
+  | [] -> Lwt.return res
+  | h::t ->
+      match h with
+        | Simplexmlparser.PCData(_) -> handle_file res t
+        | Simplexmlparser.Element(name,_,content) -> 
+            if (String.compare name "normal_line" == 0) then
+              handle_normal_line "" content >>= fun line ->
+                handle_file (line::res) t
+            else
+              handle_file res t
+
+(** Recupere la liste (auteur,ligne) depuis le résultat darcs annotate *)      
+let rec handle_annot_xml_list res l = match l with
+  | [] -> Lwt.return res
+  | h::t -> 
+      match h with
+        | Simplexmlparser.PCData(_) -> handle_annot_xml_list res t
+        | Simplexmlparser.Element(name,_,content) -> 
+            if (String.compare name "file" == 0) then
+              handle_file [] content
+            else
+              handle_annot_xml_list res t
+
 
 (** Stocke la liste des patchs présents dans un dépot Darcs ainsi que les 
     modifications faites sur les fichiers dans une liste de types patch *)
@@ -284,7 +344,7 @@ let get_patch_list ?id rep =
     | l -> 
 	let s = String.concat "\n" l in
 	let res = Simplexmlparser.xmlparser_string s in
-	extract_patch_list [] res
+	handle_log_xml_list [] res
 
 
 
@@ -314,7 +374,7 @@ let darcs_log ?file ?id rep =
     | l -> 
 	let s = String.concat "\n" l in
 	let res = Simplexmlparser.xmlparser_string s in
-	extract_patch_list [] res
+	handle_log_xml_list [] res
 
 
 (** Recuperes l'arbre associé au patch précisé *)
@@ -536,13 +596,29 @@ let rec print_tree path tree = match tree with
 	  aux t
       in aux l
 
+let darcs_annot ?id rep file = 
+  let error_message = "Error while annotating the file (signal received)" in
+  let command = match id with
+    | None -> ("darcs annotate --xml-output "^file^" --repodir "^rep)
+    | Some(patch) -> ("darcs annotate --xml-output --match 'hash "^patch^
+                      "' "^file^" --repodir"^rep)
+  in
+  exec_command command error_message >>= function
+    | [] -> Lwt.return []
+    | l -> 
+	let s = String.concat "\n" l in
+	let res = Simplexmlparser.xmlparser_string s in
+	handle_annot_xml_list [] res >>= fun l -> Lwt.return (List.rev l)
+    
+
 
 let _ = 
   let darcs_fun_pack = 
     { vm_list = darcs_list;
       vm_cat = darcs_cat;
       vm_log = darcs_log;
-      vm_diff = darcs_diff } in
+      vm_diff = darcs_diff;
+      vm_annot = darcs_annot} in
   Ocsforge_version_managers.set_fun_pack "Darcs" darcs_fun_pack
 
 (** TEST **)

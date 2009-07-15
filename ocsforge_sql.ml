@@ -37,7 +37,7 @@ let new_task
       ~parent ~message ~creator ~version
       ?length        ?progress         ?importance
       ?deadline_time ?deadline_version ?kind
-      ~area
+      ~area ?(area_root = false)
       () =
   let deadline_time = Ocsforge_lang.apply_on_opted
                         CalendarLib.Calendar.from_date deadline_time in
@@ -68,11 +68,11 @@ let new_task
                  (parent, message, edit_author, edit_time, edit_version, \
                   length, progress, importance, \
                   deadline_time, deadline_version, kind, \
-                  area, tree_min, tree_max)
+                  area, area_root, tree_min, tree_max)
                 VALUES ($parent_id, $message_id, $creator_id, $now, $version, \
                         $?length, $?progress, $?importance, \
                         $?deadline_time, $?deadline_version, $?kind, \
-                        $area_id, $tmax, ($tmax + 1))")
+                        $area_id, $area_root, $tmax, ($tmax + 1))")
        >>= fun () -> Sql.PGOCaml.serial4 db "ocsforge_tasks_id_seq"
        >>= fun i -> Lwt.return (Types.task_of_sql i))
 

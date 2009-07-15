@@ -78,7 +78,7 @@ rule token = parse
   | operator as o
       { Operator o }
   | eof                      
-      { Eof(0) }
+      { Eof(lexbuf.lex_curr_p.pos_lnum) }
   | '\"'
       { let string_start = lexeme_start_p lexbuf in
         let s = (string string_start (Buffer.create 10) lexbuf) in
@@ -96,7 +96,8 @@ rule token = parse
 
 and comment start buf = parse
   | "\\n"
-      { Buffer.add_char buf '\n';
+      { Buffer.add_char buf '\\';
+        Buffer.add_char buf 'n';
         comment start buf lexbuf }
   | "\\\""
       { Buffer.add_char buf '\"';

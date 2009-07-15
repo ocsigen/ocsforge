@@ -82,12 +82,14 @@ pre.left_lines {
     text-align:right;
     padding: 2px;
     background-color: #DEF4F6;
+    margin: 0px;
 }
 
 pre.right_lines {
     text-align:left;
     padding: 2px;
     background-color: #DEF4F6;
+    margin: 0px;
 }
 
 div.lines {
@@ -158,12 +160,34 @@ span.old { background-color: #F86565 }
 
 span.blank { background-color: #E4D4D4 }
 
+/** File annotate page */
+
+div.annot_author {
+    border: 1px solid #BBBBBB;
+    font-size:normal;
+    float:left;
+    padding: 2px;
+    -moz-border-radius: 10px 0px 0px 10px;
+    -webkit-border-radius: 10px 0px 0px 10px;
+}
+
+div.annot_content {
+    border: 1px solid #BBBBBB;
+    font-size:normal;
+    float:left;
+    padding: 2px;
+    width: 80%;
+    overflow: hidden;
+    -moz-border-radius: 0px 10px 10px 0px;
+    -webkit-border-radius: 0px 10px 10px 0px;
+}
 
 /** Syntax highlighting */
 
 pre.color {
     background-color: #E8E8E8;
     padding: 2px;
+    margin: 0px;
 }
 
 span.color_comment { color: #FF7F00; }

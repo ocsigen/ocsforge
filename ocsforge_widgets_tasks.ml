@@ -583,7 +583,7 @@ object (self)
 						  ["open_repository.png"] :}
 					alt="go to repos page">[]
 				    ] }}
-				 ([],(None,(false,(None,None))))
+				 ([],(None,(false,(false,(None,None)))))
 			:} 
                      {: EDuce.Xhtml.a
                           ~service:nl_service
