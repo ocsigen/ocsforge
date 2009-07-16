@@ -1,0 +1,37 @@
+
+
+1. Prepare
+
+be sure to have these requirements installed
+
+ - ocsimore's resuirement
+ - ocsimore
+ - libsvn-dev >= 1.6
+ - darcs >= 2
+
+
+2. Make
+
+install ocsimore...
+
+adapt cp_cmis.sh and run
+$ sudo sh cp_cmis.sh
+
+create database using
+$ psql -U ocsimore -f ocsforge_createdb.sql
+
+update database with
+$ psql -U ocsimore -f updatedb-20090702.sql
+$ psql -U ocsimore -f updatedb-20090706.sql
+
+to revert these changes use
+$ psql -U ocsimore -f ocsforge_dropdb.sql
+
+compile with
+$ make
+
+
+3. Use
+
+adapt the ocsforge.conf.local with the corrects paths and launch with
+$ CAML_LD_LIBRARY_PATH=_build ocsigen -c ocsforge.conf.local

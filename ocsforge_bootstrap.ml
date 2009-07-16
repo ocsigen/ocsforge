@@ -23,23 +23,35 @@
 let (>>=) = Lwt.bind
 let ($) = User_sql.Types.apply_parameterized_group
 
-(*TODO : This is the biggest hack so far... It HAS to be changed !!!*)
-
+let add_message ~forum () = 
+  Forum_sql.get_forum ~forum () >>= fun f ->
+  let wiki = f.Forum_sql.Types.f_messages_wiki in
+  Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
+  let content_type = 
+    Wiki_models.get_default_content_type wiki_info.Wiki_types.wiki_model
+  in
+  let title_syntax = f.Forum_sql.Types.f_title_syntax in
+    Ocsforge_sql.first_message ~forum ~wiki ~creator:User.admin
+      ~text:"ocsforge_first_task" ~title_syntax ~content_type
 
 let first_task () =
   (*checking for already existing tasks*)
-  Lwt.return (Printf.printf "..!\n%!") >>= fun () ->
   Ocsforge_sql.get_task_count () >>= fun c ->
-  Lwt.return (Printf.printf "..!\n%!") >>= fun () ->
   if c > 0
-  then Lwt.fail (Failure "Can't bootstrap twice")
+  then Lwt.return ()
   else
     begin
-      Lwt.return (Printf.printf "..!\n%!") >>= fun () ->
-      Ocsforge_sql.new_area ~forum:(Forum_sql.Types.forum_of_sql (Int32.of_int 2)) ~wiki:(Wiki_types.wiki_of_sql Int32.one) ()
+      Forum_sql.get_forum ~title:"ocsforge_task_forum" () >>= fun fi ->
+      Wiki_sql.get_wiki_info_by_name "ocsforge_task_forum (messages)" >>= fun wi ->
+      Ocsforge_sql.new_area
+        ~forum:(fi.Forum_sql.Types.f_id)
+        ~wiki:(wi.Wiki_types.wiki_id)
+        ()
                                                        >>= fun area ->
-      Ocsforge_sql.bootstrap_task ~area ~message:(Forum_sql.Types.message_of_sql Int32.one)
-                                                       >>= fun _ ->
+      add_message ~forum:(fi.Forum_sql.Types.f_id) ()  >>= fun message ->
+      Ocsforge_sql.bootstrap_task
+        ~area
+        ~message                                       >>= fun task ->
       Lwt_util.iter_serial
         (fun a -> User.add_to_group
                     ~user:(User_sql.Types.basic_user User.admin)
@@ -62,17 +74,13 @@ let first_task () =
          Ocsforge_roles.subarea_creator ;
          Ocsforge_roles.kinds_setter ;
          Ocsforge_roles.version_setter ; ]
-     >>= fun () ->
-       Lwt.return (Printf.printf "bootstraping done !\n%!")
+        >>= fun _ ->
+          Printf.printf "Your first ocsforge task as %ld id\nUse <<ocsforge_task_tree id=\"%ld\">> in a wiki\n%!"
+            task task ;
+          Lwt.return ()
     end
 
-(* THIS HAS BEEN DONE !
-let _ =
-  Lwt_unix.run(
-    Lwt.return (Printf.printf "bootstraping tasks !\n%!") >>= fun () ->
-    first_task ())
- *)
-
+let _ = Lwt_unix.run ( first_task () )
 
 let forge_wiki_model = Ocsisite.wikicreole_model (*TODO: use a real wiki model*)
 

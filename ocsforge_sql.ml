@@ -26,8 +26,6 @@ module Olang = Ocsforge_lang
 
 (** {2 Database statement and queries.} *)
 
-(*TODO : bootstrap : create a base task for the whole system*)
-
 
 (** {3 makers } *)
 
@@ -543,12 +541,14 @@ let bootstrap_task ~area ~message =
        let author = User_sql.Types.sql_from_userid User.admin in
        let tmin = Int32.zero in
        let tmax = Int32.one in
+       let root = true in
        PGSQL(db)
         "INSERT INTO ocsforge_tasks \
           (id, parent, message, edit_author, edit_time, edit_version, \
-           kind, area, tree_min, tree_max)
+           kind, area, tree_min, tree_max, area_root)
          VALUES ($id, $id, $message, $author, $now, $version, \
-                 $kind, $area, $tmin, $tmax)")
+                 $kind, $area, $tmin, $tmax, $root)" >>= fun _ ->
+       Lwt.return id)
 
 let get_task_count () =
   Sql.full_transaction_block
@@ -598,4 +598,43 @@ let get_projects_path_list () =
       "SELECT wikis.pages, ocsforge_right_areas.root_task
        FROM wikis, ocsforge_right_areas
        WHERE wikis.id in (SELECT wiki FROM ocsforge_right_areas)"))
+
+let first_message ~forum ~wiki ~creator ~title_syntax ~text ~content_type =
+  let sticky = false in
+  let moderated = false in
+  let creator_id' = User_sql.Types.sql_from_userid creator in
+  let forum_id = Forum_sql.Types.sql_of_forum forum in
+  Sql.full_transaction_block
+    (fun db ->
+
+       (*setting the wikibox for the core of the message*)
+       Wiki_sql.new_wikibox
+         ~db ~wiki ~author:creator ~comment:"" ~content:""
+        ~content_type ()                >>= fun wikibox ->
+
+       (*setting the wikibox for the subject*)
+       Wiki_sql.new_wikibox
+          ~db ~wiki ~author:creator ~comment:"" ~content:text
+          ~content_type:title_syntax () >>= fun subject ->
+       Lwt.return (Wiki_types.sql_of_wikibox subject)
+                                        >>= fun subject ->
+
+       (*putting data into the database*)
+       let wikibox = Wiki_types.sql_of_wikibox wikibox in
+       (PGSQL(db) "SELECT NEXTVAL('forums_messages_id_seq')"
+          >>= (function
+                 | [Some next_id] ->
+                     let next_id = Int64.to_int32 next_id in
+             PGSQL(db) "INSERT INTO forums_messages \
+                    (id,        creator_id,  root_id, forum_id, \
+                     subject,  wikibox,  moderated,  sticky) \
+             VALUES ($next_id, $creator_id', $next_id, $forum_id, \
+                     $subject, $wikibox, $moderated, $sticky)"
+               | _ -> Lwt.fail 
+                   (Failure
+                      "Forum_sql.new_message: error in nextval(id) in table forums_messages"))
+       ) >>= fun () -> 
+      Sql.PGOCaml.serial4 db "forums_messages_id_seq" >>= fun s ->
+      Lwt.return (Forum_sql.Types.message_of_sql s)
+    )
 

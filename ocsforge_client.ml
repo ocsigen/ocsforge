@@ -256,6 +256,7 @@ struct
        )
    ;;
 end
+
 (*
 module Task_xchange = struct
 
@@ -323,55 +324,53 @@ module Task_xchange = struct
       ]
       ()
 
-  let print_tree t =
-    let renderer
-          ({ title = ti ; id = id ; parent = pa ;
-            progress = pr ; editable = ed ; leaf = le ; } as t)
-          _ depth =
-      let button =
-        if le
-        then new AXOWidgets.text_button ~activated:false "x "
-        else new AXOWidgets.cyclic_button (AXOHtml.Low.span ())
-               (AXOJs.Node.text "> ", true) (AXOJs.Node.text "v ", false)
-      in
-      let kids_ground =
-        AXOHtml.Low.ul
-          ~attrs:[("style", "margin: 0px ; padding: 0px; position: relative;")]
-          ()
-      in
-      let content =
-        AXOHtml.Low.span
-          ~attrs:[("style",
-                   "padding-left: "^(string_of_int (15 * depth))^"px")]
-          ~children:[
-            button # get_obj ;
-            AXOJs.Node.text ti ;
-          ]
-          ()
-      in
-      let line = AXOHtml.Low.div
-                   ~children:[
-                     LOption.unopt ~default:(AXOHtml.Low.div ())
-                       (LOption.apply_on_opted
-                          (render_percent
-                             ~attrs:[("style",
-                                      "position: absolute; left:-280px")]
-                          )
-                          pr) ;
-                     content ;
-                   ]
-                   ()
-      in
-        {
-          AXOToolkit.dnd_node        =           t ;
-          AXOToolkit.dnd_line        =        line ;
-          AXOToolkit.dnd_dragg       =     content ;
-          AXOToolkit.dnd_drop        =     content ;
-          AXOToolkit.dnd_kids_ground = kids_ground ;
-        }
-    in match tree with
-      | { LTree.content = t ; LTree.children = l ; } ->
-          aux t
+  let renderer
+        ({ title = ti ; id = id ; parent = pa ;
+          progress = pr ; editable = ed ; leaf = le ; } as t)
+        _ depth =
+    let button =
+      if le
+      then new AXOWidgets.text_button ~activated:false "x "
+      else new AXOWidgets.cyclic_button (AXOHtml.Low.span ())
+             (AXOJs.Node.text "> ", true) (AXOJs.Node.text "v ", false)
+    in
+    let kids_ground =
+      AXOHtml.Low.ul
+        ~attrs:[("style", "margin: 0px ; padding: 0px; position: relative;")]
+        ()
+    in
+    let content =
+      AXOHtml.Low.span
+        ~attrs:[("style",
+                 "padding-left: "^(string_of_int (15 * depth))^"px")]
+        ~children:[
+          button # get_obj ;
+          AXOJs.Node.text ti ;
+        ]
+        ()
+    in
+    let line = AXOHtml.Low.div
+                 ~children:[
+                   LOption.unopt ~default:(AXOHtml.Low.div ())
+                     (LOption.apply_on_opted
+                        (render_percent
+                           ~attrs:[("style",
+                                    "position: absolute; left:-280px; width: ")]
+                        )
+                        pr) ;
+                   content ;
+                 ]
+                 ()
+    in
+      {
+        AXOToolkit.dnd_node        =           t ;
+        AXOToolkit.dnd_line        =        line ;
+        AXOToolkit.dnd_dragg       =     content ;
+        AXOToolkit.dnd_drop        =     content ;
+        AXOToolkit.dnd_kids_ground = kids_ground ;
+      }
+
+
 
 
 end

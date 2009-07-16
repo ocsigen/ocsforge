@@ -5,16 +5,16 @@
   <server>
 
     <port>8080</port>
-    <logdir>/home/jh/ocsimore/var/log/ocsimore</logdir>
-    <datadir>/home/jh/ocsimore/var/lib/ocsimore</datadir>
+    <logdir>PATH_TO_OCSIMORE/var/log/ocsimore</logdir>
+    <datadir>PATH_TO_OCSIMORE/var/lib/ocsimore</datadir>
     
     
     <charset>utf-8</charset>
-    <commandpipe>/home/jh/ocsimore/var/run/ocsimore_command</commandpipe>
+    <commandpipe>PATH_TO_OCSIMORE/var/run/ocsimore_command</commandpipe>
 
     <debugmode/>
 
-    <findlib path="/home/jh/ocsimore/files"/>
+    <findlib path="PATH_TO_OCSIMORE/files"/>
 
     <extension findlib-package="ocsigen.ext.staticmod"/>
     <extension findlib-package="ocsigen.ext.ocsipersist-sqlite">
@@ -28,7 +28,7 @@
     <extension findlib-package="ocsigen.ext.accesscontrol"/>
     <extension findlib-package="pgocaml"/>
     <extension findlib-package="ocsimore">
-      <passwordfile name="/home/jh/ocsimore/etc/ocsigen/ocsimorepassword" />
+      <passwordfile name="PATH_TO_OCSIMORE/etc/ocsigen/ocsimorepassword" />
     </extension>
     <extension findlib-package="ocsimore.forum" />
 
@@ -36,13 +36,13 @@
     <extension findlib-package="ocsigen.ext.userconf"/>
     <extension findlib-package="ocsigen.ext.extendconfiguration"/>
     <extension findlib-package="ocsigen.ext.redirectmod"/>
-    <extension module="_build/ocsforge_svn.cma"/>
-    <!-- END personal pages -->
+    <extension module="PATH_TO_OCSFORGE/_build/ocsforge_svn.cma"/>    
+    <!-- END personal pages -->			     
 
 
     <host defaulthostname="localhost">
 
-      <static dir="/home/jh/PPS/ocsforge/static" />
+      <static dir="PATH_TO_OCSFORGE/static" />
             
 
       <eliommodule findlib-package="ocsimore.users">
@@ -62,38 +62,23 @@
       </eliommodule>
 
       <eliommodule findlib-package="ocsimore.ocsisite">
-        <admin staticdir="/home/jh/PPS/ocsforge/static" />
+        <admin staticdir="PATH_TO_OCSFORGE/static" />
       </eliommodule>
 
 
 
       <eliommodule findlib-package="ocsimore.forum.site" />
 
-      <!-- The following option has effect only the first time, and creates the
-           specified wiki. Already created wikis are automatically reloaded -->
-      <eliommodule module="_build/ocsforge.cma">
+      <eliommodule module="../ocsimore/_build/forum/ocsicreateforum.cmo">
+        <name>ocsforge_task_forum</name>
       </eliommodule>
 
-      <eliommodule module="../../ocsimore/_build/forum/ocsicreateforum.cmo">
-        <name>task_forum</name>
+      <eliommodule module="PATH_TO_OCSFORGE/_build/ocsforge.cma">
       </eliommodule>
 
       <eliom/>
 
     </host>
-
-    <!-- It is possible to define new Ocsimore groups from the config file: -->
-
-    <!--extension findlib-package="ocsimore">
-      <group name="intranet">
-        <!-- Use one condition with accesscontrol's syntax: -->
-        <or>
-          <ip value="134.157.168.0/25" />
-          <ip value="192.168.0.0/24" />
-          <ip value="2001:660:3301:8061::/64" />
-        </or>
-      </group>
-    </extension-->
 
   </server>
 

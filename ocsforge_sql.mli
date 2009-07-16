@@ -223,8 +223,17 @@ val get_projects_path_list :
 val bootstrap_task :
   area:Ocsforge_types.right_area ->
   message:Forum_sql.Types.message ->
-  unit Lwt.t
+  int32 Lwt.t
 val get_task_count :
   unit -> int Lwt.t
+val first_message :
+  forum:Forum_sql.Types.forum ->
+  wiki:Wiki_types.wiki ->
+  creator:User_sql.Types.userid ->
+  title_syntax:Wiki_types.content_type ->
+  text:string ->
+  content_type:Wiki_types.content_type -> Forum_sql.Types.message Lwt.t
+
+
 
 
