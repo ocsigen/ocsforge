@@ -348,25 +348,45 @@ let get_patch_list ?id rep =
 
 
 
-let darcs_log ?file ?id rep =
+let darcs_log ?file ?id ?limit rep =
   let command = match file with
   | None ->
       begin match id with
       | None ->
-	  ("darcs changes --repodir "^rep
-	   ^" --xml-output --reverse")
+          begin match limit with
+	  | None -> ("darcs changes --repodir "^rep
+	             ^" --xml-output --reverse")
+          | Some(i) -> ("darcs changes --repodir "^rep
+	                ^" --xml-output --reverse --last="^(string_of_int i))
+          end
       | Some(matching) ->
-	  ("darcs changes --repodir "^rep
-	   ^" --to-match 'hash "^matching^"' --xml-output --reverse")
+          begin match limit with
+	  | None -> ("darcs changes --repodir "^rep
+	             ^" --to-match 'hash "^matching^"' --xml-output --reverse")
+          | Some(i) ->
+              ("darcs changes --repodir "^rep
+	       ^" --to-match 'hash "^matching^"' --xml-output --reverse --last="^(string_of_int i))
+          end
       end
   | Some(f) ->
       begin match id with
       | None ->
-	  ("darcs changes --repodir "^rep
-	   ^" --xml-output --reverse "^f) 
+          begin match limit with 
+	  | None ->("darcs changes --repodir "^rep
+	            ^" --xml-output --reverse "^f)
+          | Some(i) ->
+              ("darcs changes --repodir "^rep
+	            ^" --xml-output --last="^(string_of_int i)^" --reverse "^f)
+          end
       | Some(matching) ->
-	  ("darcs changes --repodir "^rep
-	   ^" --to-match 'hash "^matching^"' --xml-output --reverse "^f)
+          begin match limit with
+          | None ->("darcs changes --repodir "^rep
+	            ^" --to-match 'hash "^matching^"' --xml-output --reverse "^f)
+          | Some(i) ->
+              ("darcs changes --repodir "^rep
+	       ^" --to-match 'hash "^matching
+               ^"' --last="^(string_of_int i)^" --xml-output --reverse "^f)
+          end
       end
   in let error_message = "Error while getting changelog (signal received)" in
   exec_command command error_message >>= function
@@ -558,7 +578,7 @@ let rec parse_diff diff_res parsed_res started = match diff_res with
 	if (String.length h == 0) then parse_diff t parsed_res started 
 	else if (h.[0] == '+') then
 	  let new_res = {fileName = currentDiff.fileName;
-			 oldContent = currentDiff.oldContent;
+			 oldContent = (Blank,(String.make (String.length h -1) ' '))::currentDiff.oldContent;
 			 newContent = ((Diff,(string_after h 1))::
 				       currentDiff.newContent)}::
 	    (List.tl parsed_res)
@@ -568,7 +588,7 @@ let rec parse_diff diff_res parsed_res started = match diff_res with
 	  let new_res = ({fileName = currentDiff.fileName;
 			  oldContent = 
 			  ((Diff,(string_after h 1))::currentDiff.oldContent);
-			  newContent = currentDiff.newContent})::
+			  newContent = (Blank,(String.make (String.length h -1) ' '))::currentDiff.newContent})::
 	    (List.tl parsed_res)
 	  in
 	  parse_diff t new_res started 

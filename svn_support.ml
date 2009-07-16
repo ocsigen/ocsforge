@@ -126,7 +126,11 @@ let rec create_patch_list log_res patch_list step = match log_res with
 	
 
 (** Stocke la liste des révisions du dépôt dans une liste de type patch *)
-let svn_log ?file ?id rep = 
+let svn_log ?file ?id ?limit rep = 
+  let last = match limit with
+    | None -> 0
+    | Some(i) -> i
+  in
   let log_res = 
     match file with
       | None    -> 
@@ -137,7 +141,7 @@ let svn_log ?file ?id rep =
 		| _ -> "")
 	    (extract_list (Swig_svn._svn_support_log 
 			     (Swig.C_list
-				[Swig.C_string(rep); Swig.C_string("")])))
+				[Swig.C_string(rep); Swig.C_int(last)])))
       | Some(f) ->
 	  List.map 
 	    (fun s -> match s with
@@ -145,7 +149,7 @@ let svn_log ?file ?id rep =
 			| _ -> "")
 	    (extract_list (Swig_svn._svn_support_log 
 			     (Swig.C_list
-				[Swig.C_string(rep) ; Swig.C_string(f)])))
+				[Swig.C_string(rep^"/"^f); Swig.C_int(last)])))
   in
   create_patch_list log_res [] 0
 
@@ -252,7 +256,10 @@ let rec parse_diff diff_res parsed_res started = match diff_res with
 	if (String.length h == 0) then parse_diff t parsed_res started 
 	else if (h.[0] == '+') then
 	  let new_res = {fileName = currentDiff.fileName;
-			 oldContent = currentDiff.oldContent;
+			 oldContent = (Blank,(String.make 
+                                                (String.length h + 
+                                                   7*(tabcount h 0) - 1) ' '))
+                         ::currentDiff.oldContent;
 			 newContent = ((Diff,(string_after h 1))::
 				       currentDiff.newContent)}::
 	    (List.tl parsed_res)
@@ -262,7 +269,10 @@ let rec parse_diff diff_res parsed_res started = match diff_res with
 	  let new_res = ({fileName = currentDiff.fileName;
 			  oldContent = 
 			  ((Diff,(string_after h 1))::currentDiff.oldContent);
-			  newContent = currentDiff.newContent})::
+			  newContent = (Blank,(String.make 
+                                                 (String.length h + 
+                                                    7*(tabcount h 0) - 1) ' '))
+                          ::currentDiff.newContent})::
 	    (List.tl parsed_res)
 	  in
 	  parse_diff t new_res started 

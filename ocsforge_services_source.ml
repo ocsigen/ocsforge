@@ -54,10 +54,13 @@ let source_service path project = Eliom_predefmod.Any.register_new_service
 	| ([""],(None,(_,(_,_)))) ->
             (Some("Ocsforge - Repository browser"),
              Ocsforge_widgets_source.draw_repository_table ~sp ~id ~version ~dir:None)
-	| ([],(v,(_,(_,_)))) 
-	| ([""],(v,(_,(_,_)))) ->
+	| ([],(v,(false,(false,(_,_))))) 
+	| ([""],(v,(false,(false,(_,_))))) ->
 	    (Some("Ocsforge - Repository browser"),
              Ocsforge_widgets_source.draw_repository_table ~sp ~id ~version ~dir:None)
+        | (l,(None,(_,(_,(_,(Some(diff1),Some(diff2))))))) ->
+	    (Some("Ocsforge - File diff"),
+             Ocsforge_widgets_source.draw_diff_view ~sp ~id ~target:l ~diff1 ~diff2)
         | (l,(_,(false,(false,(false,(_,_)))))) ->
             (Some("Ocsforge - Repository browser"),
              Ocsforge_widgets_source.draw_repository_table ~sp ~id ~version ~dir:(Some(l)))
@@ -74,9 +77,6 @@ let source_service path project = Eliom_predefmod.Any.register_new_service
 	    else
 	      (Some("Ocsforge - File content"),
                Ocsforge_widgets_source.draw_source_code_view ~sp ~id ~target:l ~version)
-	| (l,(None,(_,(_,(_,(Some(diff1),Some(diff2))))))) ->
-	    (Some("Ocsforge - File diff"),
-             Ocsforge_widgets_source.draw_diff_view ~sp ~id ~target:l ~diff1 ~diff2)
 	| _ -> (* TODO : gestion erreur ?*)
             (None,Ocsforge_widgets_source.draw_source_code_view ~sp ~id ~target:[] ~version:None)
       in

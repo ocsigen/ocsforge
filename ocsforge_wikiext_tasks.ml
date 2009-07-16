@@ -106,7 +106,7 @@ let register_wikiext wp
               ~nl_service
 	      ~temp_service
               ?sort inline_widget ()
-                                   >>= fun b ->
+                                   >>= fun (b: {{ Xhtmltypes_duce.flows }}) ->
               Lwt.return {{  b }}
            )
 
@@ -120,7 +120,7 @@ let register_wikiext wp
                                   !{: Printexc.to_string exc :} ] ] }})
         )
 
-    ) : Wiki_syntax.syntax_extension ) ;
+    )) ;
 
 
 (*

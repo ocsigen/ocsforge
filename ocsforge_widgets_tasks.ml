@@ -679,7 +679,7 @@ object (self)
                    !{: head :}
                    !{: core :}
                  ] ]
-              }} ) : {{ [ Xhtmltypes_duce.block ] }})
+              }} ) : {{ Xhtmltypes_duce.flows }})
 
 end
 

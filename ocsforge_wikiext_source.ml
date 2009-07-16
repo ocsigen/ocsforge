@@ -44,11 +44,11 @@ let register_wikiext wp =
 		   Ocsforge_widgets_source.draw_repository_table ~sp ~id
 		     ~version ~dir:None
 		     >>=
-		   fun (b: {{ [ Xhtmltypes_duce.block* ] }}) ->
+		   fun (b: {{ Xhtmltypes_duce.flows }}) ->
 		     Lwt.return b
 	       | Some f ->
 		   Ocsforge_widgets_source.draw_source_code_view ~sp ~id ~target:[f] ~version >>=
-		   fun (b: {{ [ Xhtmltypes_duce.block* ] }}) ->
+		   fun (b: {{ Xhtmltypes_duce.flows }}) ->
 		     Lwt.return b
 	   )
 	   (function
@@ -60,4 +60,4 @@ let register_wikiext wp =
 		 Lwt.return {{ [ <b>[ !{: s :} <br>[]
 		 !{: Printexc.to_string exc :} ] ] }})
 	)
-     ) : Wiki_syntax.syntax_extension )
+     ))

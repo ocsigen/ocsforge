@@ -262,8 +262,8 @@ let create_log_table_content ~sp ~id ~file ~project_services =
     | (Some(kind),Some(path)) ->
 	Ocsforge_version_managers.get_fun_pack kind >>= fun fun_pack ->
 	  let log = match file with
-	    | None -> fun_pack.STypes.vm_log path
-	    | Some(f) -> fun_pack.STypes.vm_log ~file:f path
+	    | None -> fun_pack.STypes.vm_log ~limit:100 path 
+	    | Some(f) -> fun_pack.STypes.vm_log ~file:f ~limit:100 path
 	  in
 	  log >>= fun log_result -> 
 	    extract_result log_result 	
@@ -413,6 +413,12 @@ let create_file_page ~sp ~id ~target ~version ~project_services =
 		     ~value: target
 		     ()
 		     :}
+                    {: 
+                       Eliom_duce.Xhtml.bool_checkbox
+                       ~a: {{ { type="hidden" } }}
+                       ~checked: true
+                       ~name: view ()
+                       :}
 		    'Select a version  '
 		    {: 
 		       Eliom_duce.Xhtml.string_select
@@ -675,7 +681,7 @@ let draw_repository_table ~sp ~id ~version ~dir =
                                           <td> [] <td> []]]}}
                                         :}
                              !b]] }} 
-		  : {{ [ Xhtmltypes_duce.block* ] }})
+		  : {{ Xhtmltypes_duce.flows }})
       
 
 let draw_source_code_view ~sp ~id ~target ~version =
@@ -716,7 +722,7 @@ let draw_source_code_view ~sp ~id ~target ~version =
 			     :}
 		       <p> [<br>[]]
 		       !b] }} 
-		  : {{ [ Xhtmltypes_duce.block* ] }})
+		  : {{ Xhtmltypes_duce.flows }})
 
 
 let draw_log_table ~sp ~id ~file = 
@@ -740,7 +746,7 @@ let draw_log_table ~sp ~id ~file =
 	             <p> [<br>[]]
 	             <table class="sources_table">
 		     [!log_table_header !b]]}}
-		  : {{ [ Xhtmltypes_duce.block* ] }})
+		  : {{ Xhtmltypes_duce.flows }})
 
 
 (* TODO *)
@@ -774,7 +780,7 @@ let draw_diff_view ~sp ~id ~target ~diff1 ~diff2 =
 				     ~service:ps.Sh.sources_service
 				     ~sp {{ {: "More options for this file" :}  }}
 				     (target,(None,(true,(false,(false,(None,None)))))):}] ] }}
-				 :} <p>[<br>[]] !b ]}}  : {{ [ Xhtmltypes_duce.block* ] }})
+				 :} <p>[<br>[]] !b ]}}  : {{ Xhtmltypes_duce.flows }})
   
 (* TODO ¿ cas ou target est un répertoire ? *)
 let draw_file_page ~sp ~id ~target ~version =
@@ -793,7 +799,7 @@ let draw_file_page ~sp ~id ~target ~version =
 			         ~service:ps.Sh.sources_service
 			         ~sp {{ {:"Back to repository content":} }}
 			         ([],(None,(false,(false,(false,(None,None)))))):}]]}}
-			     :} <p>[<br>[]]  !b ] }} : {{ [ Xhtmltypes_duce.block* ] }})
+			     :} <p>[<br>[]]  !b ] }} : {{ Xhtmltypes_duce.flows }})
       
 
 let draw_annotate ~sp ~id ~target ~version =
@@ -825,4 +831,4 @@ let draw_annotate ~sp ~id ~target ~version =
 				   (target,(None,(true,(false,(false,(None,None)))))):}] ] }}
 			       :}
                        <p>[<br>[]]
-                       !b]}} : {{ [ Xhtmltypes_duce.block* ] }})
+                       !b]}} : {{ Xhtmltypes_duce.flows }})

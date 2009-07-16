@@ -242,7 +242,7 @@ apr_array_header_t *svn_support_list(char *rep_path, int rev)
 }
 
 /* fonction simulant la commande svn log */
-apr_array_header_t *svn_support_log(char *rep_path)
+apr_array_header_t *svn_support_log(char *rep_path, int limit)
 {  
   apr_pool_t *pool ;
   svn_error_t *err;
@@ -289,7 +289,7 @@ apr_array_header_t *svn_support_log(char *rep_path)
 			&revision,
 			&revision_start,
 			&revision_end,
-			0,
+			limit,
 			TRUE,
 			TRUE,
 			FALSE,
