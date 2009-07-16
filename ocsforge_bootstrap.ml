@@ -42,16 +42,21 @@ let first_task () =
   else
     begin
       Forum_sql.get_forum ~title:"ocsforge_task_forum" () >>= fun fi ->
-      Wiki_sql.get_wiki_info_by_name "ocsforge_task_forum (messages)" >>= fun wi ->
+      Wiki_sql.new_wiki
+        ~title:"ocsforge_task_wiki" ~descr:"" ~pages:(Some "ocsforge")
+        ~boxrights:false ~staticdir:None ~author:User.admin
+        ~model:Ocsisite.wikicreole_model ()
+                                                          >>= fun (wiki,_) ->
+      Wiki_sql.get_wiki_info_by_id wiki                   >>= fun wi ->
       Ocsforge_sql.new_area
         ~forum:(fi.Forum_sql.Types.f_id)
         ~wiki:(wi.Wiki_types.wiki_id)
         ()
-                                                       >>= fun area ->
-      add_message ~forum:(fi.Forum_sql.Types.f_id) ()  >>= fun message ->
+                                                          >>= fun area ->
+      add_message ~forum:(fi.Forum_sql.Types.f_id) ()     >>= fun message ->
       Ocsforge_sql.bootstrap_task
         ~area
-        ~message                                       >>= fun task ->
+        ~message                                          >>= fun task ->
       Lwt_util.iter_serial
         (fun a -> User.add_to_group
                     ~user:(User_sql.Types.basic_user User.admin)
