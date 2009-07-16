@@ -46,14 +46,4 @@ val log_service :
        unit,unit,[ `Registrable ])
 	Eliom_services.service
 
-val temp_service :
-    ((string * string ), unit,
-     [ `Attached of
-       Eliom_services.get_attached_service_kind Eliom_services.a_s ],
-     [ `WithSuffix ],
-     [ `One of string ] Eliom_parameters.param_name *
-       [ `One of string ] Eliom_parameters.param_name, unit,
-     [ `Registrable ])
-    Eliom_services.service
-
 val register_repository_services : unit Lwt.t

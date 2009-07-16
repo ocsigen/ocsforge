@@ -22,7 +22,6 @@ open Ocsforge_wikiext_common
 let register_wikiext wp
       (tree_widget : Ocsforge_widgets_tasks.tree_widget)
       nl_service
-      temp_service
       inline_widget
      =
 
@@ -104,7 +103,6 @@ let register_wikiext wp
               ~root_tasks:(Ocsforge_lang.unopt ~default:we_id nl_id, we_id)
               ~fields
               ~nl_service
-	      ~temp_service
               ?sort inline_widget ()
                                    >>= fun (b: {{ Xhtmltypes_duce.flows }}) ->
               Lwt.return {{  b }}

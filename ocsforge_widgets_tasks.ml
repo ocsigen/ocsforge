@@ -508,23 +508,15 @@ object (self)
 
 
   method display ~sp ~root_tasks:(root_task, top_root) ~fields inline_widget
-        ~(nl_service :
-            (unit * (Types.task * (string * bool)), unit,
-             [ `Nonattached of 'a Eliom_services.na_s ], [ `WithoutSuffix ],
-             unit *
+      ~(nl_service :
+          (unit * (Types.task * (string * bool)), unit,
+           [ `Nonattached of 'a Eliom_services.na_s ], [ `WithoutSuffix ],
+           unit *
              ([ `One of Types.task ] Params.param_name *
-              ([ `One of string ] Params.param_name *
-               [ `One of bool ] Params.param_name )),
-             unit, [ `Unregistrable ])
-            Eliom_services.service)
-         ~(temp_service :
-            ((string * string), unit,
-             [ `Attached of
-               Eliom_services.get_attached_service_kind Eliom_services.a_s ],
-	     [ `WithSuffix ],
-	     [ `One of string ] Eliom_parameters.param_name *
-	     [ `One of string ] Eliom_parameters.param_name, unit,
-             [ `Registrable ]) Eliom_services.service)
+                ([ `One of string ] Params.param_name *
+                   [ `One of bool ] Params.param_name )),
+           unit, [ `Unregistrable ])
+          Eliom_services.service)
       ?sort
       () =
     Data.get_tree ~sp ~root:root_task () >>= fun tree ->
@@ -560,30 +552,21 @@ object (self)
                     <div class={: Ocsimore_lib.build_class_attr
                                     ["depth" ^ (string_of_int (min depth 9))]
                        :}>[
-		       {: match Ocsforge_services_hashtable.find_service t.Types.t_id with
+		       !{: match Ocsforge_services_hashtable.find_service t.Types.t_id with
 		           | None -> 
-			       EDuce.Xhtml.a
-				 ~service:temp_service
-				 ~sp
-				 {{ [ ] }}
-				 (*{{ [ <img src={: EDuce.Xhtml.make_uri ~sp
-						  ~service:(Eliom_services.static_dir
-                                                              ~sp)
-						  ["magnifier.png"] :}
-					alt="zoom to subtask">[]
-				    ] }}*)
-				 ("", "")
+			      ({{ [] }} : {{[Xhtmltypes_duce.a*] }})
 			   | Some(ps) ->
-			       EDuce.Xhtml.a
-			       ~service:ps.Ocsforge_services_hashtable.sources_service
-				 ~sp
-				 {{ [ <img src={: EDuce.Xhtml.make_uri ~sp
-						  ~service:(Eliom_services.static_dir 
-						      ~sp)
-						  ["open_repository.png"] :}
-					alt="go to repos page">[]
-				    ] }}
-				 ([],(None,(false,(false,(false,(None,None))))))
+			       {{ [{:
+                                     EDuce.Xhtml.a
+			             ~service:ps.Ocsforge_services_hashtable.sources_service
+				     ~sp
+				     {{ [ <img src={: EDuce.Xhtml.make_uri ~sp
+						      ~service:(Eliom_services.static_dir 
+						                  ~sp)
+						      ["open_repository.png"] :}
+					    alt="go to repos page">[]
+				        ] }}
+				     ([],(None,(false,(false,(false,(None,None)))))) :}] }}
 			:} 
                      {: EDuce.Xhtml.a
                           ~service:nl_service

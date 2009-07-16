@@ -105,7 +105,6 @@ let _ =
     Wiki_syntax.wikicreole_parser
     tree_widget
     Ocsforge_services_tasks.non_localized_service
-    Ocsforge_services_source.temp_service
     inline_widget
   
 let _ = 

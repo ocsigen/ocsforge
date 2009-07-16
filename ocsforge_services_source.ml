@@ -23,14 +23,6 @@ module Sh = Ocsforge_services_hashtable
 module Vm = Ocsforge_version_managers
 
 
-(* service temporaire qui ne fait rien *)
-let temp_service = Eliom_predefmod.Action.register_new_service
-    ~path:["voidservice"]
-    ~get_params:(Eliom_parameters.suffix_prod
-                   (Eliom_parameters.string "page_kind")
-		   (Eliom_parameters.string "version"))
-    (fun sp (page_kind,options) () -> Lwt.return ())
-
 let source_service path project = Eliom_predefmod.Any.register_new_service
     ~path:[path; project; "sources"; ""]
     ~get_params:
