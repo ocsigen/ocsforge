@@ -21,7 +21,7 @@ val source_service :
     string ->
     string ->
     (string list * 
-       (string option * (bool * (bool *((string * int) option * (string * int) option))))
+       (string option * (bool * (bool * (bool *((string * int) option * (string * int) option)))))
        , unit,
      [ `Attached of
        Eliom_services.get_attached_service_kind Eliom_services.a_s ],
@@ -30,8 +30,9 @@ val source_service :
 	([ `One of string ] Eliom_parameters.param_name *
 	   ([ `One of bool ] Eliom_parameters.param_name * 
               ([ `One of bool ] Eliom_parameters.param_name * 
-	         ([ `One of (string * int) ] Eliom_parameters.param_name *
-		    ([ `One of (string * int) ] Eliom_parameters.param_name)))))), unit,
+	         ([ `One of bool ] Eliom_parameters.param_name * 
+                    ([ `One of (string * int) ] Eliom_parameters.param_name *
+		       ([ `One of (string * int) ] Eliom_parameters.param_name))))))), unit,
      [ `Registrable ])
 	Eliom_services.service
 

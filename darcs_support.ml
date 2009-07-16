@@ -291,16 +291,16 @@ let rec handle_added_by l = match l with
             handle_added_by t
 
 
-let rec handle_normal_line aut l = match l with
-  | [] -> Lwt.return ((aut^"\n"),"\n")
+let rec handle_normal_line aut line_content l = match l with
+  | [] -> Lwt.return ((aut^"\n"),(line_content^"\n"))
   | h::t -> 
       match h with
         | Simplexmlparser.PCData(line) ->
-            Lwt.return ((aut^"\n"),(line^"\n"))
+            handle_normal_line aut (line_content^line) t
         | Simplexmlparser.Element(name,args,content) ->
             if (String.compare name "added_by" == 0) then
-              handle_normal_line (handle_added_by content) t
-            else handle_normal_line aut t
+              handle_normal_line (handle_added_by content) line_content t
+            else handle_normal_line aut line_content t
             
 
 let rec handle_file res l = match l with
@@ -310,7 +310,7 @@ let rec handle_file res l = match l with
         | Simplexmlparser.PCData(_) -> handle_file res t
         | Simplexmlparser.Element(name,_,content) -> 
             if (String.compare name "normal_line" == 0) then
-              handle_normal_line "" content >>= fun line ->
+              handle_normal_line "" "" content >>= fun line ->
                 handle_file (line::res) t
             else
               handle_file res t
@@ -378,26 +378,48 @@ let darcs_log ?file ?id rep =
 
 
 (** Recuperes l'arbre associé au patch précisé *)
-let darcs_list ?id rep = 
-  let list_cmd = match id with
-  | None -> get_patch_list rep
-  | Some(i) -> get_patch_list ~id:i rep
+let darcs_list ?id ?dir repos_path = 
+  let rec find_rev rev l = match l with
+    | [] -> Lwt.return (Dir(ref(""),[])) (* a traiter *)
+    | p::t -> 
+        if ((String.compare rev !(p.id)) == 0) then
+	  Lwt.return (p.tree)
+        else find_rev rev t
   in
-  list_cmd >>= fun pl -> match id with
-    | None ->  
-	begin match pl with
-	| [] -> Lwt.return (Dir(ref(""),[])) (* a traiter *)
-	| _ -> Lwt.return ((List.hd pl).tree)
-	end
-    | Some(hash) ->
-	let rec aux l = match l with
-        | [] -> Lwt.return (Dir(ref(""),[])) (* a traiter *)
-	| p::t -> 
-	    if ((String.compare hash !(p.id)) == 0) then
-	      Lwt.return (p.tree)
-	    else aux t
-	in aux pl
-
+  match (id,dir) with
+    | (None,None) -> 
+        get_patch_list repos_path >>= fun l -> begin match l with
+          | [] -> Lwt.return (Dir(ref(""),[])) (* a traiter ? *)
+          | _ -> Lwt.return ((List.hd l).tree)
+        end
+    | (Some(i),None) -> 
+        get_patch_list ~id:i repos_path >>= fun l -> begin match l with
+          | [] -> Lwt.return (Dir(ref(""),[])) (* a traiter ? *)
+          | _ -> find_rev i l
+        end
+    | (None,Some(d)) -> 
+        let path = (repos_path^"/"^d) in
+        get_patch_list path >>= fun l -> begin match l with
+          | [] -> Lwt.return (Dir(ref(""),[])) (* a traiter ? *)
+          | _ ->  
+              let (target,name) = format_name d ~eatblanks:false in
+              let res = get_node name target ((List.hd l).tree) in match res with
+                  | None -> Lwt.return (Dir(ref(""),[])) (* a traiter ? *)
+                  | Some(t) -> Lwt.return t
+        end
+    | (Some(i),Some(d)) -> 
+        let path = (repos_path^"/"^d) in
+        get_patch_list ~id:i path >>= fun l -> begin match l with
+          | [] -> Lwt.return (Dir(ref(""),[])) (* a traiter ? *)
+          | _ -> 
+              find_rev i l >>= fun tree -> 
+                let (target,name) = format_name d ~eatblanks:false in
+                let res = get_node name target tree in match res with
+                  | None -> Lwt.return (Dir(ref(""),[])) (* a traiter ? *)
+                  | Some(t) -> Lwt.return t
+        end
+            
+            
 (** Stocke le contenu d'un fichier d'un dépôt Darcs dans une string list *)
 let darcs_cat ?id rep file = 
   let error_message = "Error while getting file content (signal received)" in
@@ -599,9 +621,9 @@ let rec print_tree path tree = match tree with
 let darcs_annot ?id rep file = 
   let error_message = "Error while annotating the file (signal received)" in
   let command = match id with
-    | None -> ("darcs annotate --xml-output "^file^" --repodir "^rep)
+    | None -> ("darcs annotate --xml-output "^file^" --repodir="^rep)
     | Some(patch) -> ("darcs annotate --xml-output --match 'hash "^patch^
-                      "' "^file^" --repodir"^rep)
+                      "' "^file^" --repodir="^rep)
   in
   exec_command command error_message >>= function
     | [] -> Lwt.return []

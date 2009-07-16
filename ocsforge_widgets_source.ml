@@ -46,7 +46,7 @@ let utf8_td content (tdclass:string) =
                     : {{ [Xhtmltypes_duce.td] }}))
  
 let repository_table_header = 
-  ({{ [<tr> [ <th class="sources_table"> []
+  ({{ [<tr> [ 
       <th class="sources_table"> ['File'] 
 	  <th class="sources_table"> ['Author']
 	      <th class="sources_table"> ['Latest version'] ] ]  }} 
@@ -66,8 +66,7 @@ let log_table_header =
      : {{ [Xhtmltypes_duce.tr] }})
     
     
-let create_repository_table_content ~sp ~id ~version 
-    ~project_services =
+let create_repository_table_content ~sp ~id ~version ~dir ~project_services =
   Data.get_area_for_task sp id >>= fun r_infos -> 
     match (r_infos.Types.r_repository_kind,r_infos.Types.r_repository_path) with
     | (Some(kind),Some(path)) ->
@@ -75,6 +74,10 @@ let create_repository_table_content ~sp ~id ~version
 	  let cpt = ref 0 in
 	  let rec build_content tree current_dir depth = match tree with
 	  | STypes.File(f,aut,(rev_name,rev_id)) ->
+              let file_path = match dir with
+                | None -> [!f]
+                | Some(list_path) -> List.rev ((!f)::(List.rev list_path))
+              in
 	      Lwt.return
                 {{ [ <tr class={:
 				if (!cpt mod 2 == 0) then begin 
@@ -93,7 +96,7 @@ let create_repository_table_content ~sp ~id ~version
 		            [<img alt="file" 
 				src={:Eliom_duce.Xhtml.make_uri ~sp
 				       ~service:(Eliom_services.static_dir ~sp)
-				       ["source_file.png"] :}>[]] }}
+				       ["source_file.png"] :}>[] !{: !f :}] }}
 		      | Some(ps) ->
 			  {{ <td class="sources_table"> 
 			    [{:
@@ -104,30 +107,21 @@ let create_repository_table_content ~sp ~id ~version
 					    src={:Eliom_duce.Xhtml.make_uri ~sp
 						   ~service:(Eliom_services.static_dir ~sp)
 						   ["source_file.png"] :}>[]] }}
-				((if (String.length current_dir != 0) then
-				  (Neturl.split_path (current_dir^"/"^(!f)))
-				else [!f]),(version,(true,(false,(None,None)))))
+				(file_path,(version,(true,(false,(false,(None,None))))))
+				:}
+                           
+                               {: let rev = 
+                                 match version with
+                                 | None -> Some("latest")
+				 | _ -> Some(rev_id)
+			       in
+			       Eliom_duce.Xhtml.a 
+                                 ~a: {{ {class="sources_img_link"} }}
+				 ~service:ps.Sh.sources_service 
+				 ~sp {{ {: !f :} }}
+				 (file_path,(rev,(false,(true,(false,(None,None))))))
 				:}] }}
 			    :}
-		       {: match project_services with
-		       | None -> 
-			   {{ <td class="sources_table"> {: (!f) :} }}
-		       | Some(ps) -> 
-			   {{
-			    <td class="sources_table"> 
-			      [ {: let rev = 
-                                     match version with
-                                       | None -> Some("latest")
-				       | _ -> Some(rev_id)
-			           in
-			      Eliom_duce.Xhtml.a 
-				~service:ps.Sh.sources_service 
-				~sp {{ {: !f :} }}
-				((if (String.length current_dir != 0) then
-				  Neturl.split_path (current_dir^"/"^(!f))
-				else [!f]),(rev,(false,(false,(None,None)))))
-				:}] }}
-			     :}
 		       <td class="small_font_center"> {: aut :}
 			   {:
 			      begin match project_services with
@@ -138,7 +132,7 @@ let create_repository_table_content ~sp ~id ~version
 			    	    [{: Eliom_duce.Xhtml.a
 				        ~service:ps.Sh.sources_service
 				        ~sp {{ {: cut_string rev_name 80 :}  }}
-				        ([],(Some(rev_id),(false,(false,(None,None)))))
+				        ([],(Some(rev_id),(false,(false,(false,(None,None))))))
 				        :}] }}
 			      end
 			      :}
@@ -149,37 +143,61 @@ let create_repository_table_content ~sp ~id ~version
 		match list with
 	        | []   -> Lwt.return res
 		| h::t -> 
-		    build_content h dir (depth+1) >>= fun built ->
-		      (aux t dir ({{ [ !res !built ] }}))
+                    if (depth == 0) then 
+		      build_content h dir (depth+1) >>= fun built ->
+		        (aux t dir ({{ [ !built !res ] }}))
+                    else Lwt.return res
 	      in
-	      let new_dir = 
-		if (String.length current_dir == 0) then   
-		  if (String.compare !d "." != 0) then !d
-		  else ""
-		else (current_dir^"/"^(!d))
-	      in
-	      let a = 
-		if (String.length new_dir > 0) then
-		  {{ [<tr class="folder">
-		    [ <td> 
-		      [<img alt="folder" 
-			  src={:Eliom_duce.Xhtml.make_uri ~sp
-				 ~service:(Eliom_services.static_dir ~sp)
-				 ["source_folder.png"] :}>[]]
-			<td> {: new_dir :}
-			<td> []
-			<td> []] ] }}
+              let dir_path = match dir with
+                | None -> [(!d)]
+                | Some(list_path) -> List.rev ((!d)::(List.rev list_path))
+              in
+	      let a =
+		if (String.length (!d) > 0) && (depth>0) then
+		  {{ [<tr class="folder">[
+                      {:
+                        begin match project_services with
+                         | None -> 
+                             {{ <td> [<img alt="folder" 
+		                         src={:Eliom_duce.Xhtml.make_uri ~sp
+			                        ~service:(Eliom_services.static_dir ~sp)
+			                        ["source_folder.png"] :}>[] !{: (!d) :}] }}
+                         | Some(ps) ->
+                             {{ <td> [{: Eliom_duce.Xhtml.a
+                                         ~a: {{ {class="sources_img_link"} }}
+				         ~service:ps.Sh.sources_service
+				         ~sp 
+                                         {{ [<img alt="folder" 
+		                                src={:Eliom_duce.Xhtml.make_uri ~sp
+			                               ~service:(Eliom_services.static_dir ~sp)
+			                               ["source_folder.png"] :}>[] !{: (!d) :}]}}
+                                         (dir_path,(version,(false,(false,(false,(None,None))))))
+				         :}] }}
+                       end :}
+		      <td> []
+		      <td> []] ] }}
 		else {{ [ ] }}
 	      in
-	      (({{aux l new_dir a}}) : {{ [ Xhtmltypes_duce.tr* ] }} Lwt.t)
+              let dir_name = !d in
+	      (({{aux l dir_name a}}) : {{ [ Xhtmltypes_duce.tr* ] }} Lwt.t)
 	  in
-	  begin match version with
-	  | None ->
+          let rep_path = match dir with
+            | None -> path
+            | Some(l) -> (path^"/"^(String.concat "/" l))
+          in
+	  begin match (version,dir) with
+	  | (None,None) ->
 	      fun_pack.STypes.vm_list path >>= fun tree -> 
-		((build_content tree "" (-1)) : {{ [ Xhtmltypes_duce.tr* ] }} Lwt.t)
-	  | Some(v) ->
+		((build_content tree "" 0) : {{ [ Xhtmltypes_duce.tr* ] }} Lwt.t)
+	  | (Some(v),None) ->
 	      fun_pack.STypes.vm_list ~id:v path >>= fun tree -> 
-		((build_content tree "" (-1)) : {{ [ Xhtmltypes_duce.tr* ] }} Lwt.t)
+		((build_content tree "" 0) : {{ [ Xhtmltypes_duce.tr* ] }} Lwt.t)
+          | (None,Some(l)) ->
+	      fun_pack.STypes.vm_list ~dir:(String.concat "/" l) path >>= fun tree -> 
+		((build_content tree "" 0) : {{ [ Xhtmltypes_duce.tr* ] }} Lwt.t)
+          | (Some(v),Some(l)) ->
+	      fun_pack.STypes.vm_list ~id:v ~dir:(String.concat "/" l) path >>= fun tree -> 
+		((build_content tree "" 0) : {{ [ Xhtmltypes_duce.tr* ] }} Lwt.t)
 	  end
     | (_,_) -> Lwt.return {{ [ <tr> [
 			       <td> ['Error: unable to access the repository']]] }}
@@ -232,7 +250,7 @@ let create_log_table_content ~sp ~id ~file ~project_services =
 		      [{: Eliom_duce.Xhtml.a
 			  ~service:ps.Sh.sources_service
 			  ~sp {{ {: cut_string !(p.STypes.name) 50 :} }}
-			  ([],(Some(!(p.STypes.id)),(false,(false,(None,None)))))
+			  ([],(Some(!(p.STypes.id)),(false,(false,(false,(None,None))))))
 			  :}] }}
 		      :} 
 	           <td class="small_font"> {: !(p.STypes.author) :}
@@ -278,7 +296,7 @@ let log_table_content ~sp ~id ~log ~project_services =
 		      [{: Eliom_duce.Xhtml.a
 			  ~service:ps.Sh.sources_service
 			  ~sp {{ {: !(p.STypes.name):} }}
-			  ([],(Some(!(p.STypes.id)),(false,(false,(None,None)))))
+			  ([],(Some(!(p.STypes.id)),(false,(false,(false,(None,None))))))
 			  :}] }}
 		      :} 
 	       <td class="small_font"> {: !(p.STypes.author) :}
@@ -378,13 +396,14 @@ let create_file_page ~sp ~id ~target ~version ~project_services =
 	    let code_list = string_soption_list_of_list v_list in
 	    let diff_list = soption_list_of_list v_list in
 	    let file_version_select_form 
-		((file,(version,(browse,(annot,(diff1,diff2)))))
+		((file,(version,(browse,(view,(annot,(diff1,diff2))))))
 		   : ([`One of string list] Eliom_parameters.param_name *
 			([ `One of string ] Eliom_parameters.param_name *
 			   ([ `One of bool ] Eliom_parameters.param_name * 
-                              ([ `One of bool ] Eliom_parameters.param_name *
-			         ([ `One of (string * int)] Eliom_parameters.param_name *
-				    [ `One of (string * int)] Eliom_parameters.param_name)))))) =
+                              ([ `One of bool ] Eliom_parameters.param_name * 
+                                 ([ `One of bool ] Eliom_parameters.param_name *
+			            ([ `One of (string * int)] Eliom_parameters.param_name *
+				       [ `One of (string * int)] Eliom_parameters.param_name))))))) =
 	      {{[ <p> [
 		  {:
 		     Eliom_duce.Xhtml.user_type_input
@@ -409,13 +428,14 @@ let create_file_page ~sp ~id ~target ~version ~project_services =
 		]] }}
 	    in
 	    let file_diff_form
-		((file,(version,(browse,(annot,(diff1,diff2)))))
+		((file,(version,(browse,(view,(annot,(diff1,diff2))))))
 		   : ([`One of string list] Eliom_parameters.param_name *
 			([ `One of string ] Eliom_parameters.param_name *
 			   ([ `One of bool ] Eliom_parameters.param_name *
 			      ([ `One of bool ] Eliom_parameters.param_name * 
-                                 ([ `One of (string * int)] Eliom_parameters.param_name *
-				    [ `One of (string * int)] Eliom_parameters.param_name)))))) =
+                                 ([ `One of bool ] Eliom_parameters.param_name * 
+                                    ([ `One of (string * int)] Eliom_parameters.param_name *
+				       [ `One of (string * int)] Eliom_parameters.param_name))))))) =
 	      {{[ <p> [
 		  {:
 		     Eliom_duce.Xhtml.user_type_input
@@ -565,47 +585,98 @@ let create_annotate_page ~sp ~id ~target ~version ~project_services =
 	 
 
 
-let draw_repository_table ~sp ~id ~version  =
+let draw_repository_table ~sp ~id ~version ~dir =
   let project_services = Sh.find_service id in
-  create_repository_table_content ~sp ~id ~version 
-    ~project_services >>= fun b ->
-      let title = match version with
-      | None -> "Repository - latest version"
-      | Some(v) -> ("Repository - version "^v)
-      in
-      Lwt.return ({{  [<h3> {: title :}
-		       !{: 
-			 match project_services with
-			 | None -> {{ [] }}
-			 | Some(ps) ->
-			     {{ [<div class="sources_div">
-			       [{: 
-				   Eliom_duce.Xhtml.a 
-				   ~service:ps.Sh.log_service
-				   ~sp {{['View repository history']}}
-				   () :}]]}}
-			 :}
-			 !{: 
-			   match version with
-		           | None -> {{ [] }}
-			   | Some(_) ->
-			       begin match project_services with
-			       | None -> {{ [] }}
-			       | Some(ps) ->
-				   {{ [<div class="sources_div">
-				     [{: 
-					 Eliom_duce.Xhtml.a
-					 ~service:ps.Sh.sources_service
-					 ~sp {{ {:"Back to latest" 
-                                                 ^" repository version":} }}
-					 ([],(None,(false,(false,(None,None))))):}]]}}
-			       end
-			  :}
-		      <p> [<br>[]]
-		      <table class="sources_table">  
-		      [!repository_table_header !b]] }} 
+  let (title,table) = match (version,dir) with
+  | (None,None) -> ("/ - latest version",
+                    create_repository_table_content ~sp ~id ~version ~dir:None
+                    ~project_services) 
+  | (None,Some(rep)) -> 
+      let dirname = String.concat "/" rep in
+      ((dirname^" - latest version"),
+       (create_repository_table_content 
+          ~sp ~id ~version 
+          ~dir ~project_services))
+  | (Some(v),None) -> (("/ - version "^v),
+                       create_repository_table_content ~sp ~id ~version 
+                         ~dir:None
+                         ~project_services)
+  | (Some(v),Some(rep)) -> 
+       let dirname = String.concat "/" rep in
+      ((dirname^" - version "^v),
+       create_repository_table_content ~sp ~id ~version 
+         ~dir ~project_services)
+  in table >>= fun b ->
+    Lwt.return ({{  [<h3> {: title :}
+		        !{: 
+			  match project_services with
+			  | None -> {{ [] }}
+			  | Some(ps) ->
+			      {{ [<div class="sources_div">
+			        [{: 
+				    Eliom_duce.Xhtml.a 
+				    ~service:ps.Sh.log_service
+				    ~sp {{['View repository history']}}
+				    () :}]]}}
+			        :}
+			!{: 
+			  match version with
+		          | None -> {{ [] }}
+			  | Some(_) ->
+			      begin match project_services with
+			      | None -> {{ [] }}
+			      | Some(ps) ->
+				  {{ [<div class="sources_div">
+				    [{: 
+					Eliom_duce.Xhtml.a
+					~service:ps.Sh.sources_service
+					~sp {{ {:"Back to latest" 
+                                                ^" repository version":} }}
+					([],(None,(false,(false,(false,(None,None)))))):}]]}}
+			      end
+			        :}
+		        <p> [<br>[]]
+		        <table class="sources_table">  
+		          [!repository_table_header 
+                             !{:
+                              match project_services with
+                              | None -> ({{ [] }} : {{ [Xhtmltypes_duce.tr* ] }})
+                              | Some(ps) ->
+                                  match (version,dir) with
+                                  | (_,None) -> ({{ [] }} : {{ [Xhtmltypes_duce.tr* ] }})
+                                  | (None,Some(d)) ->
+                                      {{ [<tr class="folder"> [
+                                         <td> [{:
+                                                  Eliom_duce.Xhtml.a 
+				                  ~a: {{ {class="sources_img_link"} }}
+				                  ~service:ps.Sh.sources_service
+                                                  ~sp
+                                                  {{ [<img alt="parent_directory" 
+		                                       src={:Eliom_duce.Xhtml.make_uri ~sp
+			                                      ~service:(Eliom_services.static_dir ~sp)
+			                                      ["parent_directory.png"] :}>[] '../'] }} 
+                                                  (List.rev (List.tl (List.rev d)),
+                                                 (None,(false,(false,(false,(None,None)))))):}]
+                                          <td> [] <td> []
+                                      ]]}}
+                                  | (v,Some(d)) ->
+                                      {{ [<tr class="folder"> [
+                                        <td> [{:
+                                                  Eliom_duce.Xhtml.a 
+				                  ~a: {{ {class="sources_img_link"} }}
+				                  ~service:ps.Sh.sources_service
+                                                  ~sp
+                                                  {{ [<img alt="parent_directory" 
+		                                       src={:Eliom_duce.Xhtml.make_uri ~sp
+			                                      ~service:(Eliom_services.static_dir ~sp)
+			                                      ["parent_directory.png"] :}>[] '../'] }} 
+                                                  (List.rev (List.tl (List.rev d)),
+                                                 (v,(false,(false,(false,(None,None)))))):}]
+                                          <td> [] <td> []]]}}
+                                        :}
+                             !b]] }} 
 		  : {{ [ Xhtmltypes_duce.block* ] }})
-
+      
 
 let draw_source_code_view ~sp ~id ~target ~version =
   let file = match target with
@@ -629,7 +700,7 @@ let draw_source_code_view ~sp ~id ~target ~version =
 				  Eliom_duce.Xhtml.a
 				  ~service:ps.Sh.sources_service
 				  ~sp {{ {:"Back to repository content":} }}
-				  ([],(None,(false,(false,(None,None))))):}]]}}
+				  ([],(None,(false,(false,(false,(None,None)))))):}]]}}
 			      :}
 		     !{:  
 		       match project_services with
@@ -641,7 +712,7 @@ let draw_source_code_view ~sp ~id ~target ~version =
 			       ~a: {{ {class="sources_img_link"} }}
 			       ~service:ps.Sh.sources_service
 			       ~sp {{ {: "More options for this file" :}  }}
-			       (target,(version,(true,(false,(None,None))))):}] ] }}
+			       (target,(version,(true,(false,(false,(None,None)))))):}] ] }}
 			     :}
 		       <p> [<br>[]]
 		       !b] }} 
@@ -663,7 +734,7 @@ let draw_log_table ~sp ~id ~file =
 				  Eliom_duce.Xhtml.a
 				  ~service:ps.Sh.sources_service
 				  ~sp {{ ['Back to repository content'] }}
-				  ([],(None,(false,(false,(None,None)))))
+				  ([],(None,(false,(false,(false,(None,None))))))
 				  :}]] }}
 			:}
 	             <p> [<br>[]]
@@ -690,7 +761,7 @@ let draw_diff_view ~sp ~id ~target ~diff1 ~diff2 =
 				 Eliom_duce.Xhtml.a
 				 ~service:ps.Sh.sources_service
 				 ~sp {{ {:"Back to repository content":} }}
-				 ([],(None,(false,(false,(None,None))))):}]]}}
+				 ([],(None,(false,(false,(false,(None,None)))))):}]]}}
 			     :}
 			 !{:  
 			   match project_services with
@@ -702,7 +773,7 @@ let draw_diff_view ~sp ~id ~target ~diff1 ~diff2 =
 				     ~a: {{ {class="sources_img_link"} }}
 				     ~service:ps.Sh.sources_service
 				     ~sp {{ {: "More options for this file" :}  }}
-				     (target,(None,(true,(false,(None,None))))):}] ] }}
+				     (target,(None,(true,(false,(false,(None,None)))))):}] ] }}
 				 :} <p>[<br>[]] !b ]}}  : {{ [ Xhtmltypes_duce.block* ] }})
   
 (* TODO ¿ cas ou target est un répertoire ? *)
@@ -721,7 +792,7 @@ let draw_file_page ~sp ~id ~target ~version =
 			         Eliom_duce.Xhtml.a
 			         ~service:ps.Sh.sources_service
 			         ~sp {{ {:"Back to repository content":} }}
-			         ([],(None,(false,(false,(None,None))))):}]]}}
+			         ([],(None,(false,(false,(false,(None,None)))))):}]]}}
 			     :} <p>[<br>[]]  !b ] }} : {{ [ Xhtmltypes_duce.block* ] }})
       
 
@@ -739,7 +810,7 @@ let draw_annotate ~sp ~id ~target ~version =
 				   Eliom_duce.Xhtml.a
 				   ~service:ps.Sh.sources_service
 				   ~sp {{ {:"Back to repository content":} }}
-				   ([],(None,(false,(false,(None,None))))):}]]}}
+				   ([],(None,(false,(false,(false,(None,None)))))):}]]}}
 			       :}
 		       !{:  
 			 match project_services with
@@ -751,7 +822,7 @@ let draw_annotate ~sp ~id ~target ~version =
 				   ~a: {{ {class="sources_img_link"} }}
 				   ~service:ps.Sh.sources_service
 				   ~sp {{ {: "More options for this file" :}  }}
-				   (target,(None,(true,(false,(None,None))))):}] ] }}
+				   (target,(None,(true,(false,(false,(None,None)))))):}] ] }}
 			       :}
                        <p>[<br>[]]
                        !b]}} : {{ [ Xhtmltypes_duce.block* ] }})

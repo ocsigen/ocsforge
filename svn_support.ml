@@ -24,25 +24,10 @@ let extract_list res = match res with
   | Swig.C_list(l) -> l
   | _ -> []
 
-(*
-(** Parcours et affichage du contenu d'un arbre *)
-let rec print_tree path tree = match tree with
-  | File(f,a,v) -> 
-      print_endline (path^f^"  aut:"^a^"   v:"^v)
-  | Dir(d,l) ->
-      print_endline (path^d);
-      let rec aux list =  match list with
-      | [] -> ()
-      | h::t -> 
-	  print_tree (path^d^"/") h;
-	  aux t
-      in aux l
-*)
-
 
 let build_target path_list = 
   if (String.compare (List.nth path_list 1) "" == 0) then []
-  else List.tl (List.rev path_list)
+  else List.rev (List.tl (List.rev path_list))
 
 
 (** Cree l'arboresence à partir du résultat de "svn list" *)
@@ -58,7 +43,7 @@ let rec create_tree list_res tree name author step = match list_res with
       else
 	let rev = h in
 	let ename = Netstring_pcre.split_delim (regexp "/") name in 
-	begin match tree with
+        begin match tree with
 	| Dir(n,l) ->
 	    let length = List.length ename in
 	    if (length == 1) then 
@@ -84,17 +69,26 @@ let rec create_tree list_res tree name author step = match list_res with
 (** Stocke la liste des repertoires/fichiers sous gestionnaire de version 
     à la révision demandée dans un arbre de type rep_tree (si aucune révision
     n'est précisée, renvoie la version la plus récente) *)
-let svn_list ?id rep = 
-  let svn_result = match id with
-  | None ->
+let svn_list ?id ?dir rep = 
+  let svn_result = match (id,dir) with
+  | (None,None) ->
       extract_list (Swig_svn._svn_support_list (Swig.C_list[
 				       Swig.C_string(rep);
       				       Swig.C_int(-1)]))
-  | Some(s) ->
+  | (Some(s),None) ->
       let r = int_of_string s in
       extract_list (Swig_svn._svn_support_list (Swig.C_list[
 				       Swig.C_string(rep);
 				       Swig.C_int(r)]))
+  | (None,Some(d)) ->
+      extract_list (Swig_svn._svn_support_list (Swig.C_list[
+				                Swig.C_string(rep^"/"^d);
+      				                Swig.C_int(-1)]))
+  | (Some(s),Some(d)) ->
+      let r = int_of_string s in
+      extract_list (Swig_svn._svn_support_list (Swig.C_list[
+				                Swig.C_string(rep^"/"^d);
+				                Swig.C_int(r)]))
 
   in
   let list_res = 
@@ -151,7 +145,7 @@ let svn_log ?file ?id rep =
 			| _ -> "")
 	    (extract_list (Swig_svn._svn_support_log 
 			     (Swig.C_list
-				[Swig.C_string(f) ; Swig.C_string(rep)])))
+				[Swig.C_string(rep) ; Swig.C_string(f)])))
   in
   create_patch_list log_res [] 0
 

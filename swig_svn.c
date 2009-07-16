@@ -223,12 +223,11 @@ apr_array_header_t *svn_support_list(char *rep_path, int rev)
   // -- Initialisation du tableau et du buffer de résultats -- 
   apr_array_header_t *list_result = apr_array_make(pool, 1, sizeof (const char *));
   svn_stringbuf_t *res = svn_stringbuf_create("",pool);		 
-  
   // -- Appel de svn list --
   err = svn_client_list2(rep_path,
 			 &revision,
 			 &revision,
-			 svn_depth_infinity,
+			 svn_depth_immediates,
 			 SVN_DIRENT_ALL,
 			 FALSE,
 			 list_callback,

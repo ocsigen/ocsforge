@@ -1,4 +1,10 @@
-a.sources_img_link img { border:none }
+a.sources_img_link { 
+    text-decoration:none;
+}
+
+a.sources_img_link img{ 
+    border:none 
+}
 
 h3 {
     text-align: center;
