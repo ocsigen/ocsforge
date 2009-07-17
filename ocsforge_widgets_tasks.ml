@@ -199,8 +199,7 @@ object
                 (importance_name,
                  (deadline_t_name,
                   (deadline_v_name,
-                   (kind_name,
-                    detach_name)))))))))
+                   kind_name))))))))
            : ([ `One of Types.task ] Params.param_name *
               ([ `One of string ] Params.param_name *
                ([ `One of string ] Params.param_name *
@@ -210,9 +209,8 @@ object
                   ([ `One of int32 option ] Params.param_name *
                    ([ `One of CalendarLib.Date.t option ]
                                     Params.param_name *
-                    ([ `One of string ] Params.param_name *
-                     ([ `One of string option ] Params.param_name *
-                      [ `One of bool ] Params.param_name))))))))
+                    ([ `One of string option ] Params.param_name *
+                     [ `One of string option ] Params.param_name)))))))
            )) =
       draw_message_title
         ~sp ~message:p_info.Types.t_message inline_widget >>= fun title ->
@@ -257,12 +255,12 @@ object
                 ~string_of_t:Olang.string_of_date
                 () :}
           <br>[]
-          'deadline (version) : '
-          {: EDuce.Xhtml.string_input
-               ~a:{{ { size="9%" } }}
-               ~name:deadline_v_name
-               ~input_type:{: "text" :}
-               () :}
+          'deadline (version) : '              (*TODO:use a string_input field*)
+          !{: draw_opt_field
+                ~name:deadline_v_name
+                ~alternatives:[]
+                ~string_of_t:(fun k -> k)
+                () :}
           <br>[]
           'kind : '
           !{: draw_opt_field
@@ -270,10 +268,6 @@ object
                 ~alternatives:alt_k
                 ~string_of_t:(fun k -> k)
                 () :}
-          <br>[]
-          'detach : '
-          {: EDuce.Xhtml.bool_checkbox
-               ~name:detach_name () :}
         ]
         <p>[
           {: EDuce.Xhtml.user_type_button

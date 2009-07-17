@@ -110,7 +110,7 @@ val new_task_service :
       (int32 option *
        (int32 option *
         (CalendarLib.Printer.Date.t option *
-         (string * (string option * bool)))))))),
+         (string option * string option))))))),
    [> `Nonattached of [> `Post ] Eliom_services.na_s ], [ `WithoutSuffix ],
    unit,
    [ `One of Ocsforge_types.task ] Eliom_parameters.param_name *
@@ -120,9 +120,8 @@ val new_task_service :
       ([ `One of int32 option ] Eliom_parameters.param_name *
        ([ `One of int32 option ] Eliom_parameters.param_name *
         ([ `One of CalendarLib.Printer.Date.t option ] Eliom_parameters.param_name *
-         ([ `One of string ] Eliom_parameters.param_name *
-          ([ `One of string option ] Eliom_parameters.param_name *
-           [ `One of bool ] Eliom_parameters.param_name)))))))),
+         ([ `One of string option ] Eliom_parameters.param_name *
+          ([ `One of string option ] Eliom_parameters.param_name)))))))),
    [> `Registrable ])
   Eliom_services.service
 

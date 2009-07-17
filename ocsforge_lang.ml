@@ -42,12 +42,12 @@ let compare_opt ?(comp = compare) =
      | None,    None    -> 0
      | Some v1, Some v2 -> comp v1 v2)
 
-let string_of_t_opt ?(none = "None") ?(quote = "\"") string_of_t =
+let string_of_t_opt ?(none = "") ?(quote = "") string_of_t =
   function
     | None -> none
     | Some s -> quote ^ (string_of_t s) ^ quote
 
-let t_opt_of_string ?(none = "None") ?(quote = "\"") t_of_string =
+let t_opt_of_string ?(none = "") ?(quote = "") t_of_string =
   let none_regexp = Str.regexp_string none in
   let some_regexp =
     if quote = ""

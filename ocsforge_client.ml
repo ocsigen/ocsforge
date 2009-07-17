@@ -83,24 +83,6 @@ let pop_up_new_task id =
          then savable := false
          else savable := true  )                  (* callback...              *) (*TODO: use the call back to grey out the "SAVE" button*)
   in
-   let progress_input =
-     Js.Html.input
-       (Lang.Opt.string_of_t_opt Int32.to_string)
-       (fun s -> let r = Lang.Opt.t_opt_of_string Int32.of_string s in
-         match r with
-          | None -> None
-          | Some r -> Some (max Int32.zero (min (Int32.of_int 100) r)))
-       None 8 true (fun _ -> ())
-   in
-   let importance_input =
-     Js.Html.input
-       (Lang.Opt.string_of_t_opt Int32.to_string)
-       (fun s -> let r = Lang.Opt.t_opt_of_string Int32.of_string s in
-         match r with
-          | None -> None
-          | Some r -> Some (max Int32.zero (min (Int32.of_int 100) r)))
-       None 8 true (fun _ -> ())
-   in
    let form =
     Js.Html.div
       ~style:"position: fixed; left: 25px; bottom: 25px; \
@@ -109,11 +91,6 @@ let pop_up_new_task id =
       [ (* Title *) title_input.Js.Html.node ;
                                Js.Html.br () ;
 
-         (* progress *)     Js.Html.string " Progress : " ;
-                              progress_input.Js.Html.node ;
-         (* importance *) Js.Html.string " Importance : " ;
-                            importance_input.Js.Html.node ;
-                                            Js.Html.br () ;
       ]
   in
   let close () =
@@ -129,12 +106,10 @@ let pop_up_new_task id =
             [ ("__eliom_na__name","ocsforge_add_task") ;
               ("parent", Int32.to_string id) ;
               ("subject", title_input.Js.Html.get ()) ;
-              ("text", "") ;
+              ("text", "dummy text") ;
               ("length", "") ;
-              ("progress", Lang.Opt.string_of_t_opt Int32.to_string
-                             (progress_input.Js.Html.get ())) ;
-              ("importance", Lang.Opt.string_of_t_opt Int32.to_string
-                               (importance_input.Js.Html.get ())) ;
+              ("progress", "") ;
+              ("importance", "") ;
               ("deadline_t", "") ;
               ("deadline_v", "") ;
               ("kind", "") ;

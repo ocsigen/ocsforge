@@ -156,7 +156,7 @@ let set_kind_service =
 
 let new_task_service =
   Eliom_predefmod.Action.register_new_post_coservice'
-    ~name:"ocsforge_add_project"
+    ~name:"ocsforge_add_task"
     ~options:`Reload
     ~post_params:(
        ((Params.user_type
@@ -165,38 +165,30 @@ let new_task_service =
         ((Params.string "subject") **
          ((Params.string "text") **
           ((Params.user_type
-              (Ocsforge_lang.t_opt_of_string ~none:"" ~quote:""
-                 Ocsforge_lang.period_of_string)
-              (Ocsforge_lang.string_of_t_opt ~none:"" ~quote:""
-                 Ocsforge_lang.string_of_period)
+              (Ocsforge_lang.t_opt_of_string Ocsforge_lang.period_of_string)
+              (Ocsforge_lang.string_of_t_opt Ocsforge_lang.string_of_period)
               "length") **
            ((Params.user_type
-               (Ocsforge_lang.t_opt_of_string ~none:"" ~quote:""
-                  Int32.of_string)
-               (Ocsforge_lang.string_of_t_opt ~none:"" ~quote:""
-                  Int32.to_string)
+               (Ocsforge_lang.t_opt_of_string Int32.of_string)
+               (Ocsforge_lang.string_of_t_opt Int32.to_string)
                "progress") **
             ((Params.user_type
-                (Ocsforge_lang.t_opt_of_string ~none:"" ~quote:""
-                   Int32.of_string)
-                (Ocsforge_lang.string_of_t_opt ~none:"" ~quote:""
-                   Int32.to_string)
+                (Ocsforge_lang.t_opt_of_string Int32.of_string)
+                (Ocsforge_lang.string_of_t_opt Int32.to_string)
                 "importance") **
              ((Params.user_type
-                  (Ocsforge_lang.t_opt_of_string ~none:"" ~quote:""
-                     Ocsforge_lang.date_of_string)
-                  (Ocsforge_lang.string_of_t_opt ~none:"" ~quote:""
-                     Ocsforge_lang.string_of_date)
+                  (Ocsforge_lang.t_opt_of_string Ocsforge_lang.date_of_string)
+                  (Ocsforge_lang.string_of_t_opt Ocsforge_lang.string_of_date)
                   "deadline_t") **
-              ((Params.string "deadline_v") **
+              (((Params.user_type
+                   (Ocsforge_lang.t_opt_of_string (fun k -> k))
+                   (Ocsforge_lang.string_of_t_opt (fun k -> k))
+                   "deadline_v") **
                ((Params.user_type
-                   (Ocsforge_lang.t_opt_of_string ~none:"" ~quote:""
-                      (fun k -> k))
-                   (Ocsforge_lang.string_of_t_opt ~none:"" ~quote:""
-                      (fun k -> k))
-                   "kind") **
-                (Params.bool "detach")
-               )))))))))
+                   (Ocsforge_lang.t_opt_of_string (fun k -> k))
+                   (Ocsforge_lang.string_of_t_opt (fun k -> k))
+                   "kind")
+               ))))))))))
     )
     (* error handler ? *)
     (fun sp () (parent,
@@ -207,14 +199,8 @@ let new_task_service =
                     (importance,
                      (deadline_time,
                       (deadline_version,
-                       (kind,
-                        detach)))))))))
+                       kind         ))))))))
            ->
-       let area = if detach then Some None else None in
-       let deadline_version = match deadline_version with
-         | "" -> None
-         | s -> Some s
-       in
        Data.new_task ~sp ~parent ~subject ~text
           ?length ?progress ?importance ?deadline_time ?deadline_version ?kind
           () >>= fun _ -> Lwt.return ())
@@ -295,7 +281,7 @@ let set_version_service =
 
 let new_project_service =
   Eliom_predefmod.Action.register_new_post_coservice'
-    ~name:"ocsforge_add_task"
+    ~name:"ocsforge_add_project"
     ~options:`Reload
     ~post_params:(
        ((Params.user_type
@@ -303,34 +289,24 @@ let new_project_service =
            "parent") **
         ((Params.string "name") **
           ((Params.user_type
-              (Ocsforge_lang.t_opt_of_string ~none:"" ~quote:""
-                 Ocsforge_lang.period_of_string)
-              (Ocsforge_lang.string_of_t_opt ~none:"" ~quote:""
-                 Ocsforge_lang.string_of_period)
+              (Ocsforge_lang.t_opt_of_string Ocsforge_lang.period_of_string)
+              (Ocsforge_lang.string_of_t_opt Ocsforge_lang.string_of_period)
               "length") **
            ((Params.user_type
-               (Ocsforge_lang.t_opt_of_string ~none:"" ~quote:""
-                  Int32.of_string)
-               (Ocsforge_lang.string_of_t_opt ~none:"" ~quote:""
-                  Int32.to_string)
+               (Ocsforge_lang.t_opt_of_string Int32.of_string)
+               (Ocsforge_lang.string_of_t_opt Int32.to_string)
                "progress") **
             ((Params.user_type
-                (Ocsforge_lang.t_opt_of_string ~none:"" ~quote:""
-                   Int32.of_string)
-                (Ocsforge_lang.string_of_t_opt ~none:"" ~quote:""
-                   Int32.to_string)
+                (Ocsforge_lang.t_opt_of_string Int32.of_string)
+                (Ocsforge_lang.string_of_t_opt Int32.to_string)
                 "importance") **
              ((Params.user_type
-                  (Ocsforge_lang.t_opt_of_string ~none:"" ~quote:""
-                     Ocsforge_lang.date_of_string)
-                  (Ocsforge_lang.string_of_t_opt ~none:"" ~quote:""
-                     Ocsforge_lang.string_of_date)
+                  (Ocsforge_lang.t_opt_of_string Ocsforge_lang.date_of_string)
+                  (Ocsforge_lang.string_of_t_opt Ocsforge_lang.string_of_date)
                   "deadline_t") **
                ((Params.user_type
-                   (Ocsforge_lang.t_opt_of_string ~none:"" ~quote:""
-                      (fun k -> k))
-                   (Ocsforge_lang.string_of_t_opt ~none:"" ~quote:""
-                      (fun k -> k))
+                   (Ocsforge_lang.t_opt_of_string (fun k -> k))
+                   (Ocsforge_lang.string_of_t_opt (fun k -> k))
                    "kind") **
                 ((Params.opt (Params.string "repo_kind")) **
                  (Params.opt (Params.string "repo_path"))
