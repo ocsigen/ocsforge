@@ -401,6 +401,7 @@ let set_area ~task_id ~area =
              SET area = $area
              WHERE id = $task_id")
 
+
 let set_parent ~task_id ~parent =
   let task_id = Types.sql_of_task task_id in
   let parent = Types.sql_of_task parent in
@@ -422,6 +423,22 @@ let set_deleted ~task_id ~deleted =
 (*TODO : multiple field tamprers *)
 
 (** {5 setters for right area} *)
+
+let set_repository_kind ~area_id ~repository_kind =
+  let area_id = Types.sql_of_right_area area_id in
+    (fun db ->
+       PGSQL(db)
+         "UPDATE ocsforge_right_areas
+          SET repository_kind = $?repository_kind
+          WHERE id = $area_id")
+  
+let set_repository_path ~area_id ~repository_path =
+  let area_id = Types.sql_of_right_area area_id in
+    (fun db ->
+       PGSQL(db)
+         "UPDATE ocsforge_right_areas
+          SET repository_path = $?repository_path
+          WHERE id = $area_id")
 
 let set_version ~area_id ~version =
   let area = Types.sql_of_right_area area_id in

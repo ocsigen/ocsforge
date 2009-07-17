@@ -59,6 +59,8 @@ val kinds_setter :
   Ocsforge_types.right_area_arg User_sql.Types.parameterized_group
 val version_setter :
   Ocsforge_types.right_area_arg User_sql.Types.parameterized_group
+val repository_setter :
+  Ocsforge_types.right_area_arg User_sql.Types.parameterized_group
 
 (** Role for a user *)
 type role = {
@@ -80,6 +82,7 @@ type role = {
   subarea_creator                    : bool Lwt.t Lazy.t ;
   kinds_setter                       : bool Lwt.t Lazy.t ;
   version_setter                     : bool Lwt.t Lazy.t ;
+  repository_setter                  : bool Lwt.t Lazy.t ;
 }
 
 (** Low level. DO NOT USE *)

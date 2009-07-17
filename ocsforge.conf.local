@@ -69,7 +69,7 @@
 
       <eliommodule findlib-package="ocsimore.forum.site" />
 
-      <eliommodule module="../ocsimore/_build/forum/ocsicreateforum.cmo">
+      <eliommodule module="PATH_TO_OCSIMORE/_build/forum/ocsicreateforum.cmo">
         <name>ocsforge_task_forum</name>
       </eliommodule>
 

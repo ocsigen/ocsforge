@@ -26,9 +26,9 @@
 
 module Roles = Ocsforge_roles
 module Types = Ocsforge_types
-(*Can't compile without*)open Sql
 module FTypes = Forum_sql.Types
 module FRoles = Forum
+(*Can't compile without*)open Sql
 
 let (>>=) = Lwt.bind
 let (!!) = Lazy.force
@@ -87,13 +87,11 @@ let new_project ~sp ~parent ~name
            (* get area code *)
            Ocsforge_sql.next_right_area_id db             >>= fun c ->
 
-             let title_syntax = 
-               Wiki_syntax.wikicreole_inline_content_type (fun c -> {{ [ <h1>c ] }})
-             in
+           let title_syntax = Forum_site.title_syntax in
            (* create forum *)
            Forum.create_forum (*TODO: use Forum_data.new_forum ? *)
               ~wiki_model:Ocsisite.wikicreole_model (*TODO : give the real wiki model*)
-              ~title_syntax (*TODO:givce the real title_syntax*)
+              ~title_syntax (*TODO:give the real title_syntax*)
               ~title:("Ocsforge area"^(Types.string_of_right_area c)^" forum")
               ~descr:("Messages about tasks in the area"
                       ^ (Types.string_of_right_area c))
@@ -375,6 +373,35 @@ let move_task ~sp ~task ~parent =
            (*permission denied*)    
            else Lwt.fail Ocsimore_common.Permission_denied
          )
+
+let edit_area ~sp ~area ?repository_path ?repository_kind ?version () =
+  if repository_path = None && repository_kind = None && version = None
+  then Lwt.return ()
+  else
+    begin
+      Roles.get_area_role sp area                            >>= fun role ->
+      !!(role.Roles.repository_setter)                       >>= fun b ->
+      if not b
+      then
+        Lwt.fail Ocsimore_common.Permission_denied
+      else
+        begin
+          let f db =
+            (match repository_path with
+               | None -> Lwt.return ()
+               | Some r -> Ocsforge_sql.set_repository_path
+                             ~area_id:area ~repository_path:r db) ;
+            (match repository_kind with
+               | None -> Lwt.return ()
+               | Some r -> Ocsforge_sql.set_repository_kind
+                             ~area_id:area ~repository_kind:r db) ;
+            (match version with
+               | None -> Lwt.return ()
+               | Some v -> Ocsforge_sql.set_version ~area_id:area ~version:v db)
+          in Sql.full_transaction_block f
+        end
+    end
+
 
 let make_project ~sp:_ ~task:_ = (*TODO*) Lwt.return ()
 (* link rights on area and rights on forum... Needs modifications on forum.ml

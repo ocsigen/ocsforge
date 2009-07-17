@@ -55,6 +55,18 @@ val new_task :
   ?kind:string ->
   unit -> Ocsforge_types.task Lwt.t
 
+val new_project :
+  sp:Eliom_sessions.server_params ->
+  parent:Ocsforge_types.task ->
+  name:string ->
+  ?length:CalendarLib.Calendar.Period.t ->
+  ?importance:int32 ->
+  ?deadline:CalendarLib.Date.t ->
+  ?kind:string ->
+  ?repository_kind:string ->
+  ?repository_path:string ->
+  ?wiki_container:string ->
+  unit -> Ocsforge_types.task Lwt.t
 
 (** Get the desired task.
   *
@@ -118,6 +130,18 @@ val edit_task :
   ?importance:int32 option ->
   ?deadline_time:CalendarLib.Date.t option ->
   ?deadline_version:string option -> ?kind:string option -> unit -> unit Lwt.t
+
+(** Change fields for a right area. Only use fields you want to tamper with. *)
+val edit_area :
+  sp:Eliom_sessions.server_params ->
+  area:Ocsforge_types.right_area ->
+  ?repository_path:string option ->
+  ?repository_kind:string option ->
+  ?version:string ->
+  unit -> unit Lwt.t
+
+
+
 
 
 (** Change a task parent and possibly area fields.

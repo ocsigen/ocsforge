@@ -80,7 +80,8 @@ let first_task () =
          Ocsforge_roles.kinds_setter ;
          Ocsforge_roles.version_setter ; ]
         >>= fun _ ->
-          Printf.printf "Your first ocsforge task as %ld id\nUse <<ocsforge_task_tree id=\"%ld\">> in a wiki\n%!"
+          Printf.printf
+            "Your first ocsforge task as %ld id\nUse <<ocsforge_tree id=\"%ld\">> in the newly created wiki (path : 'ocsforge')\n%!"
             task task ;
           Lwt.return ()
     end

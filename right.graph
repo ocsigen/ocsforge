@@ -6,8 +6,8 @@
 
 
                                          sub_area_creator
-                                               |
-                                           task_mover
+                                               |         \
+                                           task_mover    repository_setter
                                            /        \
                                task_mover_to        task_mover_from
                                            \        /

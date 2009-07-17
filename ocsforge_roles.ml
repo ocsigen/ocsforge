@@ -94,6 +94,8 @@ let task_reader
       : Types.right_area_arg UTypes.parameterized_group =
   aux_grp "task_reader" "Can see properties of tasks in the area"
 
+(*writing*)
+
 let task_creator
       : Types.right_area_arg UTypes.parameterized_group =
   aux_grp "task_creator" "Can create a task in the area"
@@ -121,6 +123,10 @@ let kinds_setter
 let version_setter
       : Types.right_area_arg UTypes.parameterized_group =
   aux_grp "version_setter" "Can modify the version of the area"
+
+let repository_setter
+      : Types.right_area_arg UTypes.parameterized_group =
+  aux_grp "repository_setter" "Can modify the repository properties of the area"
 
 
 (** {2 Group Canonical Inclusions } *)
@@ -184,6 +190,8 @@ let _ = Lwt_unix.run (
   User_sql.add_generic_inclusion
     ~subset:subarea_creator ~superset:task_mover >>= fun () ->
   User_sql.add_generic_inclusion
+    ~subset:subarea_creator ~superset:repository_setter >>= fun () ->
+  User_sql.add_generic_inclusion
     ~subset:kinds_setter ~superset:task_property_editor
 
 )
@@ -195,31 +203,32 @@ let _ = Lwt_unix.run (
 
 type role =
     {
-      task_reader : bool Lwt.t Lazy.t;
+      task_reader : bool Lwt.t Lazy.t ;
 
-      task_comment_reader : bool Lwt.t Lazy.t;
-      task_comment_moderator : bool Lwt.t Lazy.t;
-      task_comment_sticky_setter : bool Lwt.t Lazy.t;
-      task_comment_deletor : bool Lwt.t Lazy.t;
-      task_comment_writer : bool Lwt.t Lazy.t;
-      task_comment_writer_not_moderated : bool Lwt.t Lazy.t;
+      task_comment_reader : bool Lwt.t Lazy.t ;
+      task_comment_moderator : bool Lwt.t Lazy.t ;
+      task_comment_sticky_setter : bool Lwt.t Lazy.t ;
+      task_comment_deletor : bool Lwt.t Lazy.t ;
+      task_comment_writer : bool Lwt.t Lazy.t ;
+      task_comment_writer_not_moderated : bool Lwt.t Lazy.t ;
 
-      task_property_editor : bool Lwt.t Lazy.t;
-      task_message_editor : bool Lwt.t Lazy.t;
-      task_message_editor_if_author : bool Lwt.t Lazy.t;
+      task_property_editor : bool Lwt.t Lazy.t ;
+      task_message_editor : bool Lwt.t Lazy.t ;
+      task_message_editor_if_author : bool Lwt.t Lazy.t ;
 
-      task_admin : bool Lwt.t Lazy.t;
+      task_admin : bool Lwt.t Lazy.t ;
 
-      task_creator : bool Lwt.t Lazy.t;
+      task_creator : bool Lwt.t Lazy.t ;
 
-      task_mover : bool Lwt.t Lazy.t;
-      task_mover_from : bool Lwt.t Lazy.t;
-      task_mover_to : bool Lwt.t Lazy.t;
+      task_mover : bool Lwt.t Lazy.t ;
+      task_mover_from : bool Lwt.t Lazy.t ;
+      task_mover_to : bool Lwt.t Lazy.t ;
 
-      subarea_creator : bool Lwt.t Lazy.t;
+      subarea_creator : bool Lwt.t Lazy.t ;
 
-      kinds_setter : bool Lwt.t Lazy.t;
+      kinds_setter : bool Lwt.t Lazy.t ;
       version_setter : bool Lwt.t Lazy.t ;
+      repository_setter : bool Lwt.t Lazy.t ;
     }
 
 let get_role ~sp ~area =
@@ -266,14 +275,15 @@ let get_role ~sp ~area =
            lazy (in_grp task_message_editor area) ;
          task_message_editor_if_author =
            lazy (in_grp task_message_editor_if_author area);
-         task_admin      = lazy (in_grp task_admin      area ) ;
-         task_creator    = lazy (in_grp task_creator    area ) ;
-         task_mover      = lazy (in_grp task_mover      area ) ;
-         task_mover_from = lazy (in_grp task_mover_from area ) ;
-         task_mover_to   = lazy (in_grp task_mover_to   area ) ;
-         subarea_creator = lazy (in_grp subarea_creator area ) ;
-         kinds_setter    = lazy (in_grp kinds_setter    area ) ;
-         version_setter  = lazy (in_grp version_setter  area ) ;
+         task_admin        = lazy (in_grp task_admin      area ) ;
+         task_creator      = lazy (in_grp task_creator    area ) ;
+         task_mover        = lazy (in_grp task_mover      area ) ;
+         task_mover_from   = lazy (in_grp task_mover_from area ) ;
+         task_mover_to     = lazy (in_grp task_mover_to   area ) ;
+         subarea_creator   = lazy (in_grp subarea_creator area ) ;
+         kinds_setter      = lazy (in_grp kinds_setter    area ) ;
+         version_setter    = lazy (in_grp version_setter  area ) ;
+         repository_setter = lazy (in_grp repository_setter  area ) ;
        }
        else Lwt.return
        {
@@ -293,14 +303,15 @@ let get_role ~sp ~area =
          task_message_editor_if_author =
            lazy (in_grp task_message_editor_if_author area);
 
-         task_admin      = no ;
-         task_creator    = lazy (in_grp task_creator    area ) ;
-         task_mover      = no ;
-         task_mover_from = no ;
-         task_mover_to   = no ;
-         subarea_creator = no ;
-         kinds_setter    = lazy (in_grp kinds_setter    area ) ;
-         version_setter  = lazy (in_grp version_setter  area ) ;
+         task_admin        = no ;
+         task_creator      = lazy (in_grp task_creator    area ) ;
+         task_mover        = no ;
+         task_mover_from   = no ;
+         task_mover_to     = no ;
+         subarea_creator   = no ;
+         kinds_setter      = lazy (in_grp kinds_setter    area ) ;
+         version_setter    = lazy (in_grp version_setter  area ) ;
+         repository_setter = lazy (in_grp repository_setter  area ) ;
        }
     end
   else Lwt.return
@@ -315,14 +326,15 @@ let get_role ~sp ~area =
            task_property_editor              = no ;
            task_message_editor               = no ;
            task_message_editor_if_author     = no ;
-           task_admin      = no ;
-           task_creator    = no ;
-           task_mover      = no ;
-           task_mover_from = no ;
-           task_mover_to   = no ;
-           subarea_creator = no ;
-           kinds_setter    = no ;
-           version_setter  = no ;
+           task_admin         = no ;
+           task_creator       = no ;
+           task_mover         = no ;
+           task_mover_from    = no ;
+           task_mover_to      = no ;
+           subarea_creator    = no ;
+           kinds_setter       = no ;
+           version_setter     = no ;
+           repository_setter  = no ;
          }
 
 

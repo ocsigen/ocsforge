@@ -170,6 +170,22 @@ val set_deleted :
   deleted:bool ->
   Sql.db_t -> unit Lwt.t
 
+(** Set field value for a right area *)
+val set_repository_kind :
+  area_id:Ocsforge_types.right_area ->
+  repository_kind:string option ->
+  Sql.db_t -> unit Lwt.t
+val set_repository_path :
+  area_id:Ocsforge_types.right_area ->
+  repository_path:string option ->
+  Sql.db_t -> unit Lwt.t
+val set_version :
+  area_id:Ocsforge_types.right_area ->
+  version:string ->
+  Sql.db_t -> unit Lwt.t
+
+
+
 
 (** When moving a task to a new parent, updates tree_min and tree_max fields. *)
 val change_tree_marks :

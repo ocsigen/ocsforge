@@ -156,7 +156,7 @@ let set_kind_service =
 
 let new_task_service =
   Eliom_predefmod.Action.register_new_post_coservice'
-    ~name:"ocsforge_add_task"
+    ~name:"ocsforge_add_project"
     ~options:`Reload
     ~post_params:(
        ((Params.user_type
@@ -241,8 +241,58 @@ let register_dump_tree_service root =
 
 
 
+let set_repository_path_service =
+  Eliom_predefmod.Action.register_new_post_coservice'
+    ~name:"ocsforge_set_repository_path"
+    ~options:`NoReload
+    ~post_params:(
+       (Params.user_type
+          Types.right_area_of_string
+          Types.string_of_right_area
+          "id") **
+       (Params.user_type
+          (Ocsforge_lang.t_opt_of_string (fun s -> s))
+          (Ocsforge_lang.string_of_t_opt (fun s -> s))
+          "path")
+      )
+    (* error_handler *)
+    (fun sp () (area, repository_path) ->
+       Data.edit_area ~sp ~area ~repository_path ())
 
-(*
+let set_repository_kind_service =
+  Eliom_predefmod.Action.register_new_post_coservice'
+    ~name:"ocsforge_set_repository_kind"
+    ~options:`NoReload
+    ~post_params:(
+       (Params.user_type
+          Types.right_area_of_string
+          Types.string_of_right_area
+          "id") **
+       (Params.user_type
+          (Ocsforge_lang.t_opt_of_string (fun s -> s))
+          (Ocsforge_lang.string_of_t_opt (fun s -> s))
+          "kind")
+      )
+    (* error_handler *)
+    (fun sp () (area, repository_kind) ->
+       Data.edit_area ~sp ~area ~repository_kind ())
+
+let set_version_service =
+  Eliom_predefmod.Action.register_new_post_coservice'
+    ~name:"ocsforge_set_version"
+    ~options:`NoReload
+    ~post_params:(
+       (Params.user_type
+          Types.right_area_of_string
+          Types.string_of_right_area
+          "id") **
+       (Params.string "version")
+      )
+    (* error_handler *)
+    (fun sp () (area, version) ->
+       Data.edit_area ~sp ~area ~version ())
+
+
 let new_project_service =
   Eliom_predefmod.Action.register_new_post_coservice'
     ~name:"ocsforge_add_task"
@@ -251,8 +301,7 @@ let new_project_service =
        ((Params.user_type
            Types.task_of_string Types.string_of_task
            "parent") **
-        ((Params.string "subject") **
-         ((Params.string "text") **
+        ((Params.string "name") **
           ((Params.user_type
               (Ocsforge_lang.t_opt_of_string ~none:"" ~quote:""
                  Ocsforge_lang.period_of_string)
@@ -283,18 +332,23 @@ let new_project_service =
                    (Ocsforge_lang.string_of_t_opt ~none:"" ~quote:""
                       (fun k -> k))
                    "kind") **
-                (Params.opt (Params.string "repo_kind"))
+                ((Params.opt (Params.string "repo_kind")) **
+                 (Params.opt (Params.string "repo_path"))
                ))))))))
     )
     (* error handler ? *)
     (fun sp () (parent,
-                (subject,
-                 (text,
+                (name,
                   (length,
                    (progress,
                     (importance,
-                     (deadline_time,
+                     (deadline,
                       (kind,
-                       repo_kind))))))))
-           -> Lwt.return ())
- *)
+                       (repository_kind,
+                        repository_path))))))))
+           ->
+       Data.new_project ~sp ~parent ~name
+         ?length ?importance ?deadline ?kind
+         ?repository_kind ?repository_path () >>= fun _ -> Lwt.return ()
+    )
+
