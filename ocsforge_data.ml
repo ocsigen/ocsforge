@@ -180,7 +180,8 @@ let new_project ~sp ~parent ~name
                            Roles.task_mover_to ;
                            Roles.subarea_creator ;
                            Roles.kinds_setter ;
-                           Roles.version_setter ; ]
+                           Roles.version_setter ;
+                           Roles.repository_setter ; ]
           >>= fun () -> Lwt.return task             
 
           end)
@@ -315,7 +316,7 @@ let edit_task ~sp ~task
 let move_task ~sp ~task ~parent =
 
   do_sql (Ocsforge_sql.is_area_root ~task) >>= fun area_root ->
-  if area_root
+  if not area_root
 
   then
     (* adapt to the new parent inheritance : for a task *)
@@ -345,8 +346,7 @@ let move_task ~sp ~task ~parent =
          )
 
   else
-    (* keep in the same area : for a project *) (*TODO: change the whole right
-                                                 tree*)
+    (* keep in the same area : for a project *)
     Sql.full_transaction_block
       (fun db ->
         (*checking rights*)
@@ -390,11 +390,11 @@ let edit_area ~sp ~area ?repository_path ?repository_kind ?version () =
             (match repository_path with
                | None -> Lwt.return ()
                | Some r -> Ocsforge_sql.set_repository_path
-                             ~area_id:area ~repository_path:r db) ;
+                             ~area_id:area ~repository_path:r db) >>= fun () ->
             (match repository_kind with
                | None -> Lwt.return ()
                | Some r -> Ocsforge_sql.set_repository_kind
-                             ~area_id:area ~repository_kind:r db) ;
+                             ~area_id:area ~repository_kind:r db) >>= fun () ->
             (match version with
                | None -> Lwt.return ()
                | Some v -> Ocsforge_sql.set_version ~area_id:area ~version:v db)
@@ -403,7 +403,78 @@ let edit_area ~sp ~area ?repository_path ?repository_kind ?version () =
     end
 
 
-let make_project ~sp:_ ~task:_ = (*TODO*) Lwt.return ()
+let make_project ~sp ~task ?repository_kind ?repository_path () =
+
+  (* creating a new area and getting rights right *)
+    Sql.full_transaction_block
+      (fun db ->
+
+         (* checking rights *)
+         Ocsforge_sql.get_area_for_task ~task_id:task db   >>= fun area_old ->
+         Roles.get_area_role ~sp area_old                  >>= fun role_old ->
+         !!(role_old.Roles.subarea_creator)                >>= fun b ->
+         if not b (*we only check subarea_creator as it's the "su" of an area*)
+         then Lwt.fail Ocsimore_common.Permission_denied
+         else
+
+         begin
+
+           (* get area code *)
+           Ocsforge_sql.next_right_area_id db             >>= fun c ->
+
+           let title_syntax = Forum_site.title_syntax in
+           (* create forum *)
+           Forum.create_forum (*TODO: use Forum_data.new_forum ? *)
+              ~wiki_model:Ocsisite.wikicreole_model (*TODO : give the real wiki model*)
+              ~title_syntax (*TODO:give the real title_syntax*)
+              ~title:("Ocsforge area"^(Types.string_of_right_area c)^" forum")
+              ~descr:("Messages about tasks in the area"
+                      ^ (Types.string_of_right_area c))
+              ()                                          >>= fun finfo ->
+
+          let forum = finfo.FTypes.f_id in
+(*          let mwiki = finfo.FTypes.f_messages_wiki in
+          let cwiki = finfo.FTypes.f_comments_wiki in
+ *)
+
+          (* create wiki *)
+            (* getting the path *)
+          Ocsforge_sql.get_path_for_area ~area:area_old db    >>=
+            (function
+              | None -> failwith "Ocsforge_data.new_project"
+              | Some ppath -> Lwt.return ppath)               >>= fun ppath ->
+            (* getting the rigths *)
+          Ocsforge_sql.get_task_by_id ~task_id:task db        >>= fun ti ->
+          Ocsforge_sql.get_area_by_id ~area_id:area_old db    >>= fun ai ->
+          Forum_sql.get_forum ~forum:ai.Types.r_forum ()      >>= fun fi ->
+          Wiki_sql.get_wiki_info_by_id fi.Forum_sql.Types.f_messages_wiki
+                                                              >>= fun wi ->
+          let rights = Wiki_models.get_rights wi.Wiki_types.wiki_model in
+            (* getting the wikibox *)
+          Forum_sql.get_message ~message_id:ti.Types.t_message ()
+                                                          >>= fun mi ->
+            (* finally : getting the content *)
+          Wiki_data.wikibox_content
+            ~rights ~sp
+            (mi.FTypes.m_wikibox)                         >>= fun (_,name,_) ->
+          User.get_user_id ~sp                            >>= fun author ->
+
+          let name = Ocsforge_lang.unopt name in
+          Wiki.create_wiki
+             ~title:("Ocsforge area" ^ (Types.string_of_right_area c) ^ " wiki")
+             ~descr:("Wiki for ocsforge area" ^ (Types.string_of_right_area c))
+             ~path:( ppath @ [ name ] )
+             ~author
+             (*TODO: use ~container_text*)
+             ~model:Ocsisite.wikicreole_model (*TODO : give the real model *)
+             ()
+                                                           >>= fun wiki ->
+
+          (* create area *)
+            Ocsforge_sql.new_area
+              ~id:c ~forum ~wiki ?repository_kind ?repository_path ()
+          >>= fun _ -> (* the result can't be anything but [c] *)
+
 (* link rights on area and rights on forum... Needs modifications on forum.ml
          Lwt_util.iter_serial
            (fun (ar,fr) -> User.add_to_group ~user:(ar $ c) ~group:(fr $ cwiki))
@@ -425,32 +496,71 @@ let make_project ~sp:_ ~task:_ = (*TODO*) Lwt.return ()
 
          User.add_to_group ~user:(task_admin $ c) ~group:(forum_admin $ forum)
          >>= fun () ->
-)
-          (*propagating rights*)
-            Ocsforge_sql.get_area_inheritance ~area_id:c db
-          >>= fun inh ->
+
+*)
+
+          (* create message *)
+            Forum_data.new_message
+              ~sp ~forum ~creator_id:author ~subject:name ~text:"" ()
+          >>= fun message ->
+
+          (*propagating rights into the new area*)
             Lwt_util.iter_serial
-              (fun a -> User_sql.add_to_group ~user:(a $ c) ~group:(a $ inh))
-              [Roles.task_reader ;
-               Roles.task_comment_reader ;
-               Roles.task_comment_moderator ;
-               Roles.task_comment_sticky_setter ;
-               Roles.task_comment_deletor ;
-               Roles.task_comment_writer ;
-               Roles.task_comment_writer_not_moderated ;
-               Roles.task_property_editor ;
-               Roles.task_message_editor ;
-               Roles.task_message_editor_if_author ;
-               Roles.task_admin ;
-               Roles.task_creator ;
-               Roles.task_mover ;
-               Roles.task_mover_from ;
-               Roles.task_mover_to ;
-               Roles.subarea_creator ;
-               Roles.kinds_setter ;
-               Roles.version_setter ;
-              ]
- *)
+              (fun a -> User.add_to_group
+                          ~user:(a $ c) ~group:(a $ area_old))
+                          [Roles.task_reader ;
+                           Roles.task_comment_reader ;
+                           Roles.task_comment_moderator ;
+                           Roles.task_comment_sticky_setter ;
+                           Roles.task_comment_deletor ;
+                           Roles.task_comment_writer ;
+                           Roles.task_comment_writer_not_moderated ;
+                           Roles.task_property_editor ;
+                           Roles.task_message_editor ;
+                           Roles.task_message_editor_if_author ;
+                           Roles.task_admin ;
+                           Roles.task_creator ;
+                           Roles.task_mover ;
+                           Roles.task_mover_from ;
+                           Roles.task_mover_to ;
+                           Roles.subarea_creator ;
+                           Roles.kinds_setter ;
+                           Roles.version_setter ;
+                           Roles.repository_setter ; ]
+          >>= fun () ->
+
+          (*making changes to task and area*)
+          Ocsforge_sql.adapt_to_project_spawn
+            ~spawning:task
+            ~new_area:c ~old_area:area_old
+            db
+          >>= fun () ->
+
+          (* making changes to subarea's wiki *)
+          Ocsforge_sql.get_tasks_in_tree ~root:task ~with_deleted:true () db
+          >>= fun subtasks ->
+          Lwt_util.iter_serial
+            (fun { Types.t_id = t } ->
+               Ocsforge_sql.get_area_info_for_task t db >>= fun a ->
+               Wiki_sql.get_wiki_info_by_id a.Types.r_wiki >>= fun wi ->
+               let path =
+                 Ocsforge_lang.insert_after_segment
+                   (Neturl.split_path
+                      (Ocsforge_lang.unopt wi.Wiki_types.wiki_pages))
+                   name
+                   ppath
+               in
+               Wiki_data.update_wiki
+                 ~rights
+                 ~sp
+                 ~path:(Some (Neturl.join_path path))
+                 a.Types.r_wiki
+            )
+            subtasks
+
+
+          end)
+
 
 
 (** Tampering with kinds *)

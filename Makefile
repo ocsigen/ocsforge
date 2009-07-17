@@ -34,6 +34,7 @@ SWIG := swig -ocaml
 MYOCAMLFIND := _build/myocamlfind.byte
 TARGETS := ocsforge.otarget
 OBROWSERDIR := $(shell ocamlfind query obrowser)
+AXODIR := ../obrowser/examples/axo/
 ELIOMOBROWSERDIR := $(shell ocamlfind query ocsigen.eliom_obrowser_client)
 
 TOINSTALL := 
@@ -42,7 +43,7 @@ STATICFILES :=
 
 all: $(MYOCAMLFIND) ocsforge
 
-ocsforge: $(MYOCAMLFIND) _build/ocsforge_svn.cma
+ocsforge: $(MYOCAMLFIND) _build/ocsforge_svn.cma ocsforge_client.cmo
 	PGUSER=$(DBUSER) PGDATABASE=$(DATABASE) PGPASSWORD=$(PASSWORD) \
 	$(OCAMLBUILD) $(TARGETS)
 
@@ -69,6 +70,10 @@ _build/ocsforge_svn.cma:
 #	mkdir _build
 	mv *.o *.a *.so _build
 	mv *.cm* _build
+
+ocsforge_client.cmo: 
+	CAMLLIB=$(OBROWSERDIR) ocamlc -c -linkall -I $(AXODIR) -I $(ELIOMOBROWSERDIR) ocsforge_client.ml
+	mv ocsforge_client.cm[io] _build/
 
 install:
 

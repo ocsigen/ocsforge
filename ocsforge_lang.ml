@@ -42,26 +42,15 @@ let compare_opt ?(comp = compare) =
      | None,    None    -> 0
      | Some v1, Some v2 -> comp v1 v2)
 
-let string_of_t_opt ?(none = "") ?(quote = "") string_of_t =
+let string_of_t_opt string_of_t =
   function
-    | None -> none
-    | Some s -> quote ^ (string_of_t s) ^ quote
+    | None -> ""
+    | Some s -> string_of_t s
 
-let t_opt_of_string ?(none = "") ?(quote = "") t_of_string =
-  let none_regexp = Str.regexp_string none in
-  let some_regexp =
-    if quote = ""
-    then Str.regexp "\\(.*\\)"
-    else
-      let quote_ = Str.quote quote in
-      Str.regexp (quote_ ^ "\\(.*\\)" ^ quote_)
-  in
-    (fun s ->
-       if Str.string_match none_regexp s 0
-       then None
-       else if Str.string_match some_regexp s 0
-            then Some (t_of_string (Str.matched_group 1 s))
-            else failwith "Ocsforge_lang.t_opt_of_string not a valid string")
+let t_opt_of_string t_of_string =
+  (function
+     | "" -> None
+     | s  -> Some (t_of_string (Str.matched_group 1 s)))
 
 
 (*List functions*)
@@ -81,6 +70,27 @@ let filter_map f l =
                  | None -> aux accu t
                  | Some v -> aux (v::accu) t)
   in aux [] l
+
+let insert_after l e reference =
+  let rec aux accu = function
+    | [] -> raise Not_found
+    | h::t ->
+        if h = reference
+        then ( List.rev accu ) @ ( h :: e :: t )
+        else aux (h :: accu) t
+  in aux [] l
+
+let insert_after_segment l e s =
+  let rec aux = function
+    | ([],[]) -> l @ [ e ]
+    | ([],_ ) -> failwith "Not a segment of"
+    | (tl,[]) -> s @ ( e :: tl )
+    | (h1::t1,
+       h2::t2) ->
+         if h1 <> h2
+         then failwith "Not a segment of"
+         else aux (t1,t2)
+  in aux (l,s)
 
 let apply_on_uniq_or_fail s f = function
   | [ v ] -> f v

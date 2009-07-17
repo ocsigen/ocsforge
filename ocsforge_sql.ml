@@ -297,6 +297,7 @@ let get_area_by_id ~area_id =
        | []  -> Lwt.fail Not_found
        | _   -> failwith "Ocsforge_sql.get_area_by_id, more than one result")
     
+
 let get_area_version ~area_id =
   let area = Types.sql_of_right_area area_id in
   (fun db ->
@@ -542,6 +543,23 @@ let swap_kinds_for_area ~area_id ~kinds =
           WHERE kind = $old AND area = $area"
      in Lwt_util.iter_serial f kinds)
 
+
+let adapt_to_project_spawn ~spawning ~new_area ~old_area =
+  let old_area = Types.sql_of_right_area old_area in
+  let new_area = Types.sql_of_right_area new_area in
+  let spawn    = Types.sql_of_task spawning in
+  let t        = true in
+    (fun db ->
+       PGSQL(db)
+         "UPDATE ocsforge_tasks
+          SET area_root = $t, area = $new_area
+          WHERE id = $spawn"
+         >>= fun () ->
+       PGSQL(db)
+         "UPDATE ocsforge_right_areas
+          SET root_task = $spawn
+          WHERE id = $old_area"
+    )
 
 
 (**/**)

@@ -466,7 +466,7 @@ object (self)
                              t.Types.t_importance,
                              t.Types.t_id))
                           ^")" :}>[
-           <div>{: (Olang.string_of_t_opt ~quote:"" Int32.to_string)
+           <div>{: (Olang.string_of_t_opt Int32.to_string)
                       t.Types.t_importance :}
         ] }}
     | "kind" ->

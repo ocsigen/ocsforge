@@ -167,7 +167,9 @@ val move_task :
 val make_project :
   sp:Eliom_sessions.server_params ->
   task:Ocsforge_types.task ->
-  unit Lwt.t
+  ?repository_kind:string ->
+  ?repository_path:string ->
+  unit -> unit Lwt.t
 
 
 

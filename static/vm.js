@@ -39,6 +39,9 @@ var instr_name = new Array (
     "BNEQ", "BLTINT", "BLEINT", "BGTINT", "BGEINT", "ULTINT", "UGEINT",
     "BULTINT", "BUGEINT", "GETPUBMET", "GETDYNMET", "STOP", "EVENT", "BREAK"
 );
+function print_instr (code, ofs) {
+    console.debug (instr_name[code.get (ofs)]);
+}
 function is_in (v, a) {
     for (var i in a) {
  if (v == a[i])
@@ -1911,6 +1914,21 @@ RT.caml_js_http_post = function (vurl, type, data) {
  throw new Error ("unable to load url " + url + ": " + e.message);
     }
 }
+RT.caml_js_dom_of_xml = function (str)
+{
+  try {
+    xmlDoc = new ActiveXObject("Microsoft.XMLDOM");
+    xmlDoc.async = "false";
+    xmlDoc.loadXML(str);
+    return xmlDoc;
+  } catch(e) {
+    try {
+      parser = new DOMParser();
+      xmlDoc = parser.parseFromString(str,"text/xml");
+      return xmlDoc;
+    } catch(e) { throw new Error ("unable to parse : " + e.message) }
+  }
+}
 RT["jsoo_new"] = function (o) {
     return [];
 }
@@ -1977,6 +1995,77 @@ RT["jsoo_wrap_event"] = function (clos, res) {
 }
 RT["jsoo_get_event_args"] = function (unit) {
     return this.ctx.event_args;
+}
+RT.caml_regexp_make = function (vs, vf) {
+    var s = string_from_value (vs);
+    var f = string_from_value (vf);
+    try {
+ return box_abstract (new RegExp (s, f));
+    } catch (e) {
+ this.failwith ("Regexp.make: " + e.message);
+    }
+}
+RT.caml_regexp_last_index = function (vr) {
+    var r = vr.get (0) ;
+    return r.lastIndex;
+}
+RT.caml_regexp_test = function (vr, vs) {
+    var r = vr.get (0) ;
+    var s = string_from_value (vs) ;
+    return (r.test (s)?1:0);
+}
+RT.caml_regexp_exec = function (vr, vs) {
+    var r = vr.get (0) ;
+    var s = string_from_value (vs) ;
+    var res = r.exec (s);
+    if (res == null) {
+ this.raise_constant (NOT_FOUND_EXN);
+    } else {
+ var vres = (new Block (res.length, 0));
+ for (var i = 0;i < res.length;i++) {
+     vres.set (i, value_from_string (res[i]));
+ }
+ return vres;
+    }
+}
+RT.caml_regexp_index = function (vr, vs) {
+    var r = vr.get (0) ;
+    var s = string_from_value (vs) ;
+    var i = s.search (r);
+    if (i == -1) {
+ this.raise_constant (NOT_FOUND_EXN);
+    } else {
+ return i;
+    }
+}
+RT.caml_regexp_replace = function (vr, vsub, vs) {
+    var r = vr.get (0) ;
+    var s = string_from_value (vs) ;
+    var sub = string_from_value (vsub) ;
+    return (value_from_string (s.replace (r, sub)));
+}
+RT.caml_regexp_replace_fun = function (vr, vf, vs) {
+    var r = vr.get (0) ;
+    var s = string_from_value (vs) ;
+    var vm = this;
+    var f = function () {
+ var vargs = (new Block (arguments.length - 2, 0));
+ for (var i = 0; i < arguments.length - 2;i++) {
+     vargs.set (i, value_from_string (arguments[i]));
+ }
+ return string_from_value (vm.callback (vf, [arguments[arguments.length - 2], vargs]));
+    }
+    return (value_from_string (s.replace (r, f)));
+}
+RT.caml_regexp_split = function (vr, vs) {
+    var r = vr.get (0) ;
+    var s = string_from_value (vs) ;
+    var res = s.split (r);
+    var vres = (new Block (res.length, 0));
+    for (var i = 0;i < res.length;i++) {
+ vres.set (i, value_from_string (res[i]));
+    }
+    return vres;
 }
 function debug (msg) {
     console.debug ("VM says \"" + msg + "\"");
@@ -4889,6 +4978,74 @@ VM.prototype.array_bound_error = function () {
 }
 VM.prototype.raise_end_of_file = function () {
     this.raise_constant (END_OF_FILE_EXN);
+}
+var i_tbl_cb = []
+for (i = 0;i <= 255; i++) {
+    i_tbl_cb[i] = i_tbl[i];
+}
+i_tbl_cb[91] = function (vm, c) {
+    if (c.caml_trap_sp == -1) {
+ throw ([ 987654321 , c.accu ]);
+    } else {
+ c.sp = c.caml_trap_sp;
+ c.cur_code = (c.stack[c.sp].tag == 247 ? c.stack[c.sp].get (0):c.stack[c.sp]);
+ c.pc = 0;
+ c.caml_trap_sp = c.stack[c.sp + 1];
+ c.env = c.stack[c.sp + 2];
+ c.extra_args = c.stack[c.sp + 3];
+ c.sp += 4;
+ return true;
+    }
+}
+VM.prototype.callback = function (clos, args) {
+    var code = (new Block (7, 0));
+    var ctx = {
+ cur_code : code,
+ pc : 0,
+ sp : 0,
+ caml_trap_sp : -1,
+ accu : 0,
+ stack : new Array (),
+  env : (new Block (0, 0)),
+ extra_args : 0,
+ status : 44,
+ pid : 0
+    } ;
+    var narg = args.length;
+    var octx = this.ctx ;
+    this.ctx = ctx;
+    ctx.sp -= narg + 4;
+    for (i = 0; i < narg; i++)
+ ctx.stack[ctx.sp + i] = args[i];
+    ctx.stack[ctx.sp + narg] = code.shift (4);
+    ctx.stack[ctx.sp + narg + 1] = 0;
+    ctx.stack[ctx.sp + narg + 2] = 0;
+    ctx.stack[ctx.sp + narg + 3] = clos;
+    code.set (0, 8);
+    code.set (1, narg + 3);
+    code.set (2, 32);
+    code.set (3, narg);
+    code.set (4, 19);
+    code.set (5, 1);
+    code.set (6, 143);
+    try {
+ while (ctx.cur_code.get (ctx.pc) != 143) {
+     if (! i_tbl_cb [ctx.cur_code.get (ctx.pc++)] (this, ctx)) {
+  this.ctx = octx;
+  this.failwith ("blocking functions in callbacks not supported");
+     }
+ }
+    } catch (e) {
+ this.ctx = octx;
+ if (e[0] == 987654321) {
+     this.raise (e[1]);
+ } else {
+     throw e;
+ }
+    }
+    var r = ctx.accu;
+    this.ctx = octx;
+    return r;
 }
 function exec_caml (url) {
     var argv = [];

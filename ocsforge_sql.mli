@@ -204,6 +204,12 @@ val get_kinds_for_area :
   area_id:Ocsforge_types.right_area ->
   Sql.db_t -> string list Lwt.t
 
+val adapt_to_project_spawn :
+  spawning:Ocsforge_types.task ->
+  new_area:Ocsforge_types.right_area ->
+  old_area:Ocsforge_types.right_area ->
+  Sql.db_t -> unit Lwt.t
+
 
 
 val add_kinds_for_area :
