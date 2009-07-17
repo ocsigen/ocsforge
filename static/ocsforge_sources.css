@@ -13,6 +13,27 @@ h3 {
     font-family: arial,sans-serif;
 }
 
+div.path {
+    text-align: center;
+    font-size: 1.17em;
+    border-top: 1px solid;
+    border-bottom: 1px solid;
+    font-family: arial,sans-serif;
+}
+
+span.path_delimiter {
+    text-align: center;
+    padding: 2px;
+}
+
+a.path {
+    text-decoration: none;
+}
+
+a.path:hover{
+    background-color: #DED4ED;
+}
+
 h5 {
     text-align: center;
     border-bottom: 1px solid;
@@ -186,6 +207,11 @@ div.annot_content {
     overflow: hidden;
     -moz-border-radius: 0px 10px 10px 0px;
     -webkit-border-radius: 0px 10px 10px 0px;
+}
+
+
+span.annot:hover {
+    font-weight:bold;
 }
 
 /** Syntax highlighting */

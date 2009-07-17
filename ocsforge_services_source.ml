@@ -62,11 +62,7 @@ let source_service path project = Eliom_predefmod.Any.register_new_service
 	| (l,(_,(false,(false,(true,(None,None)))))) ->
             (Some("Ocsforge - File annotate"),
              Ocsforge_widgets_source.draw_annotate ~sp ~id ~target:l ~version)
-	| (l,(Some(v),(false,(true,(false,(None,None)))))) ->
-	    if (String.compare v "latest" == 0) then
-	      (Some("Ocsforge - File content"),
-               Ocsforge_widgets_source.draw_source_code_view ~sp ~id ~target:l ~version:None)
-	    else
+	| (l,(_,(false,(true,(false,(None,None)))))) ->
 	      (Some("Ocsforge - File content"),
                Ocsforge_widgets_source.draw_source_code_view ~sp ~id ~target:l ~version)
 	| _ -> (* TODO : gestion erreur ?*)
