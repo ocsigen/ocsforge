@@ -36,12 +36,13 @@ TARGETS := ocsforge.otarget
 OBROWSERDIR := $(shell ocamlfind query obrowser)
 AXODIR := ../obrowser/examples/axo/
 ELIOMOBROWSERDIR := $(shell ocamlfind query ocsigen.eliom_obrowser_client)
+OCSIMOREOBROWSERDIR := $(shell ocamlfind query ocsimore.client)
 
 TOINSTALL := 
 
 STATICFILES := 
 
-all: $(MYOCAMLFIND) ocsforge
+all: $(MYOCAMLFIND) ocsforge static/vm.js static/ocsimore_client.uue
 
 ocsforge: $(MYOCAMLFIND) _build/ocsforge_svn.cma ocsforge_client.cmo
 	PGUSER=$(DBUSER) PGDATABASE=$(DATABASE) PGPASSWORD=$(PASSWORD) \
@@ -74,6 +75,14 @@ _build/ocsforge_svn.cma:
 ocsforge_client.cmo: 
 	CAMLLIB=$(OBROWSERDIR) ocamlc -c -linkall -I $(AXODIR) -I $(ELIOMOBROWSERDIR) ocsforge_client.ml
 	mv ocsforge_client.cm[io] _build/
+
+static/ocsimore_client.uue:
+	CAMLLIB=$(OBROWSERDIR) ocamlc -o ocsimore_client $(ELIOMOBROWSERDIR)/eliom_obrowser_client.cmo $(OCSIMOREOBROWSERDIR)/wiki_client.cmo $(OCSIMOREOBROWSERDIR)/forum_client.cmo $(OBROWSERDIR)/AXOJs.cmo $(OBROWSERDIR)/AXOCom.cmo ./_build/ocsforge_client.cmo
+	uuencode ocsimore_client stdout > static/ocsimore_client.uue
+
+
+static/vm.js: $(OBROWSERDIR)/vm.js
+	cp -f $(OBROWSERDIR)/vm.js static
 
 install:
 

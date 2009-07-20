@@ -5,16 +5,16 @@
   <server>
 
     <port>8080</port>
-    <logdir>PATH_TO_OCSIMORE/var/log/ocsimore</logdir>
-    <datadir>PATH_TO_OCSIMORE/var/lib/ocsimore</datadir>
+    <logdir>./var/log</logdir>
+    <datadir>./var/lib</datadir>
     
     
     <charset>utf-8</charset>
-    <commandpipe>PATH_TO_OCSIMORE/var/run/ocsimore_command</commandpipe>
+    <commandpipe>./var/run/ocsimore_command</commandpipe>
 
     <debugmode/>
 
-    <findlib path="PATH_TO_OCSIMORE/files"/>
+<!--    <findlib path="PATH_TO_OCSIMORE/files"/> -->
 
     <extension findlib-package="ocsigen.ext.staticmod"/>
     <extension findlib-package="ocsigen.ext.ocsipersist-sqlite">
@@ -28,7 +28,7 @@
     <extension findlib-package="ocsigen.ext.accesscontrol"/>
     <extension findlib-package="pgocaml"/>
     <extension findlib-package="ocsimore">
-      <passwordfile name="PATH_TO_OCSIMORE/etc/ocsigen/ocsimorepassword" />
+      <passwordfile name="./etc/ocsigen/ocsimorepassword" />
     </extension>
     <extension findlib-package="ocsimore.forum" />
 
@@ -36,13 +36,13 @@
     <extension findlib-package="ocsigen.ext.userconf"/>
     <extension findlib-package="ocsigen.ext.extendconfiguration"/>
     <extension findlib-package="ocsigen.ext.redirectmod"/>
-    <extension module="PATH_TO_OCSFORGE/_build/ocsforge_svn.cma"/>    
+    <extension module="./_build/ocsforge_svn.cma"/>    
     <!-- END personal pages -->			     
 
 
     <host defaulthostname="localhost">
 
-      <static dir="PATH_TO_OCSFORGE/static" />
+      <static dir="./static" />
             
 
       <eliommodule findlib-package="ocsimore.users">
@@ -62,7 +62,7 @@
       </eliommodule>
 
       <eliommodule findlib-package="ocsimore.ocsisite">
-        <admin staticdir="PATH_TO_OCSFORGE/static" />
+        <admin staticdir="./static" />
       </eliommodule>
 
 
@@ -73,7 +73,7 @@
         <name>ocsforge_task_forum</name>
       </eliommodule>
 
-      <eliommodule module="PATH_TO_OCSFORGE/_build/ocsforge.cma">
+      <eliommodule module="./_build/ocsforge.cma">
       </eliommodule>
 
       <eliom/>
