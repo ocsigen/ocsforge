@@ -34,7 +34,7 @@ SWIG := swig -ocaml
 MYOCAMLFIND := _build/myocamlfind.byte
 TARGETS := ocsforge.otarget
 OBROWSERDIR := $(shell ocamlfind query obrowser)
-AXODIR := ../obrowser/examples/axo/
+AXODIR := $(OBROWSERDIR)
 ELIOMOBROWSERDIR := $(shell ocamlfind query ocsigen.eliom_obrowser_client)
 OCSIMOREOBROWSERDIR := $(shell ocamlfind query ocsimore.client)
 
