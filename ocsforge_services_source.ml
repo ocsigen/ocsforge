@@ -80,23 +80,31 @@ let source_service path project = Eliom_predefmod.Any.register_new_service
       >>= fun (html, code) ->
       Eliom_duce.Xhtml.send ~sp ~code html)
 
+
+
 let log_service path project = Eliom_predefmod.Any.register_new_service
     ~path: [path; project; "log"]
-    ~get_params:Eliom_parameters.unit
-    (fun sp () () ->
+    ~get_params: (Eliom_parameters.opt (Eliom_parameters.user_type  
+                                          Vm.string_to_range 
+				          Vm.range_to_string "range"))
+    (fun sp range () ->
       let () =  Ocsforge_wikiext_common.send_css_up "ocsforge_sources.css" sp in
       let id = Ocsforge_types.task_of_string project in
-      Ocsforge_widgets_source.draw_log_table ~sp ~id ~file:None >>= fun pc ->
-      Ocsforge_data.get_area_for_task sp id >>= fun r_infos ->
-      let gen_box menu_style = 
-        Lwt.return (None,pc,Wiki_widgets_interface.Page_displayable,Some("Ocsforge - Repository history"))
+      let (start_rev,end_rev) = match range with
+        | None -> (None,None)
+        | Some(sr,er) -> (sr,er)
       in
-      Ocsisite.wikibox_widget#display_container 
-        ~sp ~wiki:(r_infos.Ocsforge_types.r_wiki) ~menu_style:`Linear
-        ~page:((Ocsigen_lib.string_of_url_path ~encode:true []),[])
-        ~gen_box:gen_box
-      >>= fun (html, code) ->
-        Eliom_duce.Xhtml.send ~sp ~code html)
+      Ocsforge_widgets_source.draw_log_table ~sp ~id ~file:None ~start_rev ~end_rev >>= fun pc ->
+        Ocsforge_data.get_area_for_task sp id >>= fun r_infos ->
+          let gen_box menu_style = 
+            Lwt.return (None,pc,Wiki_widgets_interface.Page_displayable,Some("Ocsforge - Repository history"))
+          in
+          Ocsisite.wikibox_widget#display_container 
+            ~sp ~wiki:(r_infos.Ocsforge_types.r_wiki) ~menu_style:`Linear
+            ~page:((Ocsigen_lib.string_of_url_path ~encode:true []),[])
+            ~gen_box:gen_box
+            >>= fun (html, code) ->
+              Eliom_duce.Xhtml.send ~sp ~code html)
  
 
 

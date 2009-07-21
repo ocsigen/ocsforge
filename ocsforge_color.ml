@@ -201,7 +201,7 @@ let rec color lexbuf fileName = match ((getLexer fileName) lexbuf) with
                 : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }})))
          (*(XHTML.M.pcdata (String.make 1 c))::(color lexbuf fileName )*)
  | Eof(n) -> 
-     generate_lines_num n n >>= fun b ->
+     generate_lines_num (n-1) (n-1) >>= fun b ->
        Lwt.return (b,{{ [] }})
     
 

@@ -39,11 +39,12 @@ val source_service :
 val log_service : 
     string ->
     string ->
-      (unit, unit,
+      ((string option * string option) option, unit,
        [ `Attached of
        Eliom_services.get_attached_service_kind Eliom_services.a_s ],
        [ `WithoutSuffix ],
-       unit,unit,[ `Registrable ])
+       ([ `One of (string option *string option)] Eliom_parameters.param_name),
+       unit,[ `Registrable ])
 	Eliom_services.service
 
 val register_repository_services : unit Lwt.t

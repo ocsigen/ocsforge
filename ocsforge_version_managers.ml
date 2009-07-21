@@ -43,8 +43,23 @@ let pair_to_string p =
     ((fst p)^":"^(Int32.to_string (Int32.of_int (snd p))))
 
 let string_to_pair s =
-  let l = Netstring_pcre.split (Netstring_pcre.regexp ":") s in match l with
-  | [hash;pos] ->
-    (hash,Int32.to_int (Int32.of_string pos))
-  | [hash] -> (hash,-1)
-  | _ -> ("",-1)
+  let l = Netstring_pcre.split (Netstring_pcre.regexp ":") s 
+  in match l with
+    | [hash;pos] -> (hash,Int32.to_int (Int32.of_string pos))
+    | [hash] -> (hash,-1)
+    | _ -> ("",-1)
+
+let range_to_string r = match r with
+  | (None,None) -> ""
+  | (None,Some(end_rev)) -> (":"^end_rev)
+  | (Some(start_rev),None) -> (start_rev^":")
+  | (Some(start_rev),Some(end_rev)) -> (start_rev^":"^end_rev)
+
+let string_to_range s = 
+  let l = Netstring_pcre.split_delim (Netstring_pcre.regexp ":") s
+  in match l with
+    | ["";end_rev] -> (None,Some(end_rev))
+    | [start_rev;""] -> (Some(start_rev),None)
+    | [start_rev; end_rev] -> (Some(start_rev),Some(end_rev))
+    | _ -> (None,None)
+  

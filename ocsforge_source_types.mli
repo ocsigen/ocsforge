@@ -4,8 +4,8 @@ open Lwt
    File(Nom Fichier, Nom auteur, (derniere version Nom * derniere version ID)) 
    | Dir(Nom repertoire, rep_tree list) *)
 type rep_tree = 
-  | File of ((string ref) * string * (string * string)) 
-  | Dir of ((string ref) * rep_tree list) 
+  | File of (string * string * (string * string)) 
+  | Dir of (string * rep_tree list) 
 
 (* type représentant un patch sous gestionnaire de version *)
 type patch = {id: string ref;
@@ -22,7 +22,7 @@ type list_result = rep_tree Lwt.t
 type log_result = patch list Lwt.t
 
 (* Type représentant le résultat d'un cat *)
-type cat_result = string list Lwt.t
+type cat_result = string Lwt.t
 
 (* Type permettant de différencier les lignes 
    identiques/différentes lors d'un diff *)
@@ -43,7 +43,7 @@ type annot_result = (string * string) list Lwt.t
 (* Type représentant l'ensemble des fonctions dont ont besoin les pages du site*)
 type fun_pack = {vm_list: (?id:string -> ?dir:string -> string -> list_result);
 		 vm_cat: (?id:string -> string -> string -> cat_result);
-		 vm_log: (?file:string -> ?id:string -> ?limit:int -> string -> log_result);
+		 vm_log: (?file:string -> ?end_rev:string -> ?limit:int -> string -> log_result);
 		 vm_diff: (string -> string -> string -> string -> diff_result);
                  vm_annot: (?id:string -> string -> string -> annot_result)}
   

@@ -134,6 +134,16 @@ svn_error_t* blame_callback(void *baton, apr_int64_t line_no,
   return SVN_NO_ERROR;
 }
 
+/* fonction faite pour récuperer un unique objet info et le stocker dans baton */
+svn_error_t* svn_info_callback(void *baton, const char *path, 
+                               const svn_info_t *info, apr_pool_t *pool)
+{
+  char *rev = apr_psprintf(pool,"%d\n",(int)info->last_changed_rev);
+  svn_stringbuf_t *res = svn_stringbuf_create(rev,pool);
+  svn_stringbuf_appendstr((svn_stringbuf_t *)baton,(const svn_stringbuf_t *)res);
+  return SVN_NO_ERROR;
+} 
+
 /* fonction déterminant le comportement en cas d'annulation 
    de l'opération courante */
 svn_error_t *cancel(void *cancel_baton)
@@ -189,6 +199,29 @@ svn_client_ctx_t *initialize_context(apr_pool_t *pool)
 }
 
 
+/*const svn_info_t **/ 
+int svn_support_info(apr_pool_t *pool,svn_client_ctx_t *ctx,const char *path)
+{
+  svn_error_t *err;
+  svn_opt_revision_t peg_revision;
+  svn_stringbuf_t *res = svn_stringbuf_create("",pool);
+  peg_revision.kind = svn_opt_revision_head;
+  
+  err = svn_client_info2 (path, 
+                          &peg_revision, 
+                          &peg_revision, 
+                          svn_info_callback,
+                          res,
+                          svn_depth_empty,
+                          NULL,
+                          ctx,
+                          pool);
+  if (err) {
+    svn_handle_error2(err, stderr, FALSE, "svn_support_info: ");
+  }
+  return atoi(res->data);
+}
+
 /* fonction simulant la commande svn list */
 apr_array_header_t *svn_support_list(char *rep_path, int rev)
 {  
@@ -235,19 +268,18 @@ apr_array_header_t *svn_support_list(char *rep_path, int rev)
 			 ctx,
 			 pool);
   if (err) {
-    svn_handle_error2(err, stderr, FALSE, "svn_support: ");
+    svn_handle_error2(err, stderr, FALSE, "svn_support_list: ");
   } 
   svn_cstring_split_append(list_result,res->data,"\n",TRUE,pool);    
   return list_result;
 }
 
 /* fonction simulant la commande svn log */
-apr_array_header_t *svn_support_log(char *rep_path, int limit)
+apr_array_header_t *svn_support_log(char *rep_path, int start, int limit)
 {  
   apr_pool_t *pool ;
   svn_error_t *err;
   svn_client_ctx_t *ctx; 
-  svn_opt_revision_t revision;
   svn_opt_revision_t revision_start;
   svn_opt_revision_t revision_end;
   
@@ -270,10 +302,14 @@ apr_array_header_t *svn_support_log(char *rep_path, int limit)
   *(char **)apr_array_push(targets) = rep_path;
   
   // -- Initialisation de l'intervalle de revisions --
-  revision.kind = svn_opt_revision_unspecified;
-  revision_start.kind = svn_opt_revision_number;
-  revision_start.value.number=1; 
-  revision_end.kind = svn_opt_revision_head;
+  if (start == -1) 
+    revision_start.kind = svn_opt_revision_head;
+  else {
+    revision_start.kind = svn_opt_revision_number;
+    revision_start.value.number = start;
+  }
+  revision_end.kind = svn_opt_revision_number;
+  revision_end.value.number = 1;
   
   // -- Choix des propriétés a récupérer --
   apr_array_header_t *revprops = apr_array_make (pool, 3, sizeof (char *));
@@ -284,13 +320,12 @@ apr_array_header_t *svn_support_log(char *rep_path, int limit)
   // -- Initialisation du tableau et du buffer de résultats -- 
   apr_array_header_t *list_result = apr_array_make(pool, 1, sizeof (const char *));
   svn_stringbuf_t *res = svn_stringbuf_create("",pool);	
-  
   err = svn_client_log4(targets,
-			&revision,
+			&revision_start,
 			&revision_start,
 			&revision_end,
 			limit,
-			TRUE,
+			FALSE,
 			TRUE,
 			FALSE,
 			revprops,
@@ -300,7 +335,7 @@ apr_array_header_t *svn_support_log(char *rep_path, int limit)
 			pool);
   
   if (err) {
-    svn_handle_error2(err, stderr, FALSE, "svn_support: ");
+    svn_handle_error2(err, stderr, FALSE, "svn_support_log: ");
   }
   svn_cstring_split_append(list_result,res->data,"\n",FALSE,pool);
   return list_result;
@@ -435,9 +470,7 @@ void svn_cstring_split_endline_append (apr_array_header_t *array,
     char *sub = apr_pstrndup(pool,(input+start),(len-start));
     *(char **)apr_array_push(array) = sub;
   }
-  else if (input[len-1] == '\n') {
-    *(char **)apr_array_push(array) = " ";
-  }
+  *(char **)apr_array_push(array) = "\n";
 } 	
 
 /* fonction simulant la commande svn cat */
@@ -489,7 +522,8 @@ apr_array_header_t *svn_support_cat(char *file_path, int revision){
 }
 
 
-apr_array_header_t *svn_support_blame(char *file_path, int revision){
+apr_array_header_t *svn_support_blame(char *file_path, int revision)
+{
   apr_pool_t *pool ;
   svn_error_t *err;
   svn_client_ctx_t *ctx; 

@@ -45,6 +45,9 @@ body { font-family: arial, sans-serif; }
 /** Repository content informations */
 
 table.sources_table{
+    margin-left: auto; 
+    margin-right: auto; 
+    width: 90%;
     border-collapse:collapse;
     text-align:left;
 }
@@ -97,9 +100,15 @@ tr.folder {
     background-color: #DDCAEF;
 }
 
+tr.folder:hover { background-color: #F4F4CC; }
+
 tr.odd { background-color: #D5EFDA; }
 
+tr.odd:hover { background-color: #F4F4CC; }
+
 tr.even { background-color: #C2F0CB; }
+
+tr.even:hover { background-color: #F4F4CC; }
 
 td.sources { empty-cells:hide; background-color: #E8E8E8; }
 
@@ -212,6 +221,19 @@ div.annot_content {
 
 span.annot:hover {
     font-weight:bold;
+}
+
+/** Repository log page */
+
+div.next_entries { 
+    border: 1px solid #BBBBBB; 
+    background-color:#EEE;
+    width: 150px; 
+    margin-left: auto; 
+    margin-right: auto; 
+    font-size: small; 
+    margin-bottom: 0px;
+    text-align: center;
 }
 
 /** Syntax highlighting */

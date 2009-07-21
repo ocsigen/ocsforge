@@ -47,17 +47,17 @@ let rec create_tree list_res tree name author step = match list_res with
 	| Dir(n,l) ->
 	    let length = List.length ename in
 	    if (length == 1) then 
-	      create_tree t (Dir(n,File(ref(List.hd ename),author,(rev,rev))::l)) name author next_step
+	      create_tree t (Dir(n,File(List.hd ename,author,(rev,rev))::l)) name author next_step
 	    else begin
 	      let target =  build_target ename in
 	      if (name.[(String.length name - 1)] == '/') then begin 
 		let node_name = List.nth ename (length - 2) in
-		let new_tree = (Tree.insert (Dir(ref(node_name),[])) target tree) in
+		let new_tree = (Tree.insert (Dir(node_name,[])) target tree) in
 		create_tree t new_tree name author next_step
 	      end
 	      else begin
 		let node_name = List.nth ename (length - 1) in 
-		let new_tree = (Tree.insert (File(ref(node_name),author,(rev,rev))) target tree) in
+		let new_tree = (Tree.insert (File(node_name,author,(rev,rev))) target tree) in
 		create_tree t new_tree name author next_step
 	      end
 	    end
@@ -97,7 +97,7 @@ let svn_list ?id ?dir rep =
       | Swig.C_string(s) -> s
       | _ -> "") (svn_result) 
   in
-  create_tree list_res  (Dir(ref(""),[])) "" "" 0
+  create_tree list_res  (Dir("",[])) "" "" 0
        
 (** Crée la liste des patchs à partir du resultat de svn_log  *)
 let rec create_patch_list log_res patch_list step = match log_res with
@@ -106,7 +106,7 @@ let rec create_patch_list log_res patch_list step = match log_res with
       let next_step = step+1 in
       if (step mod 5 == 0) then begin
 	let next_patch = {id = ref h; name= ref h; author = ref "";
-			  date = ref ""; comment = ref ""; tree = File(ref(""),"",("",""))} 
+			  date = ref ""; comment = ref ""; tree = File("","",("",""))} 
 	in
 	create_patch_list t (next_patch::patch_list) next_step
       end
@@ -126,10 +126,14 @@ let rec create_patch_list log_res patch_list step = match log_res with
 	
 
 (** Stocke la liste des révisions du dépôt dans une liste de type patch *)
-let svn_log ?file ?id ?limit rep = 
+let svn_log ?file ?end_rev ?limit rep = 
   let last = match limit with
     | None -> 0
     | Some(i) -> i
+  in
+  let e = match end_rev with
+    | None -> -1
+    | Some(r) -> int_of_string r
   in
   let log_res = 
     match file with
@@ -141,7 +145,9 @@ let svn_log ?file ?id ?limit rep =
 		| _ -> "")
 	    (extract_list (Swig_svn._svn_support_log 
 			     (Swig.C_list
-				[Swig.C_string(rep); Swig.C_int(last)])))
+				[Swig.C_string(rep); 
+                                 Swig.C_int(e);
+                                 Swig.C_int(last)])))
       | Some(f) ->
 	  List.map 
 	    (fun s -> match s with
@@ -149,9 +155,11 @@ let svn_log ?file ?id ?limit rep =
 			| _ -> "")
 	    (extract_list (Swig_svn._svn_support_log 
 			     (Swig.C_list
-				[Swig.C_string(rep^"/"^f); Swig.C_int(last)])))
+				[Swig.C_string(rep^"/"^f); 
+                                 Swig.C_int(e);
+                                 Swig.C_int(last)])))
   in
-  create_patch_list log_res [] 0
+  (create_patch_list log_res [] 0) >>= fun l -> Lwt.return (List.rev l)
 
 let rec tabcount s i =
   if i < String.length s then
@@ -321,7 +329,8 @@ let svn_cat ?id rep file =
   Lwt_util.map(fun s ->
     match s with
     | Swig.C_string(s) -> Lwt.return s
-    | _ -> Lwt.return "") (cat_res) 
+    | _ -> Lwt.return "") (cat_res) >>= fun l ->
+        Lwt.return (String.concat "\n" l)
 
 
 let rec extract_annot_result step res l = match l with

@@ -8,42 +8,42 @@ open Xmltypes
 let index_regexp = regexp "Index: "
 
 (** Stocke le contenu d'un input channel dans une string list *)
-let rec read_input_channel res chan =
-  try_bind 
-    (fun () -> Lwt_chan.input_line chan)
-    (fun line -> read_input_channel (line::res) chan)
-    (function 
-      | End_of_file -> Lwt.return (List.rev res)
-      | _ ->  Lwt.return (List.rev ("Unexpected Exception"::res)))
+let rec read_input_channel buf res chan =
+  Lwt_chan.input chan buf 0 4096 >>= fun n ->
+    if (n = 0) then begin
+      Lwt_chan.close_in chan >>= fun () ->
+        Lwt.return (Buffer.contents res)
+    end
+    else begin
+      Buffer.add_substring res buf 0 n;
+      read_input_channel buf res chan
+    end
+      
   
 (** Execute une commande systeme et stockes le résultat affiché 
     dans une string list *)
 let exec_command command error_message = 
   let (outpipe,inpipe) = Lwt_unix.pipe_in () in
+  let buf = String.create 4096 in
+  let result = Buffer.create 4096 in
   let pid = Unix.fork () in
   if (pid == 0) then begin
     Lwt_unix.close outpipe;
     Unix.dup2 inpipe Unix.stdout;
     Unix.close inpipe;
-    Unix.execv "/bin/sh" [| "/bin/sh"; "-c"; command |]
+    Unix.execv "/bin/sh" [| "/bin/sh"; "-c"; command |];
   end
   else begin
     Unix.close inpipe;
-    read_input_channel [] (Lwt_chan.in_channel_of_descr outpipe) >>= fun res ->
-    Lwt_unix.waitpid [] pid >>= fun status -> match status with
-      | (_,Unix.WEXITED(i)) ->
-	  if (i == 0) then begin
-	      Lwt_unix.close outpipe;
-	      Lwt.return res
-	  end
-	  else begin
-	    Lwt_unix.close outpipe;
-	    Lwt.return [error_message]
-	  end
-      | (_,_) -> 
-	  Lwt_unix.close outpipe;
-	  Lwt.return [error_message]
+    read_input_channel buf result (Lwt_chan.in_channel_of_descr outpipe) >>= fun res ->
+      Lwt_unix.waitpid [] pid >>= fun status -> match status with
+          (*(0,_) -> wait_nohang ()*)
+          | (_,Unix.WEXITED(0)) ->
+              Lwt.return res
+	  | (_,_) -> 
+	      Lwt.return error_message
   end
+
 
 let rec eat_blanks s cpt =
   if (s.[cpt] != ' ') then
@@ -73,7 +73,7 @@ let rec handle_add_file tree patch content = match content with
         | Simplexmlparser.PCData(s) -> 
 	    let (path,name) = format_name s ~eatblanks:true in
 	    let new_tree = 
-	      insert (File(ref(name),!(patch.author),(!(patch.name),!(patch.id))))
+	      insert (File(name,!(patch.author),(!(patch.name),!(patch.id))))
 		path tree in 
 	    handle_add_file new_tree patch t
 	| _ ->
@@ -99,10 +99,10 @@ let rec handle_remove_file tree patch content = match content with
 let rec handle_add_directory tree patch content = match content with
   | [] -> tree
   | h::t ->
-      match h with 
+        match h with 
         | Simplexmlparser.PCData(s) -> 
 	    let (path,name) = format_name s ~eatblanks:true in
-	    let new_tree = insert (Dir(ref(name),[])) path tree in
+	    let new_tree = insert (Dir(name,[])) path tree in
 	    handle_add_directory new_tree patch t
 	| _ ->
 	    handle_add_directory tree patch t
@@ -114,7 +114,7 @@ let rec handle_remove_directory tree patch content = match content with
       match h with 
         | Simplexmlparser.PCData(s) -> 
 	    let (path,name) = format_name s ~eatblanks:true in
-	    let new_tree = delete (Dir(ref(name),[])) path tree in
+	    let new_tree = delete (Dir(name,[])) path tree in
 	    handle_remove_directory new_tree patch t
 	| _ ->
 	    handle_remove_directory tree patch t
@@ -124,12 +124,6 @@ let handle_move tree args = match args with
       let (from_path,from_name) = format_name mv_from ~eatblanks:false in
       let (to_path,to_name) = format_name mv_to ~eatblanks:false in
       move from_path from_name to_path to_name tree
-  | _ -> tree 
-  
-let rec handle_move_list tree l = match l with
-  | Simplexmlparser.Element(_,args,_)::t ->
-      let new_tree = handle_move tree args in
-      handle_move_list new_tree t
   | _ -> tree
 
 let rec handle_modify_file tree patch content = match content with
@@ -146,31 +140,28 @@ let rec handle_modify_file tree patch content = match content with
       | _ -> handle_modify_file tree patch t
 
 
-let rec handle_summary res patch content move_list = match content with
-  | [] -> res (*handle_move_list res (List.rev move_list)*)
+let rec handle_summary res patch content = match content with
+  | [] -> res 
   | h::t -> 
       match h with
-        | Simplexmlparser.PCData(_) -> handle_summary res patch t []
+        | Simplexmlparser.PCData(_) -> handle_summary res patch t
 	| Simplexmlparser.Element(name,args,econtent) ->
-	    (*if (String.compare name "move" == 0) then 
-	      handle_summary res patch t (h::move_list)
-	    else*) 
-	      let next_res = 
-		if (String.compare name "add_file" == 0) then
-		  handle_add_file res patch econtent
-		else if (String.compare name "remove_file" == 0) then
-		  handle_remove_file res patch econtent
-		else if (String.compare name "add_directory" == 0) then
-		  handle_add_directory res patch econtent
-		else if (String.compare name "remove_directory" == 0) then
-		  handle_remove_directory res patch econtent
-		else if (String.compare name "modify_file" == 0) then
-		  handle_modify_file res patch econtent
-		else if (String.compare name "move" == 0) then 
-		  handle_move res args 
-		else res
+	    let next_res = 
+	      if (String.compare name "add_file" == 0) then
+		handle_add_file res patch econtent
+	      else if (String.compare name "remove_file" == 0) then
+		handle_remove_file res patch econtent
+	      else if (String.compare name "add_directory" == 0) then
+		handle_add_directory res patch econtent
+	      else if (String.compare name "remove_directory" == 0) then
+		handle_remove_directory res patch econtent
+	      else if (String.compare name "modify_file" == 0) then
+		handle_modify_file res patch econtent
+	      else if (String.compare name "move" == 0) then 
+		handle_move res args
+	      else res
 	      in
-	      handle_summary next_res patch t move_list
+	      handle_summary next_res patch t
 
       
 
@@ -233,7 +224,7 @@ let rec handle_patch ?file patch content = match content with
 			    date = patch.date;
 			    comment = patch.comment;
 			    tree = handle_summary 
-			      (patch.tree) patch econtent [];}) t
+			      (patch.tree) patch econtent;}) t
 	    else handle_patch patch t 
 
 
@@ -241,7 +232,7 @@ let rec handle_changelog ?file res content = match content with
   | [] -> Lwt.return res
   | p::t ->
       let root_tree = match res with
-        | [] -> Dir(ref("."),[])
+        | [] -> Dir(".",[])
 	| _ -> (List.hd res).tree
       in
       match p with
@@ -330,34 +321,37 @@ let rec handle_annot_xml_list res l = match l with
 
 (** Stocke la liste des patchs présents dans un dépot Darcs ainsi que les 
     modifications faites sur les fichiers dans une liste de types patch *)
-let get_patch_list ?id rep =
-  let command = match id with
-      | None ->
-	  ("darcs changes --repodir "^rep
-	   ^" --xml-output --summary --reverse")
-      | Some(matching) ->
-	  ("darcs changes --repodir "^rep
-	   ^" --to-match 'hash "^matching^"' --xml-output --summary --reverse")
+let get_patch_list ?id ?dir repo =
+  let command = match (id,dir) with
+  | (None,None) ->
+      ("darcs changes --repo "^repo
+       ^" --xml-output --summary --reverse")
+  | (None,Some(d)) ->
+      ("darcs changes --repo "^repo^" --repodir "^d
+       ^" --xml-output --summary --reverse")
+  | (Some(matching),None) ->
+       ("darcs changes --repo "^repo
+       ^" --to-match 'hash "^matching^"' --xml-output --summary --reverse")
+  | (Some(matching),Some(d)) ->
+      ("darcs changes --repo "^repo^" --repodir "^d
+       ^" --to-match 'hash "^matching^"' --xml-output --summary --reverse")
   in let error_message = "Error while getting changelog (signal received)" in
-  exec_command command error_message >>= function
-    | [] -> Lwt.return []
-    | l -> 
-	let s = String.concat "\n" l in
-	let res = Simplexmlparser.xmlparser_string s in
-	handle_log_xml_list [] res
+  exec_command command error_message >>= fun s ->
+    let res = Simplexmlparser.xmlparser_string s in
+    handle_log_xml_list [] res
 
 
 
-let darcs_log ?file ?id ?limit rep =
+let darcs_log ?file ?end_rev ?limit rep =
   let command = match file with
   | None ->
-      begin match id with
+      begin match end_rev with
       | None ->
           begin match limit with
 	  | None -> ("darcs changes --repodir "^rep
 	             ^" --xml-output --reverse")
           | Some(i) -> ("darcs changes --repodir "^rep
-	                ^" --xml-output --reverse --last="^(string_of_int i))
+	                ^" --xml-output --reverse --max-count "^(string_of_int i))
           end
       | Some(matching) ->
           begin match limit with
@@ -365,18 +359,20 @@ let darcs_log ?file ?id ?limit rep =
 	             ^" --to-match 'hash "^matching^"' --xml-output --reverse")
           | Some(i) ->
               ("darcs changes --repodir "^rep
-	       ^" --to-match 'hash "^matching^"' --xml-output --reverse --last="^(string_of_int i))
+	       ^" --to-match 'hash "^matching
+               ^"' --xml-output --reverse --max-count "^(string_of_int i))
           end
       end
   | Some(f) ->
-      begin match id with
+      begin match end_rev with
       | None ->
           begin match limit with 
 	  | None ->("darcs changes --repodir "^rep
 	            ^" --xml-output --reverse "^f)
           | Some(i) ->
               ("darcs changes --repodir "^rep
-	            ^" --xml-output --last="^(string_of_int i)^" --reverse "^f)
+	       ^" --xml-output --max-count "^(string_of_int i)
+               ^" --reverse "^f)
           end
       | Some(matching) ->
           begin match limit with
@@ -385,22 +381,98 @@ let darcs_log ?file ?id ?limit rep =
           | Some(i) ->
               ("darcs changes --repodir "^rep
 	       ^" --to-match 'hash "^matching
-               ^"' --last="^(string_of_int i)^" --xml-output --reverse "^f)
+               ^"' --max-count "^(string_of_int i)^" --xml-output --reverse "^f)
           end
       end
   in let error_message = "Error while getting changelog (signal received)" in
-  exec_command command error_message >>= function
-    | [] -> Lwt.return []
-    | l -> 
-	let s = String.concat "\n" l in
-	let res = Simplexmlparser.xmlparser_string s in
-	handle_log_xml_list [] res
+  exec_command command error_message >>= fun s ->
+    let res = Simplexmlparser.xmlparser_string s in
+    handle_log_xml_list [] res
+
+
+(** Récupères les informations relatives à un fichier de la copie de travail *)
+let darcs_infos repos_path file = 
+  let error_message = "Error while getting file info (signal received)" in
+  let command = 
+    ("darcs changes --xml-output --repodir "^repos_path
+     ^" --max-count=1 "^file) 
+  in exec_command command error_message >>= fun l -> Lwt.return ()
+  
+  
+
+(** Construit un arbre de fichiers à partir du résultat de darcs show files *)
+let parse_wc_list ?dir repos_path dir_list file_list = 
+  let insert_dirs = match dir_list with
+    | [] -> Dir("",[])
+    | _ -> 
+        let rec insert_dir_aux l res = match l with
+          | [] -> res
+          | h::t -> 
+              if (String.compare h "." = 0) then 
+                insert_dir_aux t res
+              else begin
+                let (path,name) = format_name (String.sub h 2 ((String.length h) - 2)) ~eatblanks:false 
+                in
+                let new_tree = insert (Dir(name,[])) path res in
+                insert_dir_aux t new_tree
+              end
+        in insert_dir_aux dir_list (Dir("",[]))
+  in 
+  let rec insert_files l res = match l with
+  | [] -> Lwt.return res
+  | h::t -> 
+      let parsed_name = String.sub h 2 ((String.length h) - 2) in
+      let (path,name) = format_name parsed_name ~eatblanks:false 
+      in
+      begin match (dir,path) with
+      | (None,[]) ->
+          (*darcs_infos repos_path parsed_name >>= fun () ->*)
+          let new_tree = insert (File(name,"",("",""))) path res in
+          insert_files t new_tree
+      | (Some(d),_) ->
+          if (d = (String.concat "/" path)) then begin
+            (*darcs_infos repos_path parsed_name >>= fun () ->*)
+            let new_tree = insert (File(name,"",("",""))) path res in
+            insert_files t new_tree
+          end
+          else
+            let new_tree = insert (File(name,"",("",""))) path res in
+            insert_files t new_tree
+      | _ ->
+          let new_tree = insert (File(name,"",("",""))) path res in
+          insert_files t new_tree
+      end
+  in insert_files file_list insert_dirs
+(*
+  let rec insert_files = match l with
+  | [] -> res
+  | h::t -> *)
+
+
+(** Crées l'arbre associé a la copie de travail *)
+let darcs_wc_list ?dir repos_path = 
+  let error_message = "Error while getting content list (signal received)" in
+  let dir_command = ("darcs show files --no-files --repodir "^repos_path) in  
+  let file_command = ("darcs show files --no-directories --repodir "^repos_path) in
+  exec_command dir_command error_message >>= fun dir_string ->
+    let dir_list = split (regexp "\n") dir_string in
+    exec_command file_command error_message >>= fun file_string -> 
+      let file_list = split (regexp "\n") file_string in
+      match dir with 
+      | None ->
+          parse_wc_list repos_path dir_list file_list
+      | Some(d) ->
+          parse_wc_list ~dir:d repos_path dir_list file_list >>= fun tree ->
+            let (target,name) = format_name d ~eatblanks:false in
+            let res = get_node name target tree in match res with
+              | None -> Lwt.return (Dir("",[])) (* a traiter ? *)
+              | Some(t) -> Lwt.return t
 
 
 (** Recuperes l'arbre associé au patch précisé *)
 let darcs_list ?id ?dir repos_path = 
   let rec find_rev rev l = match l with
-    | [] -> Lwt.return (Dir(ref(""),[])) (* a traiter *)
+    | [] -> Lwt.return (Dir("",[])) (* a traiter ? *)
     | p::t -> 
         if ((String.compare rev !(p.id)) == 0) then
 	  Lwt.return (p.tree)
@@ -408,34 +480,22 @@ let darcs_list ?id ?dir repos_path =
   in
   match (id,dir) with
     | (None,None) -> 
-        get_patch_list repos_path >>= fun l -> begin match l with
-          | [] -> Lwt.return (Dir(ref(""),[])) (* a traiter ? *)
-          | _ -> Lwt.return ((List.hd l).tree)
-        end
+        darcs_wc_list repos_path;
     | (Some(i),None) -> 
         get_patch_list ~id:i repos_path >>= fun l -> begin match l with
-          | [] -> Lwt.return (Dir(ref(""),[])) (* a traiter ? *)
+          | [] -> Lwt.return (Dir("",[])) (* a traiter ? *)
           | _ -> find_rev i l
         end
     | (None,Some(d)) -> 
-        let path = (repos_path^"/"^d) in
-        get_patch_list path >>= fun l -> begin match l with
-          | [] -> Lwt.return (Dir(ref(""),[])) (* a traiter ? *)
-          | _ ->  
-              let (target,name) = format_name d ~eatblanks:false in
-              let res = get_node name target ((List.hd l).tree) in match res with
-                  | None -> Lwt.return (Dir(ref(""),[])) (* a traiter ? *)
-                  | Some(t) -> Lwt.return t
-        end
+        darcs_wc_list ~dir:d repos_path
     | (Some(i),Some(d)) -> 
-        let path = (repos_path^"/"^d) in
-        get_patch_list ~id:i path >>= fun l -> begin match l with
-          | [] -> Lwt.return (Dir(ref(""),[])) (* a traiter ? *)
+        get_patch_list ~id:i ~dir:d repos_path >>= fun l -> begin match l with
+          | [] -> Lwt.return (Dir("",[])) (* a traiter ? *)
           | _ -> 
               find_rev i l >>= fun tree -> 
                 let (target,name) = format_name d ~eatblanks:false in
                 let res = get_node name target tree in match res with
-                  | None -> Lwt.return (Dir(ref(""),[])) (* a traiter ? *)
+                  | None -> Lwt.return (Dir("",[])) (* a traiter ? *)
                   | Some(t) -> Lwt.return t
         end
             
@@ -620,7 +680,8 @@ let darcs_diff file rep from_patch to_patch =
 		 "' --to-match 'hash "^to_patch^
 		 "' "^file^
 		 " -u --repodir "^rep) in
-  exec_command command error_message >>= fun res ->
+  exec_command command error_message >>= fun res_string ->
+    let res = split (regexp "\n") res_string in
     parse_diff res [{fileName=file; oldContent=[]; newContent=[]}] false
 	(*| [] -> Lwt.return {fileName=file; oldContent=[]; newContent=[]}
 	| h::_ -> Lwt.return h *)
@@ -628,13 +689,13 @@ let darcs_diff file rep from_patch to_patch =
 
 let rec print_tree path tree = match tree with
   | File(f,a,(v,_)) -> 
-      print_endline (path^(!f)^"  aut:"^a^"   v:"^v)
+      print_endline (path^f^"  aut:"^a^"   v:"^v)
   | Dir(d,l) ->
-      print_endline (path^(!d));
+      print_endline (path^d);
       let rec aux list =  match list with
       | [] -> ()
       | h::t -> 
-	  print_tree (path^(!d)^"/") h;
+	  print_tree (path^d^"/") h;
 	  aux t
       in aux l
 
@@ -645,12 +706,9 @@ let darcs_annot ?id rep file =
     | Some(patch) -> ("darcs annotate --xml-output --match 'hash "^patch^
                       "' "^file^" --repodir="^rep)
   in
-  exec_command command error_message >>= function
-    | [] -> Lwt.return []
-    | l -> 
-	let s = String.concat "\n" l in
-	let res = Simplexmlparser.xmlparser_string s in
-	handle_annot_xml_list [] res >>= fun l -> Lwt.return (List.rev l)
+  exec_command command error_message >>= fun s ->
+    let res = Simplexmlparser.xmlparser_string s in
+    handle_annot_xml_list [] res >>= fun l -> Lwt.return (List.rev l)
     
 
 
