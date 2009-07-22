@@ -91,6 +91,7 @@ uninstall:
 
 clean:
 	rm -Rf _build
+	rm -f static/*.uue
 #	make -C nis_chkpwd clean
 
 .PHONY: all ocamlbuild clean

@@ -20,84 +20,41 @@
 open AXOLang
 
 (*poping up the new task form*)
-let pop_up_new_task id =
-  let body = Js.get_element_by_id "ocsforge_tree" in
-  let mask =
-    Js.Html.div
-      ~style:"position: fixed; right: 0px; top: 0px; width: 100%; \
-              height: 100%; background-color: black; opacity: .5;"
-      []
-  in
-  let savable = ref false in
-  let title_input =
-    Js.Html.input
-      (fun s -> s)                                (* format... (string_of_t)  *)
-      (fun s -> s)                                (* parse...  (t_of_string)  *)
-      ""                                          (* value...                 *)
-      100                                         (* size...                  *)
-      true                                        (* editable...              *)
-      (fun s ->
-         if s.Js.Html.get () = ""
-         then savable := false
-         else savable := true  )                  (* callback...              *) (*TODO: use the call back to grey out the "SAVE" button*)
-  in
-   let form =
-    Js.Html.div
-      ~style:"position: fixed; left: 25px; bottom: 25px; \
-      -moz-border-radius: 5px; padding: 10px; \
-                                 background-color: white; text-align: right;"
-      [ (* Title *) title_input.Js.Html.node ;
-                               Js.Html.br () ;
+let new_task_pop_up id =
 
-      ]
-  in
-  let close () =
-    Js.Node.remove body form ;
-    Js.Node.remove body mask
-  in
-  let save () =
-    if !savable
-    then
-      begin
-        try
-          let args = (*TODO : fill all fields*)
-            [ ("__eliom_na__name","ocsforge_add_task") ;
-              ("parent", Int32.to_string id) ;
-              ("subject", title_input.Js.Html.get ()) ;
-              ("text", "dummy text") ;
-              ("length", "") ;
-              ("progress", "") ;
-              ("importance", "") ;
-              ("deadline_t", "") ;
-              ("deadline_v", "") ;
-              ("kind", "") ;
-            ]
-          in
-            AXOCom.alert_on_code
-              (AXOCom.http_post "./" args) ;
-            close ()
-        with exc -> Js.alert ("unable to save task :\n"
-                              ^ (Printexc.to_string exc)) ;
-                    close ()
-      end
-    else Js.alert "Fill the description field before saving"
-  in
-  let save_close_node = 
-    (Js.Html.div
-       [
-         Js.Html.a ~onclick:save
-           [Js.Node.text "SAVE"] ;
-         Js.Html.string " - " ;
-         Js.Html.a ~onclick:close
-           [Js.Node.text "CLOSE"] ;
-       ]
-    )
-  in
+  let form = new AXOToolkit.block_container in
+  let popup = new AXOToolkit.popup form in
 
-    Js.Node.append form save_close_node ;
-    Js.Node.append body mask ;
-    Js.Node.append body form
-;;
+  let title_input = new AXOToolkit.text_input "Enter your title here" in
+    title_input#set_attribute "size" "100" ;
+  let save_button = new AXOToolkit.inline_text_widget_button "SAVE" in
+    save_button#add_click_action
+      (fun () ->
+         popup#hide ;
+         let (c,m) =
+           AXOCom.http_post "./"
+              [ ("__eliom_na__name","ocsforge_add_task") ;
+                ("parent", Int32.to_string id) ;
+                ("subject", title_input#get_value) ;
+                ("text", "") ;
+                ("length", "") ;
+                ("progress", "") ;
+                ("importance", "") ;
+                ("deadline_t", "") ;
+                ("deadline_v", "") ;
+                ("kind", "") ;
+              ]
+         in
+           AXOCom.alert_on_code
+             ~on_2xx:(fun _ -> AXOJs.alert "task successfully added")
+             (c,m) ;
+      ) ;
+
+    form#add_common ( title_input      :> AXOWidgets.common ) ;
+    form#add_common ( save_button      :> AXOWidgets.common ) ;
+
+    popup#show
+
 
 
 
@@ -194,7 +151,7 @@ end
 
 let _ =
   let reg = Eliom_obrowser_client.register_closure in
-  reg 189 pop_up_new_task ;
+  reg 189 new_task_pop_up ;
   reg 289 Row_color.color_fields ;
 
 

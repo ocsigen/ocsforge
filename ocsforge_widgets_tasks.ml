@@ -37,13 +37,16 @@ let draw_message_title ~sp ~message
       (inline_widget : Wiki_widgets_interface.frozen_wikibox) =
   Forum_data.get_message ~sp ~message_id:message >>= fun minfo ->
   match minfo.FTypes.m_subject with
-    | None -> Lwt.return {{ <h1>['Undescribed task'] }}
+    | None -> Lwt.return {{ <span>['Undescribed task'] }}
     | Some s -> (*TODO: get rid of Wiki_sql uses *)
         Wiki_sql.wikibox_wiki minfo.FTypes.m_wikibox  >>= fun wiki ->
         Wiki_sql.get_wiki_info_by_id wiki      >>= fun winfo ->
         let rights = Wiki_models.get_rights winfo.Wiki_types.wiki_model in
         Wiki.default_bi ~sp ~wikibox:s ~rights >>= fun bi ->
         inline_widget#display_frozen_wikibox ~bi ~classes:[] ~wikibox:s
+          >>= function (*TODO: don't use this likely to raise exceptions match *)
+                | {{ <div class=_>[ <h1>[ <span>[ (x::_)* ]]] }} -> Lwt.return {{ <span>[ !x ] }}
+                | {{ a }}            -> (Ocamlduce.Print.print_xml print_endline a ; failwith "Not an h1 message title")
 
 
 (** draw a select field for optional values.
