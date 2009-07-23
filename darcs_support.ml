@@ -45,6 +45,27 @@ let exec_command command error_message =
   end
 
 
+let get_nb_patches rep = 
+  let command = ("darcs changes --repodir "^rep^" --count") in
+  let error_message = "Error while getting total patches number (signal received)" in
+  exec_command command error_message >>= fun s -> 
+    Lwt.return (int_of_string (String.sub s 0 (String.length s - 1)))
+
+
+let get_patch_num hash rep = 
+  let command = 
+    ("darcs changes --repodir "^rep^" --to-match 'hash "
+     ^hash^"' --count") in
+  let error_message = "Error while getting patch number (signal received)" in
+  exec_command command error_message >>= fun s -> 
+    Lwt.return (int_of_string (String.sub s 0 (String.length s - 1)))
+
+
+let get_patch_index hash rep = 
+  get_nb_patches rep >>= fun max ->
+    get_patch_num hash rep >>= fun nb ->
+      Lwt.return (max - nb + 1)
+
 let rec eat_blanks s cpt =
   if (s.[cpt] != ' ') then
     string_after s cpt
@@ -202,7 +223,7 @@ let fill_patch_fields root_tree args =
   in
   aux res args
 
-let rec handle_patch ?file patch content = match content with
+let rec handle_patch patch content = match content with
   | [] -> Lwt.return patch
   | h::t -> 
       match h with
@@ -228,7 +249,7 @@ let rec handle_patch ?file patch content = match content with
 	    else handle_patch patch t 
 
 
-let rec handle_changelog ?file res content = match content with 
+let rec handle_changelog res content = match content with 
   | [] -> Lwt.return res
   | p::t ->
       let root_tree = match res with
@@ -247,14 +268,16 @@ let rec handle_changelog ?file res content = match content with
 
 (** Recupere la liste des patchs depuis le résultat de darcs changes *)
 (** /!\ UTILISER FILE LORS D'UN LOG SUR UN FICHIER POUR NE PAS CONSTRUIRE D'ARBRE INUTILE /!\ **)
-let rec handle_log_xml_list ?file res l = match l with
+let rec handle_log_xml_list res l = match l with
   | [] -> Lwt.return res
   | h::t ->
       match h with
         | Simplexmlparser.PCData(_) -> handle_log_xml_list res t
 	| Simplexmlparser.Element(name,_,content) ->
-	    if (String.compare name "changelog" == 0) then
-	      handle_changelog [] content
+	    if (String.compare name "changelog" == 0) then begin
+              handle_changelog res content >>= fun new_res ->
+	      handle_log_xml_list new_res t
+            end
 	    else
 	      handle_log_xml_list res t
 	
@@ -275,7 +298,7 @@ let rec handle_added_by l = match l with
       match h with
       | Simplexmlparser.PCData(_) -> 
           handle_added_by t
-      | Simplexmlparser.Element(name,args,content) ->
+      | Simplexmlparser.Element(name,args,_) ->
           if (String.compare name "patch" == 0) then 
             handle_annot_patch args
           else
@@ -288,7 +311,7 @@ let rec handle_normal_line aut line_content l = match l with
       match h with
         | Simplexmlparser.PCData(line) ->
             handle_normal_line aut (line_content^line) t
-        | Simplexmlparser.Element(name,args,content) ->
+        | Simplexmlparser.Element(name,_,content) ->
             if (String.compare name "added_by" == 0) then
               handle_normal_line (handle_added_by content) line_content t
             else handle_normal_line aut line_content t
@@ -342,47 +365,40 @@ let get_patch_list ?id ?dir repo =
 
 
 
-let darcs_log ?file ?end_rev ?limit rep =
+let darcs_log ?file ?range ?limit rep =
+  let lwt_index = match (range,limit) with
+  | (Some(None,Some(end_rev)),Some(l)) ->
+      get_patch_index end_rev rep >>= fun num ->
+          Lwt.return ("-n 1-"^(string_of_int (num+l)))
+  | (Some(Some(start_rev),None),Some(l)) ->
+      get_nb_patches rep >>= fun total ->
+        get_patch_num start_rev rep >>= fun num ->
+          let sr = max (total-num-l) 1 in
+          Lwt.return ("-n "^(string_of_int sr)^"-"^(string_of_int total)) 
+  | (Some(Some(start_rev),Some(end_rev)),Some(l)) ->
+      get_patch_index start_rev rep >>= fun start ->
+        get_patch_index end_rev rep >>= fun er ->
+          let sr = max (start-l) 1 in 
+          Lwt.return ("-n "^(string_of_int sr)^"-"^(string_of_int (er+l)))
+  | _ -> Lwt.return ""
+  in
+  lwt_index >>= fun index ->
   let command = match file with
   | None ->
-      begin match end_rev with
-      | None ->
-          begin match limit with
-	  | None -> ("darcs changes --repodir "^rep
-	             ^" --xml-output --reverse")
-          | Some(i) -> ("darcs changes --repodir "^rep
-	                ^" --xml-output --reverse --max-count "^(string_of_int i))
-          end
-      | Some(matching) ->
-          begin match limit with
-	  | None -> ("darcs changes --repodir "^rep
-	             ^" --to-match 'hash "^matching^"' --xml-output --reverse")
-          | Some(i) ->
-              ("darcs changes --repodir "^rep
-	       ^" --to-match 'hash "^matching
-               ^"' --xml-output --reverse --max-count "^(string_of_int i))
-          end
+      begin match limit with
+      | None -> ("darcs changes --repodir "^rep
+	         ^" "^index^" --xml-output --reverse")
+      | Some(i) -> ("darcs changes --repodir "^rep
+	            ^" "^index^" --xml-output --reverse --max-count "^(string_of_int (3*i)))
       end
   | Some(f) ->
-      begin match end_rev with
-      | None ->
-          begin match limit with 
-	  | None ->("darcs changes --repodir "^rep
-	            ^" --xml-output --reverse "^f)
-          | Some(i) ->
-              ("darcs changes --repodir "^rep
-	       ^" --xml-output --max-count "^(string_of_int i)
-               ^" --reverse "^f)
-          end
-      | Some(matching) ->
-          begin match limit with
-          | None ->("darcs changes --repodir "^rep
-	            ^" --to-match 'hash "^matching^"' --xml-output --reverse "^f)
-          | Some(i) ->
-              ("darcs changes --repodir "^rep
-	       ^" --to-match 'hash "^matching
-               ^"' --max-count "^(string_of_int i)^" --xml-output --reverse "^f)
-          end
+      begin match limit with 
+      | None ->("darcs changes --repodir "^rep
+	        ^" "^index^"--xml-output --reverse "^f)
+      | Some(i) ->
+          ("darcs changes --repodir "^rep
+	   ^" "^index^"--xml-output --max-count "^(string_of_int (3*i))
+           ^" --reverse "^f)
       end
   in let error_message = "Error while getting changelog (signal received)" in
   exec_command command error_message >>= fun s ->
@@ -396,12 +412,12 @@ let darcs_infos repos_path file =
   let command = 
     ("darcs changes --xml-output --repodir "^repos_path
      ^" --max-count=1 "^file) 
-  in exec_command command error_message >>= fun l -> Lwt.return ()
+  in exec_command command error_message >>= fun _ -> Lwt.return ()
   
   
 
 (** Construit un arbre de fichiers à partir du résultat de darcs show files *)
-let parse_wc_list ?dir repos_path dir_list file_list = 
+let parse_wc_list ?dir dir_list file_list = 
   let insert_dirs = match dir_list with
     | [] -> Dir("",[])
     | _ -> 
@@ -460,9 +476,9 @@ let darcs_wc_list ?dir repos_path =
       let file_list = split (regexp "\n") file_string in
       match dir with 
       | None ->
-          parse_wc_list repos_path dir_list file_list
+          parse_wc_list dir_list file_list
       | Some(d) ->
-          parse_wc_list ~dir:d repos_path dir_list file_list >>= fun tree ->
+          parse_wc_list ~dir:d dir_list file_list >>= fun tree ->
             let (target,name) = format_name d ~eatblanks:false in
             let res = get_node name target tree in match res with
               | None -> Lwt.return (Dir("",[])) (* a traiter ? *)

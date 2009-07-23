@@ -225,16 +225,68 @@ span.annot:hover {
 
 /** Repository log page */
 
-div.next_entries { 
-    border: 1px solid #BBBBBB; 
-    background-color:#EEE;
-    width: 150px; 
+
+table.log_links {
+    empty-cells:show;
+    font-size:small;
     margin-left: auto; 
     margin-right: auto; 
-    font-size: small; 
-    margin-bottom: 0px;
-    text-align: center;
+    width: 50%;
+    text-align:center;
 }
+
+td.middle {
+    color: white;
+    background-color: #648BD8;
+    width: 30%;
+}
+
+td.previous_entries_link {
+    color: white;
+    background-color: #648BD8;
+    width: 10%;
+    -moz-border-radius: 5px 0px 0px 0px;
+    -webkit-border-radius: 5px 0px 0px 0px;
+}
+
+td.previous_entries_link:hover {
+    background-color: #23296D;
+}
+
+td.no_previous_entries {
+    color: white;
+    background-color: #A49A9A;
+    width: 10%;
+    -moz-border-radius: 5px 0px 0px 0px;
+    -webkit-border-radius: 5px 0px 0px 0px;
+}
+
+td.next_entries_link {
+    color: white;
+    background-color: #648BD8;
+    width: 10%;
+    -moz-border-radius: 0px 5px 0px 0px;
+    -webkit-border-radius: 0px 5px 0px 0px;
+}
+
+td.next_entries_link:hover {
+    background-color: #23296D;
+}
+
+td.no_next_entries {
+    color: white;
+    background-color: #A49A9A;
+    width: 10%;
+    -moz-border-radius: 0px 5px 0px 0px;
+    -webkit-border-radius: 0px 5px 0px 0px;
+}
+
+a.log_link {
+    text-decoration:none;
+    color:white;
+    display:block;
+}
+
 
 /** Syntax highlighting */
 

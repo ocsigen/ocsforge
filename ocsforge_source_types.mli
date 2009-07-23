@@ -43,7 +43,7 @@ type annot_result = (string * string) list Lwt.t
 (* Type représentant l'ensemble des fonctions dont ont besoin les pages du site*)
 type fun_pack = {vm_list: (?id:string -> ?dir:string -> string -> list_result);
 		 vm_cat: (?id:string -> string -> string -> cat_result);
-		 vm_log: (?file:string -> ?end_rev:string -> ?limit:int -> string -> log_result);
+		 vm_log: (?file:string -> ?range:(string option * string option) -> ?limit:int -> string -> log_result);
 		 vm_diff: (string -> string -> string -> string -> diff_result);
                  vm_annot: (?id:string -> string -> string -> annot_result)}
   

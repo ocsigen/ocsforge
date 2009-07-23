@@ -46,8 +46,8 @@ let source_service path project = Eliom_predefmod.Any.register_new_service
 	| ([""],(None,(_,(_,_)))) ->
             (Some("Ocsforge - Repository browser"),
              Ocsforge_widgets_source.draw_repository_table ~sp ~id ~version ~dir:None)
-	| ([],(v,(false,(false,(_,_))))) 
-	| ([""],(v,(false,(false,(_,_))))) ->
+	| ([],(_,(false,(false,(_,_))))) 
+	| ([""],(_,(false,(false,(_,_))))) ->
 	    (Some("Ocsforge - Repository browser"),
              Ocsforge_widgets_source.draw_repository_table ~sp ~id ~version ~dir:None)
         | (l,(None,(_,(_,(_,(Some(diff1),Some(diff2))))))) ->
@@ -70,7 +70,7 @@ let source_service path project = Eliom_predefmod.Any.register_new_service
       in
       page_content >>= fun pc ->
       Ocsforge_data.get_area_for_task sp id >>= fun r_infos ->
-      let gen_box menu_style = 
+      let gen_box _ = 
             Lwt.return (None,pc,Wiki_widgets_interface.Page_displayable,title)
       in
       Ocsisite.wikibox_widget#display_container 

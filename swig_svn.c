@@ -324,7 +324,7 @@ apr_array_header_t *svn_support_log(char *rep_path, int start, int limit)
 			&revision_start,
 			&revision_start,
 			&revision_end,
-			limit,
+			3*limit,
 			FALSE,
 			TRUE,
 			FALSE,

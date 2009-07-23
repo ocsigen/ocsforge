@@ -126,14 +126,14 @@ let rec create_patch_list log_res patch_list step = match log_res with
 	
 
 (** Stocke la liste des révisions du dépôt dans une liste de type patch *)
-let svn_log ?file ?end_rev ?limit rep = 
+let svn_log ?file ?range ?limit rep = 
   let last = match limit with
     | None -> 0
     | Some(i) -> i
   in
-  let e = match end_rev with
-    | None -> -1
-    | Some(r) -> int_of_string r
+  let e = match range with
+    | None | Some(_,None) -> -1
+    | Some(_,Some(r)) -> int_of_string r
   in
   let log_res = 
     match file with
