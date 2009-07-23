@@ -19,20 +19,26 @@
 
 type project_services = 
     { sources_service:
-	(string list * 
-	   (string option * (bool * (bool * (bool * ((string * int) option * (string * int) option)))))
-	   , unit,
-	 [ `Attached of
-	   Eliom_services.get_attached_service_kind Eliom_services.a_s ],
-	 [ `WithSuffix ],
-	 ([`One of string list] Eliom_parameters.param_name *
+        (string list * 
+           (string option * 
+              (bool * 
+                 ((string option * string option) option *
+                    (bool * 
+                       (bool *
+                          ((string * int) option * (string * int) option))))))
+           , unit,
+         [ `Attached of
+           Eliom_services.get_attached_service_kind Eliom_services.a_s ],
+         [ `WithSuffix ],
+         ([`One of string list] Eliom_parameters.param_name *
 	    ([ `One of string ] Eliom_parameters.param_name *
 	       ([ `One of bool ] Eliom_parameters.param_name * 
-                  ([ `One of bool ] Eliom_parameters.param_name * 
+                  ([ `One of (string option *string option)] Eliom_parameters.param_name *
                      ([ `One of bool ] Eliom_parameters.param_name * 
-		        ([ `One of (string * int) ] Eliom_parameters.param_name *
-			   ([ `One of (string * int) ] Eliom_parameters.param_name))))))), unit,
-	 [ `Registrable ])
+	                ([ `One of bool ] Eliom_parameters.param_name * 
+                           ([ `One of (string * int) ] Eliom_parameters.param_name *
+		              ([ `One of (string * int) ] Eliom_parameters.param_name)))))))), unit,
+         [ `Registrable ])
 	Eliom_services.service;
       log_service: 
 	((string option * string option) option, unit,

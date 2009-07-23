@@ -131,36 +131,62 @@ let svn_log ?file ?range ?limit rep =
     | None -> 0
     | Some(i) -> i
   in
-  let e = match range with
-    | None | Some(_,None) -> -1
-    | Some(_,Some(r)) -> int_of_string r
+  let (start_rev,end_rev) = match range with
+    | None | Some(None,None) -> (-1,-1)
+    | Some(None,Some(er)) ->
+        (-1, int_of_string er)
+    | Some(Some(sr),None) ->
+        (int_of_string sr, -1)
+    | Some(Some(sr),Some(er)) -> (int_of_string sr,int_of_string er)
   in
-  let log_res = 
-    match file with
-      | None    -> 
-	  List.map 
-	    (fun s -> 
-	      match s with
-	        | Swig.C_string(s) -> s
-		| _ -> "")
-	    (extract_list (Swig_svn._svn_support_log 
-			     (Swig.C_list
-				[Swig.C_string(rep); 
-                                 Swig.C_int(e);
-                                 Swig.C_int(last)])))
-      | Some(f) ->
-	  List.map 
-	    (fun s -> match s with
-	                | Swig.C_string(s) -> s
-			| _ -> "")
-	    (extract_list (Swig_svn._svn_support_log 
-			     (Swig.C_list
-				[Swig.C_string(rep^"/"^f); 
-                                 Swig.C_int(e);
-                                 Swig.C_int(last)])))
+  let path = match file with 
+    | None -> rep
+    | Some(f) -> (rep^"/"^f)
   in
-  (create_patch_list log_res [] 0) >>= fun l -> Lwt.return (List.rev l)
-
+  let a () = 
+    if (start_rev != -1 && end_rev != -1) then
+      (List.map 
+	 (fun s -> 
+	   match s with
+	   | Swig.C_string(s) -> s
+	   | _ -> "")
+	 (extract_list (Swig_svn._svn_support_log 
+			  (Swig.C_list
+			     [Swig.C_string(path); 
+                              Swig.C_int(end_rev);
+                              Swig.C_int(-1);
+                              Swig.C_int(2*last)]))),
+       List.map 
+	 (fun s -> 
+	   match s with
+	   | Swig.C_string(s) -> s
+	   | _ -> "")
+         (extract_list (Swig_svn._svn_support_log
+                          (Swig.C_list
+		             [Swig.C_string(path); 
+                              Swig.C_int(-1);
+                              Swig.C_int(end_rev);
+                              Swig.C_int(last)]))))
+    else 
+      ([],
+       List.map 
+	 (fun s -> 
+	   match s with
+	   | Swig.C_string(s) -> s
+	   | _ -> "")
+	 (extract_list (Swig_svn._svn_support_log 
+			  (Swig.C_list
+			     [Swig.C_string(path); 
+                              Swig.C_int(start_rev);
+                              Swig.C_int(end_rev);
+                              Swig.C_int(3*last)]))))
+  in
+  Lwt_preemptive.detach a () >>= fun (l1,l2) ->
+    create_patch_list l1 [] 0 >>= fun tmp ->
+      (*create_patch_list l2 [] 0 >>= fun tmp2 ->
+        Lwt.return (func tmp tmp2)
+       *)create_patch_list l2 (List.rev tmp) 0 >>= fun l -> Lwt.return (List.rev l)
+ 
 let rec tabcount s i =
   if i < String.length s then
     if s.[i] == '\t' then (1 + (tabcount s (i+1)))

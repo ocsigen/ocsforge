@@ -519,7 +519,7 @@ object (self)
                                :}
                            alt="Go to repository page"> [ ]
                  ] }}
-                 ([],(None,(false,(false,(false,(None,None))))))
+                 ([],(None,(false,(None,(false,(false,(None,None)))))))
              :} ] }} )                          >>= fun repo_link ->
         Lwt_util.map_serial
           (fun field ->

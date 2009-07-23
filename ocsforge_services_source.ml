@@ -30,15 +30,18 @@ let source_service path project = Eliom_predefmod.Any.register_new_service
        (Eliom_parameters.all_suffix "file")
        (Eliom_parameters.opt (Eliom_parameters.string "version") **
           (Eliom_parameters.bool "browse" **
-             (Eliom_parameters.bool "view" **
-                (Eliom_parameters.bool "annot" **
-	           (Eliom_parameters.opt (Eliom_parameters.user_type 
-				            Vm.string_to_pair 
-				            Vm.pair_to_string "diff1") **
-		      Eliom_parameters.opt (Eliom_parameters.user_type 
-					      Vm.string_to_pair 
-					      Vm.pair_to_string "diff2")))))))
-    (fun sp (file,(version,(browse,(view,(annot,(d1,d2)))))) () -> 
+             (Eliom_parameters.opt (Eliom_parameters.user_type  
+                                          Vm.string_to_range 
+				          Vm.range_to_string "range") **
+                (Eliom_parameters.bool "view" **
+                   (Eliom_parameters.bool "annot" **
+	              (Eliom_parameters.opt (Eliom_parameters.user_type 
+				               Vm.string_to_pair 
+				               Vm.pair_to_string "diff1") **
+		         Eliom_parameters.opt (Eliom_parameters.user_type 
+					         Vm.string_to_pair 
+					         Vm.pair_to_string "diff2"))))))))
+    (fun sp (file,(version,(browse,(range,(view,(annot,(d1,d2))))))) () -> 
       let () =  Ocsforge_wikiext_common.send_css_up "ocsforge_sources.css" sp in
       let id = Ocsforge_types.task_of_string project in
       let (title,page_content) = match (file,(version,(browse,(view,(annot,(d1,d2)))))) with
@@ -58,7 +61,7 @@ let source_service path project = Eliom_predefmod.Any.register_new_service
              Ocsforge_widgets_source.draw_repository_table ~sp ~id ~version ~dir:(Some(l)))
         | (l,(_,(true,(false,(_,(None,None)))))) -> 
 	    (Some("Ocsforge - File browser"),
-             Ocsforge_widgets_source.draw_file_page ~sp ~id ~target:l ~version)
+             Ocsforge_widgets_source.draw_file_page ~sp ~id ~target:l ~range)
 	| (l,(_,(false,(false,(true,(None,None)))))) ->
             (Some("Ocsforge - File annotate"),
              Ocsforge_widgets_source.draw_annotate ~sp ~id ~target:l ~version)

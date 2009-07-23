@@ -275,7 +275,7 @@ apr_array_header_t *svn_support_list(char *rep_path, int rev)
 }
 
 /* fonction simulant la commande svn log */
-apr_array_header_t *svn_support_log(char *rep_path, int start, int limit)
+apr_array_header_t *svn_support_log(char *rep_path, int start, int end, int limit)
 {  
   apr_pool_t *pool ;
   svn_error_t *err;
@@ -302,15 +302,33 @@ apr_array_header_t *svn_support_log(char *rep_path, int start, int limit)
   *(char **)apr_array_push(targets) = rep_path;
   
   // -- Initialisation de l'intervalle de revisions --
-  if (start == -1) 
-    revision_start.kind = svn_opt_revision_head;
-  else {
-    revision_start.kind = svn_opt_revision_number;
-    revision_start.value.number = start;
+  if (end == -1) { 
+    if (start == -1) {
+      revision_start.kind = svn_opt_revision_head;
+      revision_end.kind = svn_opt_revision_number;
+      revision_end.value.number = 1;
+    }
+    else {
+      revision_start.kind = svn_opt_revision_number;
+      revision_start.value.number = start;
+      revision_end.kind = svn_opt_revision_head;
+    }
   }
-  revision_end.kind = svn_opt_revision_number;
-  revision_end.value.number = 1;
-  
+  else {
+    if (start == -1) {
+      revision_start.kind = svn_opt_revision_number;
+      revision_start.value.number = end;
+      revision_end.kind = svn_opt_revision_number;
+      revision_end.value.number = 1;
+    }
+    else {
+      revision_start.kind = svn_opt_revision_number;
+      revision_start.value.number = start;
+      revision_end.kind = svn_opt_revision_number;
+      revision_end.value.number = end;
+    }
+  }
+    
   // -- Choix des propriétés a récupérer --
   apr_array_header_t *revprops = apr_array_make (pool, 3, sizeof (char *));
   *(char **)apr_array_push(revprops) = SVN_PROP_REVISION_AUTHOR;
@@ -324,7 +342,7 @@ apr_array_header_t *svn_support_log(char *rep_path, int start, int limit)
 			&revision_start,
 			&revision_start,
 			&revision_end,
-			3*limit,
+			limit,
 			FALSE,
 			TRUE,
 			FALSE,
