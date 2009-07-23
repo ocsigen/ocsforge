@@ -228,24 +228,26 @@ let get_tree ~sp ~root ?with_deleted ?depth () = (*TODO: use depth for sql trans
   Sql.full_transaction_block
     (Ocsforge_sql.get_tasks_in_tree ~root ?with_deleted ())
     >>= (filter_task_list_for_reading sp)
-    >>= fun tl ->
-      let rec aux tree = function
-        | [] -> Lwt.return tree
-        | h::t ->
-            aux
-              (Types.Tree.insert ~tree ~element:h
-                 ~is_parent:(fun p e ->
-                               e.Types.t_parent = p.Types.t_id))
-              t
-      in aux Types.Tree.Nil tl
+    >>= function
+      | []       -> raise Types.Tree.Empty_tree
+      | hd :: tl ->
+          let rec aux tree = function
+            | []   -> Lwt.return tree
+            | h::t ->
+                aux (Types.Tree.insert
+                       (fun p _ -> h.Types.t_parent = p.Types.t_id)
+                       tree
+                       (Types.Tree.node h []))
+                    t
+          in aux (Types.Tree.node hd []) tl
     >>= fun t ->
       let rec aux tree = function
-        | 0 -> tree
-        | n -> (match tree with
-                  | Types.Tree.Nil -> Types.Tree.Nil
-                  | Types.Tree.Node (t, l) ->
-                     let l = List.map (fun t -> aux t (pred n))  l in
-                     Types.Tree.Node (t, l))
+        | n when n <= 0 -> { tree with Types.Tree.children = [] }
+        | n -> { tree with Types.Tree.children =
+                   List.map
+                     (fun t -> aux t (pred n))
+                     (Types.Tree.get_children tree)
+               }
       in
         match depth with
           | None -> Lwt.return t

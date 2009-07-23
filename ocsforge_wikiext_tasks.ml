@@ -21,7 +21,6 @@ open Ocsforge_wikiext_common
 
 let register_wikiext wp
       (tree_widget : Ocsforge_widgets_tasks.tree_widget)
-      nl_service
       inline_widget
      =
 
@@ -33,64 +32,7 @@ let register_wikiext wp
         (Lwt.catch
            (fun () ->
             let sp = bi.Wiki_widgets_interface.bi_sp in
-            let (nl_id, nl_by, nl_dsc) = (*TODO: clean this messy part*)
-              let tmp = Params.get_non_localized_get_parameters sp
-                          Services.nl_param
-              in match tmp with
-                | Some (id, (by, dsc)) ->
-                    (Some id, Some by, Some dsc)
-                | None -> (None, None, None)
-            in
-            let we_id = Ocsforge_types.task_of_string (List.assoc "id" args) in
-            let sort =
-              let warp getter =
-                (fun t1 t2 -> Ocsforge_lang.compare_opt (getter t1) (getter t2))
-              in match nl_by with
-                | Some "length" ->
-                    Some (warp (function
-                                  | Types.Tree.Node (t, _) ->
-                                      t.Types.t_length
-                                  | Types.Tree.Nil ->
-                                      None))
-                | Some "progress" ->
-                    Some (warp (function
-                                  | Types.Tree.Node (t, _) ->
-                                      t.Types.t_progress
-                                  | Types.Tree.Nil ->
-                                      None))
-                | Some "importance" ->
-                    Some (warp (function
-                                  | Types.Tree.Node (t, _) ->
-                                      t.Types.t_importance
-                                  | Types.Tree.Nil ->
-                                      None))
-                | Some "kind" ->
-                    Some (warp (function
-                                  | Types.Tree.Node (t, _) ->
-                                      t.Types.t_kind
-                                  | Types.Tree.Nil ->
-                                      None))
-                | Some "deadline_time" ->
-                    Some (warp (function
-                                  | Types.Tree.Node (t, _) ->
-                                      t.Types.t_deadline_time
-                                  | Types.Tree.Nil ->
-                                      None))
-                | Some "deadline_version" ->
-                    Some (warp (function
-                                  | Types.Tree.Node (t, _) ->
-                                      t.Types.t_deadline_version
-                                  | Types.Tree.Nil ->
-                                      None))
-                | None | Some _ -> None
-            in
-            let sort =
-              if (Ocsforge_lang.unopt ~default:false nl_dsc)
-              then Ocsforge_lang.apply_on_opted
-                     (fun f -> (fun t2 t1 -> f t1 t2))
-                     sort
-              else sort
-            in
+            let id = Ocsforge_types.task_of_string (List.assoc "id" args) in
             let fields =
               let f = Ocsforge_lang.assoc_all "field" args in
                 if f = []
@@ -99,13 +41,9 @@ let register_wikiext wp
             in
             let () =  send_css_up "ocsforge_tree.css" sp
             in
-            tree_widget#display ~sp
-              ~root_tasks:(Ocsforge_lang.unopt ~default:we_id nl_id, we_id)
-              ~fields
-              ~nl_service
-              ?sort inline_widget ()
-                                   >>= fun (b: {{ Xhtmltypes_duce.flows }}) ->
-              Lwt.return {{  b }}
+            tree_widget#display ~sp ~root_task:id ~fields inline_widget
+              >>= fun b ->
+            Lwt.return ({{  b }} : {{ Xhtmltypes_duce.flows }})
            )
 
            (function
