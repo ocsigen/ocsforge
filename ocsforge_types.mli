@@ -136,22 +136,21 @@ val get_task_history_info : raw_task_history_info -> task_history_info
 
 module Tree :
 sig
-  type 'a tree = Node of 'a * 'a tree list | Nil
+  type 'a tree = { content : 'a ; children : 'a tree list }
+  exception Empty_tree
+
+  val node : 'a -> 'a tree list -> 'a tree
+  val get_content : 'a tree -> 'a
+  val get_children : 'a tree -> 'a tree list
 
   val insert :
-    tree:'a tree ->
-    element:'a ->
-    is_parent:('a -> 'a -> bool) ->
-    'a tree
+    ('a -> 'a tree list -> bool) -> 'a tree -> 'a tree -> 'a tree
 
-  val filter :
-    tree:'a tree ->
-    func:('a -> bool) ->
-    'a tree
+  val filter : ('a -> 'a tree list -> bool) -> 'a tree -> 'a tree
 
   val sort :
-    tree:'a tree ->
-    comp:('a tree -> 'a tree -> int) ->
+    ?comp:('a tree -> 'a tree -> int) ->
+    'a tree ->
     'a tree
 
 end
