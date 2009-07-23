@@ -18,26 +18,6 @@
  *)
 
 
-val nl_param :
-  (Ocsforge_types.task * (string * bool), [ `WithoutSuffix ],
-   ([ `One of Ocsforge_types.task ] Eliom_parameters.param_name *
-   ([ `One of string ] Eliom_parameters.param_name *
-    [ `One of bool ] Eliom_parameters.param_name)))
-  Eliom_parameters.non_localized_params
-
-
-
-val non_localized_service :
-  (unit * (Ocsforge_types.task * (string * bool)), unit,
-   [> `Nonattached of 'a Eliom_services.na_s ], [ `WithoutSuffix ],
-   unit *
-   ([ `One of Ocsforge_types.task ] Eliom_parameters.param_name *
-    ([ `One of string ] Eliom_parameters.param_name *
-     [ `One of bool ] Eliom_parameters.param_name)),
-   unit, [> `Unregistrable ])
-  Eliom_services.service
-
-
 
 val set_length_service :
   (unit, Ocsforge_types.task * CalendarLib.Calendar.Period.t option,

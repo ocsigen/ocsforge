@@ -27,25 +27,6 @@ module Types = Ocsforge_types
 open CalendarLib
 
 
-(* Non localized parameters... *)
-let nl_param =
-  Params.make_non_localized_parameters
-    ~prefix:"ocsforge"
-    ~name:"tree"
-    ~persistent:true
-    ((Params.user_type
-       Types.task_of_string
-       Types.string_of_task
-        "ocsforge_task_id") **
-     ((Params.string "ocsforge_field_sort") **
-      (Params.bool "ocsforge_dsc_sort")))
-
-let non_localized_service =
-  Eliom_services.add_non_localized_get_parameters
-    ~params:nl_param
-    ~service:Eliom_services.void_hidden_coservice'
-
-
 
 let set_length_service =
   Eliom_predefmod.Action.register_new_post_coservice'
@@ -63,7 +44,7 @@ let set_length_service =
       )
     (* error_handler *)
     (fun sp () (task, length) ->
-       Data.edit_task ~sp ~task ~length ())
+       Data.edit_task ~sp ~task ~length () )
 
 let set_progress_service =
   Eliom_predefmod.Action.register_new_post_coservice'
@@ -205,7 +186,7 @@ let new_task_service =
           ?length ?progress ?importance ?deadline_time ?deadline_version ?kind
           () >>= fun _ -> Lwt.return ())
 
-
+(*
 let register_dump_tree_service root =
   Eliom_duce.Xml.register_new_service
     ~path:[](*TODO: get path out of task*)
@@ -219,12 +200,10 @@ let register_dump_tree_service root =
              Ocsforge_data.get_tree
                ~sp ~root ~with_deleted ?depth () >>= fun t ->
              Ocsforge_xml_tree_dump.xml_of_tree t >>= fun t ->
-               match t with
-                 | None -> failwith "TODO: send an appropriate error code"
-                 | Some t -> Lwt.return t
+             Lwt.return (t : {{ Any }})
            end
        | _     -> failwith "Unsuported format")
-
+ *)
 
 
 let set_repository_path_service =

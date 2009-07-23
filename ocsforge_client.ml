@@ -51,107 +51,60 @@ let new_task_pop_up id =
       ) ;
 
     form#add_common ( title_input      :> AXOWidgets.common ) ;
+    form#add_common ( new AXOToolkit.br ) ;
     form#add_common ( save_button      :> AXOWidgets.common ) ;
 
     popup#show
 
+let edit_task_popup
+      id subject length progress importance deadline_t deadline_v kind
+      =
+  let form = new AXOToolkit.block_container in
+  let popup = new AXOToolkit.popup form in
+
+  let title_input = new AXOToolkit.text_input subject in
+    title_input#set_attribute "size" "100" ;
+  let progress_input = (*TODO : switch to in32 based progress*)
+    new AXOToolkit.select
+      (LOption.string_of_t_opt string_of_int)
+      (LOption.t_opt_of_string int_of_string)
+      progress
+      (LList.t_opt_list_of_t_list
+         (LList.int_interval_list ~bump:5 ~min:0 ~max:100 ()))
+  in
+  let save_button = new AXOToolkit.inline_text_widget_button "SAVE" in
+    save_button#add_click_action
+      (fun () ->
+         popup#hide ;
+         let (c,m) =
+           AXOCom.http_post "./"
+              [ ("__eliom_na__name","ocsforge_add_task") ;
+                ("parent", Int32.to_string id) ;
+                ("subject", title_input#get_value) ;
+                ("text", "") ;
+                ("length", "") ;
+                ("progress", LOption.string_of_t_opt string_of_int progress_input#get_value) ;
+                ("importance", "") ;
+                ("deadline_t", "") ;
+                ("deadline_v", "") ;
+                ("kind", "") ;
+              ]
+         in
+           AXOCom.alert_on_code
+             ~on_2xx:(fun _ -> AXOJs.alert "task successfully edited")
+             (c,m) ;
+      ) ;
+
+    List.iter (fun c -> form#add_common c)
+      [
+        (                                title_input :> AXOWidgets.common ) ;
+        (                          new AXOToolkit.br                      ) ;
+        ( (new AXOToolkit.inline_text "progress : ") :> AXOWidgets.common ) ;
+        (                          new AXOToolkit.br                      ) ;
+        (                                save_button :> AXOWidgets.common ) ;
+      ]
 
 
 
-
-(*changing coloration depending on fields values*)
-module Row_color =
-struct
-   
-   let rec browse_table node func =
-     match Js.Node.get_attribute node "tagName" with
-       | "TABLE" | "TBODY" | "THEAD" -> let nodes =Js.Node.children node in
-           List.iter (fun n -> browse_table n func) nodes
-       | "TR" -> func node ;
-       | _ -> ()
-   ;;
-   
-   let scan_classes n =
-     try
-       let s = Js.Node.get_attribute n "className" in
-       Scanf.bscanf (Scanf.Scanning.from_string s)
-         "depth%d importance%d deadline%d complete%d"
-          (fun _ i d c -> (i,d,c))
-     with
-         _ -> (0,0,0)
-   
-   
-   let importance_highlighted = ref false
-   let deadline_highlighted = ref false
-   let complete_highlighted = ref false
-   
-   let color_fields field =
-     browse_table (Js.get_element_by_id "ocsforge_tree")
-       (match field with
-         | "importance" ->
-             let colors =
-               if not !importance_highlighted
-               then (fun n -> let (value, _, _) = scan_classes n in
-                       ("background-color: rgb("
-                          ^ (string_of_int 255) ^ ","
-                          ^ (string_of_int (255 - (25 * value))) ^ ","
-                          ^ (string_of_int (255 - (25 * value))) ^ ")")
-                    )
-               else (fun _ -> "background-color: rgb(255,255,255);")
-             in
-             let _ = importance_highlighted := not !importance_highlighted in
-             let _ = deadline_highlighted := false in
-             let _ = complete_highlighted := false in
-               (fun n ->
-                   Js.Node.set_attribute n "style"
-                   (colors n) ;
-                   () )
-         | "deadline" ->
-             let colors =
-               if not !deadline_highlighted
-               then (fun n -> let (_, value, _) = scan_classes n in
-                       ("background-color: rgb("
-                          ^ (string_of_int 255) ^ ","
-                          ^ (string_of_int (255 - (25 * value))) ^ ","
-                          ^ (string_of_int (255 - (25 * value))) ^ ")")
-                    )
-               else (fun _ -> "background-color: rgb(255,255,255);")
-             in
-             let _ = deadline_highlighted := not !deadline_highlighted in
-             let _ = importance_highlighted := false in
-             let _ = complete_highlighted := false in
-               (fun n ->
-                   Js.Node.set_attribute n "style"
-                   (colors n) ;
-                   () )
-         | "complete" ->
-             let colors =
-               if not !complete_highlighted
-               then (fun n -> let (_, _, value) = scan_classes n in
-                       ("background-color: rgb("
-                          ^ (string_of_int (255 - (25 * value))) ^ ","
-                          ^ (string_of_int (255 - (25 * value))) ^ ","
-                          ^ (string_of_int 255) ^ ")")
-                    )
-               else (fun _ -> "background-color: rgb(255,255,255);")
-             in
-             let _ = complete_highlighted := not !complete_highlighted in
-             let _ = importance_highlighted := false in
-             let _ = deadline_highlighted := false in
-               (fun n ->
-                   Js.Node.set_attribute n "style"
-                   (colors n) ;
-                   () )
-   
-         | _ -> (fun _ -> ())
-       )
-   ;;
-end
-
-
-let _ =
-  let reg = Eliom_obrowser_client.register_closure in
-  reg 189 new_task_pop_up ;
-  reg 289 Row_color.color_fields ;
 
 

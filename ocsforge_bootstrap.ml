@@ -105,7 +105,6 @@ let _ =
   Ocsforge_wikiext_tasks.register_wikiext
     Wiki_syntax.wikicreole_parser
     tree_widget
-    Ocsforge_services_tasks.non_localized_service
     inline_widget
   
 let _ = 

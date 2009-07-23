@@ -29,11 +29,11 @@ let apply_on_opted_lwt f = function
   | None -> Lwt.return None
   | Some v -> Lwt.return (Some (f v))
 
-let unopt ?default v =
+let unopt ?(exc = Failure "Can't unopt None") ?default v =
   match (v,default) with
     | (Some x, _) -> x
     | (_, Some x) -> x
-    | _           -> failwith "Can't unopt None"
+    | _           -> raise exc
 
 let compare_opt ?(comp = compare) =
   (fun v1 v2 -> match (v1, v2) with

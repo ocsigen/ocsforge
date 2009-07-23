@@ -24,53 +24,46 @@ let (>>=) = Lwt.bind
 
 type boolean = {{ "true" | "false" }}
 type task_attrs = (*TODO: improve type checking*)
-    {{ { id =? String
-           length =? String
-           progress =? String
-           importance =? String
-           deadline =? String
-           milestone =? String
-           kind =? String
-           deleted =? boolean
+    {{ {
+         id =? String
+         subject =? String
+         length =? String
+         progress =? String
+         importance =? String
+         deadline =? String
+         milestone =? String
+         kind =? String
+         deleted =? boolean
     } }}
-type xml_task_tree = {{ <task (task_attrs) >[ Char* xml_task_tree* ] }}
+type xml_task_tree = {{ <task (task_attrs) >[ xml_task_tree* ] }}
 
 
-let xml_node_of_task (*TODO : use all fields ? *)(*TODO: use the text *)
-   { Types.t_id = id ; Types.t_message = msg ;
-
-      Types.t_length = len ; Types.t_progress = pro ;
-      Types.t_importance = imp ; Types.t_deadline_time = dea ;
-      Types.t_deadline_version = mil ; Types.t_kind = kin ;
-
-      Types.t_area = area ; Types.t_deleted = deleted  ;}
-    l =
+let rec xml_of_tree (*TODO : use all fields ? *)(*TODO: use the text *)
+  { Types.Tree.content =
+      { Types.t_id = id                ; Types.t_message = msg       ;
+        Types.t_length = len           ; Types.t_progress = pro      ;
+        Types.t_importance = imp       ; Types.t_deadline_time = dea ;
+        Types.t_deadline_version = mil ; Types.t_kind = kin          ;
+        Types.t_area = area            ; Types.t_deleted = deleted   ;
+      } ;
+    Types.Tree.children =  l ;
+  } =
   let s_of_i32_opt = Olang.string_of_t_opt Int32.to_string in
-
-   ({{ <task id= {: to_utf8 (Types.string_of_task id) :}
-             length     = {: to_utf8 (Olang.string_of_t_opt
-                                        Olang.string_of_period len) :}
-             progress   = {: to_utf8 (s_of_i32_opt pro) :}
-             importance = {: to_utf8 (s_of_i32_opt imp) :}
-             deadline   = {: to_utf8 (Olang.string_of_t_opt
-                                        Olang.string_of_date dea) :}
-             milestone  = {: to_utf8 (Olang.string_of_t_opt
-                                        (fun m -> m) mil) :}
-             kind       = {: to_utf8 (Olang.string_of_t_opt
-                                        (fun k -> k) kin) :}
-             > 
-               {{ match l with
-                    | []     -> {{ [ ] }}
-                    | hd::tl -> {{ [ hd !{: tl :} ] }}
-               }}
-    }} : {{ xml_task_tree }} )
+  
+  Lwt_util.map_serial xml_of_tree l >>= fun l ->
+  Lwt.return
+    ({{ <task id= {: to_utf8 (Types.string_of_task id) :}
+               length     = {: to_utf8 (Olang.string_of_t_opt
+                                          Olang.string_of_period len) :}
+               progress   = {: to_utf8 (s_of_i32_opt pro) :}
+               importance = {: to_utf8 (s_of_i32_opt imp) :}
+               deadline   = {: to_utf8 (Olang.string_of_t_opt
+                                          Olang.string_of_date dea) :}
+               milestone  = {: to_utf8 (Olang.string_of_t_opt
+                                          (fun m -> m) mil) :}
+               kind       = {: to_utf8 (Olang.string_of_t_opt
+                                          (fun k -> k) kin) :}
+               >[ !{: l :} ]
+      }} : {{ xml_task_tree }} )
 
 
-
-
-let rec xml_of_tree = function
-  | Types.Tree.Nil -> Lwt.return None
-  | Types.Tree.Node (t, l) ->
-      Lwt_util.map_serial xml_of_tree l >>= fun l ->
-      let l = Olang.filter_map (fun e -> e) l in
-      Lwt.return (Some (xml_node_of_task t l))
