@@ -24,6 +24,7 @@ module Roles = Ocsforge_roles
 module Types = Ocsforge_types
 module Data  = Ocsforge_data
 module Services = Ocsforge_services_tasks
+module Services_ht = Ocsforge_services_hashtable
 module Params = Eliom_parameters
 module EDuce = Eliom_duce
 module Olang = Ocsforge_lang
@@ -32,6 +33,9 @@ module FTypes = Forum_sql.Types
 open CalendarLib
 
 let to_utf8 = Ocamlduce.Utf8.make
+let run i arg = "caml_run_from_table (main_vm,"
+              ^ (string_of_int i) ^ ","
+              ^ (Eliom_obrowser.jsmarshal arg) ^ ")"
 
 let draw_message_title ~sp ~message
       (inline_widget : Wiki_widgets_interface.frozen_wikibox) =
@@ -44,7 +48,7 @@ let draw_message_title ~sp ~message
         let rights = Wiki_models.get_rights winfo.Wiki_types.wiki_model in
         Wiki.default_bi ~sp ~wikibox:s ~rights >>= fun bi ->
         inline_widget#display_frozen_wikibox ~bi ~classes:[] ~wikibox:s
-          >>= function (*TODO: don't use this likely to raise exceptions match *)
+          >>= function (*TODO: don't use this exception prone match *)
                 | {{ <div class=_>[ <h1>[ <span>[ (x::_)* ]]] }} -> Lwt.return {{ <span>[ !x ] }}
                 | {{ a }}            -> (Ocamlduce.Print.print_xml print_endline a ; failwith "Not an h1 message title")
 
@@ -65,9 +69,9 @@ let draw_opt_field ~name ?alternatives ~string_of_t () =
              ~name
              (EDuce.Xhtml.Option ({{ { } }}, None, None, true)) 
              (List.map
-                (fun a ->
-                  EDuce.Xhtml.Option ({{ { } }}, Some a, None, false))
-                l)
+                (fun a -> EDuce.Xhtml.Option ({{ { } }}, Some a, None, false))
+                l
+             )
   :} ] }}
 
 let draw_field ~name ~value ?alternatives ~string_of_t () =
@@ -80,9 +84,9 @@ let draw_field ~name ~value ?alternatives ~string_of_t () =
              ~name
              (EDuce.Xhtml.Option ({{ { } }}, v, None, true))
              (List.map
-                (fun a ->
-                   EDuce.Xhtml.Option ({{ { } }}, a, None, false))
-                l)
+                (fun a -> EDuce.Xhtml.Option ({{ { } }}, a, None, false))
+                l
+             )
         :} ] }}
 
 let draw_savable_field ~sp ~service ~id ~value ~string_of_t ~alts () =
@@ -220,7 +224,7 @@ object
       Lwt.return
       {{
         [<p>[
-           'Creating sub task '
+           'Creating sub task for ' title
            <br>[]
            {: EDuce.Xhtml.string_input
                 ~a:{{ { size="40%" } }}
@@ -303,113 +307,79 @@ object (self)
 
   method fresh_id = incr fresh_id_well ; !fresh_id_well
 
-  method private header ~fields ~sp ~id ?parent ~nl_service =
+  method private header ~fields ~sp ~id =
     let field_count = List.length fields in
     ({{ [ <colgroup>[
-           <col>[] (*the task column*)
-           !{: List.map (fun _ -> {{ <col width={: (string_of_int
-                                                    (min (60 / field_count) 12))
-                                                   ^ "%" :}>[]
-                                  }} )
-            fields
+            <col>[ ] (*the task column*)
+            !{: List.map
+                 (fun _ ->
+                    {{ <col width={: (string_of_int (min (60 / field_count) 12))
+                                    ^ "%"
+                                  :} >[ ]
+                    }} )
+                 fields
            (*There's no division by zero problem because the function is
             * called only when the list isn't empty*)
-          :}
-       ]
-       <thead>[
-         <tr>[
-           <th>[ {: match parent with
-                     | None -> {{ ' ' }}
-                     | Some parent ->
-                         EDuce.Xhtml.a
-                           ~service:nl_service
-                           ~sp {{ "UP" }} ( (), (parent, ("", false)))
-                 :}
-                 ' tasks'
-           ]
-           !{: List.map
-                (function s ->
-                  {{ <td>[ !{: match s with
-                       | "importance" ->
-                            {{ [ 'importance'
-                                 <a id="importance_hl_script"
-                                    class="jslink"
-                                    onclick={: (  "caml_run_from_table"
-                                                ^ "(main_vm, 289, "
-                                                ^ (Eliom_obrowser.jsmarshal
-                                                     "importance")
-                                                ^ ")" ):}>[
-                                      <img src={: EDuce.Xhtml.make_uri ~sp
-                                                    ~service:(
-                                                    Eliom_services.static_dir
-                                                    ~sp)
-                                                    ["highlighter.png"] :}
-                                           alt="highligth">[]
-                                  ]
-                            ] }}
-                       | "deadline_time" ->
-                           {{ [ 'deadline'
-                                <a id="deadline_hl_script"
-                                   class="jslink"
-                                   onclick={: (  "caml_run_from_table"
-                                               ^ "(main_vm, 289, "
-                                               ^ (Eliom_obrowser.jsmarshal
-                                                    "deadline")
-                                               ^ ")" ):}>[
-                                     <img src={: EDuce.Xhtml.make_uri ~sp
-                                                   ~service:(
-                                                   Eliom_services.static_dir
-                                                   ~sp)
-                                                   ["highlighter.png"] :}
-                                          alt="highligth">[]
+            :}
+          ]
+          <thead>[
+            <tr>[
+              <th>[ ' tasks' ]
+              !{: List.map
+                   (fun s -> {{ <td>[ !{: match s with
+                     | "importance" ->
+                         {{ [ 'importance'
+                              <a id="importance_hl_script"
+                                 class="jslink"
+                                 onclick={: run 289 "importance" :}>[
+                                <img src={: EDuce.Xhtml.make_uri
+                                              ~sp
+                                              ~service:(
+                                                 Eliom_services.static_dir
+                                                 ~sp
+                                              )
+                                              ["highlighter.png"]
+                                         :}
+                                     alt="highligth">[]
+                              ]
+                         ] }}
+                     | "deadline_time" ->
+                         {{ [ 'deadline'
+                              <a id="deadline_hl_script"
+                                 class="jslink"
+                                 onclick={: run 289 "deadline" :}>[
+                                <img src={: EDuce.Xhtml.make_uri
+                                              ~sp
+                                              ~service:(
+                                                 Eliom_services.static_dir
+                                                 ~sp
+                                              )
+                                              ["highlighter.png"]
+                                         :}
+                                     alt="highligth">[]
                                 ]
-                           ] }}
-                       | "progress" ->
-                           {{ [ 'progress'
-                                <a id="progress_hl_script"
-                                   class="jslink"
-                                   onclick={: (  "caml_run_from_table"
-                                               ^ "(main_vm, 289, "
-                                               ^ (Eliom_obrowser.jsmarshal
-                                                    "complete")
-                                               ^ ")" ):}>[
-                                     <img src={: EDuce.Xhtml.make_uri ~sp
-                                                   ~service:(
-                                                   Eliom_services.static_dir
-                                                   ~sp)
-                                                   ["highlighter.png"] :}
-                                            alt="highligth">[]
-                                ]
-                           ] }}
-                       | "deadline_version" -> to_utf8 "deadline"
-                       | _ -> to_utf8 s
-                       :}
-
-                       {: EDuce.Xhtml.a
-                            ~service:nl_service
-                            ~sp
-                            {{ [ <img src={: EDuce.Xhtml.make_uri ~sp
-                                                ~service:(
-                                                Eliom_services.static_dir ~sp)
-                                                ["up.png"] :}
-                                      alt="sort">[] ] }}
-                            ( (), (id, (s, false)))
-                       :}
-
-                       {: EDuce.Xhtml.a
-                            ~service:nl_service
-                            ~sp 
-                            {{ [ <img src={: EDuce.Xhtml.make_uri ~sp
-                                                ~service:(
-                                                Eliom_services.static_dir ~sp)
-                                                ["down.png"] :}
-                                      alt="sort">[] ] }}
-                            ( (), (id, (s, true)))
-                       :}
-                  ] }}
-               )
-               fields
-           :}
+                         ] }}
+                     | "progress" ->
+                         {{ [ 'progress'
+                              <a id="progress_hl_script"
+                                 class="jslink"
+                                 onclick={: run 289 "complete" :}>[
+                                <img src={: EDuce.Xhtml.make_uri
+                                              ~sp
+                                              ~service:(
+                                                 Eliom_services.static_dir
+                                                 ~sp
+                                              )
+                                              ["highlighter.png"]
+                                         :}
+                                     alt="highligth">[]
+                              ]
+                         ] }}
+                     | "deadline_version" -> to_utf8 "deadline"
+                     | _ -> to_utf8 s
+                   :} ] }} )
+                   fields
+               :}
          ] ] ] }} : {{ [ Xhtmltypes_duce.colgroup Xhtmltypes_duce.thead ] }} )
 
   method private task_snippet ~sp ~message inline_widget =
@@ -420,32 +390,37 @@ object (self)
   method private show_static_field ~field ~task:t =
     match field with
       | "progress" ->
-        {{ <td>[ {:
-        visual_percent
-          ~color:(
-            fun v -> "rgb(100,"
-                        ^ (string_of_int (100 + v / 2)) ^ ","
-                        ^ "255)"
-          )
-          ~bg_color:(fun _ -> "rgb(240,240,240)")
-          ~value:(Olang.apply_on_opted Int32.to_int t.Types.t_progress)
-          ()
-        :} ] }}
+          {{ <td>
+              [ {: visual_percent
+                     ~color:(
+                        fun v ->   "rgb(100,"
+                                 ^ (string_of_int (100 + v / 2)) ^ ","
+                                 ^ "255)"
+                     ) 
+                     ~bg_color:(fun _ -> "rgb(240,240,240)")
+                     ~value:(
+                       Olang.apply_on_opted Int32.to_int t.Types.t_progress
+                     )
+                     ()
+              :} ]
+          }}
       | field ->
-    {{ <td>{:
-      match field with
-    | "importance" ->
-        Olang.string_of_t_opt Int32.to_string        t.Types.t_importance
-    | "kind" ->
-        Olang.string_of_t_opt (fun k -> k)           t.Types.t_kind
-    | "deadline_time" ->
-        Olang.string_of_t_opt Olang.string_of_date   t.Types.t_deadline_time
-    | "deadline_version" ->
-        Olang.string_of_t_opt (fun d -> d)           t.Types.t_deadline_version
-    | "length" ->
-        Olang.string_of_t_opt Olang.string_of_period t.Types.t_length
-    | _ -> ""
-    :} }}
+         {{ <td>
+             {: let f = Olang.string_of_t_opt in
+                   (match field with
+                      | "importance" ->
+                          f Int32.to_string t.Types.t_importance
+                      | "kind" ->
+                          f (fun k -> k) t.Types.t_kind
+                      | "deadline_time" ->
+                          f Olang.string_of_date t.Types.t_deadline_time
+                      | "deadline_version" ->
+                          f (fun d -> d) t.Types.t_deadline_version
+                      | "length" ->
+                          f Olang.string_of_period t.Types.t_length
+                      | _ -> f (fun _ -> "") None)
+             :}
+         }}
 
   method private show_editable_field ~sp ~td_id ~task:t alt_k = function
     | "progress" ->
@@ -504,18 +479,7 @@ object (self)
     | _ -> {{ <td>[<p>[ 'unknwown' ]] }}
 
 
-  method display ~sp ~root_tasks:(root_task, top_root) ~fields inline_widget
-      ~(nl_service :
-          (unit * (Types.task * (string * bool)), unit,
-           [ `Nonattached of 'a Eliom_services.na_s ], [ `WithoutSuffix ],
-           unit *
-             ([ `One of Types.task ] Params.param_name *
-                ([ `One of string ] Params.param_name *
-                   [ `One of bool ] Params.param_name )),
-           unit, [ `Unregistrable ])
-          Eliom_services.service)
-      ?sort
-      () =
+  method display ~sp ~root_task ~fields inline_widget =
     Data.get_tree ~sp ~root:root_task () >>= fun tree ->
       let show_line ~depth ~task:t =
         self#task_snippet ~sp ~message:t.Types.t_message inline_widget
@@ -542,82 +506,66 @@ object (self)
                                    t.Types.t_progress)
                                 ten)))
           ::[]
-        in 
-          Lwt.return
-            {{ <tr class={: Ocsimore_lib.build_class_attr classes :} style="">[
-                 <th align="left">[
-                    <div class={: Ocsimore_lib.build_class_attr
-                                    ["depth" ^ (string_of_int (min depth 9))]
-                       :}>[
-		       !{: match Ocsforge_services_hashtable.find_service t.Types.t_id with
-		           | None -> 
-			      ({{ [] }} : {{[Xhtmltypes_duce.a*] }})
-			   | Some(ps) ->
-			       {{ [{:
-                                     EDuce.Xhtml.a
-			             ~service:ps.Ocsforge_services_hashtable.sources_service
-				     ~sp
-				     {{ [ <img src={: EDuce.Xhtml.make_uri ~sp
-						      ~service:(Eliom_services.static_dir 
-						                  ~sp)
-						      ["open_repository.png"] :}
-					    alt="go to repos page">[]
-				        ] }}
-				     ([],(None,(false,(false,(false,(None,None)))))) :}] }}
-			:} 
-                     {: EDuce.Xhtml.a
-                          ~service:nl_service
-                          ~sp
-                          {{ [ <img src={: EDuce.Xhtml.make_uri ~sp
-                                            ~service:(Eliom_services.static_dir
-                                                         ~sp)
-                                            ["magnifier.png"] :}
-                                   alt="zoom to subtask">[]
-                             ] }}
-                          ( (), (t.Types.t_id, ("", false)))
-                     :} 
-                     <a class="jslink"
-                         onclick={: (  "caml_run_from_table (main_vm, 189, "
-                                     ^ (Eliom_obrowser.jsmarshal t.Types.t_id)
-                                     ^ ")") :}>[
-                         <img alt="add subtask"
-                              src={: EDuce.Xhtml.make_uri ~sp
-                                        ~service:(Eliom_services.static_dir ~sp)
-                                        ["add.png"] :}>[]]
-                     snip
-                   ]
+        in
+        (match (Services_ht.find_service t.Types.t_id) with
+          | None -> Lwt.return ({{ [ ] }} : {{ [Xhtmltypes_duce.a*] }})
+          | Some s -> Lwt.return
+             {{ [ {:
+               EDuce.Xhtml.a ~service:s.Services_ht.sources_service ~sp
+                 {{ [ <img src={: EDuce.Xhtml.make_uri
+                                    ~sp
+                                    ~service:(Eliom_services.static_dir ~sp)
+                                    ["open_repository.png"]
+                               :}
+                           alt="Go to repository page"> [ ]
+                 ] }}
+                 ([],(None,(false,(false,(false,(None,None))))))
+             :} ] }} )                          >>= fun repo_link ->
+        Lwt_util.map_serial
+          (fun field ->
+             Lwt.return (
+               if editor
+               then
+                 self#show_editable_field
+                   ~sp
+                   ~td_id:( "td_id_" ^ (string_of_int self#fresh_id) )
+                   ~task:t
+                   alt_k
+                   field
+               else self#show_static_field ~field ~task:t
+             )
+          )
+          fields  >>= fun fields ->
+        Lwt.return
+            {{ <tr class={: Ocsimore_lib.build_class_attr classes :} style="">
+                 [ <th align="left">
+                     [ <div class={: Ocsimore_lib.build_class_attr
+                                       ["depth" ^ (string_of_int (min depth 9))]
+                                  :}>
+                         [ !repo_link
+                           <a class="jslink"
+                              onclick={: run 189 t.Types.t_id :}>
+                             [ <img alt="add subtask"
+                                    src={: EDuce.Xhtml.make_uri
+                                             ~sp
+                                             ~service:(
+                                               Eliom_services.static_dir ~sp
+                                             )
+                                             ["add.png"] :}>
+                                 [ ]
+                             ]
+                           snip
+                         ]
+                     ] !{: fields :}
                  ]
-                 !{: 
-                     List.map
-                       (fun field ->
-                          if editor
-                          then
-                            let td_id =
-                              "td_id_" ^ (string_of_int self#fresh_id)
-                            in
-                            let editable_field =
-                              self#show_editable_field
-                                 ~sp ~td_id ~task:t alt_k field
-                            in ( editable_field : {{ Xhtmltypes_duce.td }})
-                          else
-                            ((self#show_static_field ~field ~task:t )
-                               : {{ Xhtmltypes_duce.td }})
-                       ) 
-                       fields
-                 :}
-               ]
-
             }}
       in
-      let rec show_tree ~depth ~tree:t = match t with
-        | Types.Tree.Nil -> (*TODO: raise a Ocsimore_common.Permission_denied*)
-            let err = to_utf8 "Undefined task id." in
-            Lwt.return ({{ [ <tr>[ <td>err ] ] }} : {{ [Xhtmltypes_duce.tr] }} )
-        | Types.Tree.Node (t,l) ->
+      let rec show_tree ~depth = fun
+         { Types.Tree.content = t ; Types.Tree.children = l } ->
             (show_line ~depth ~task:t
                >>= fun a ->
              Lwt_util.map_serial
-               (fun tree -> show_tree ~depth:(succ depth) ~tree)
+               (fun tree -> show_tree ~depth:(succ depth) tree)
                l
                >>= fun b ->
              let b = List.fold_left
@@ -629,37 +577,21 @@ object (self)
                        ({{ [ ] }} : {{ [ Xhtmltypes_duce.tr* ] }})
                        b
              in
-             Lwt.return ({{ [ a !{: b :} ] }} : {{ [ Xhtmltypes_duce.tr+ ] }}))
+             Lwt.return ({{ [ a !b ] }} : {{ [ Xhtmltypes_duce.tr+ ] }}))
       in
-      let tree = match sort with
-        | None      -> tree
-        | Some comp -> Types.Tree.sort ~tree ~comp
-      in
-        show_tree ~depth:0 ~tree
-          >>= fun core ->
-        let core : {{ [ Xhtmltypes_duce.tr+ ] }} = core in
-        let head =
-          let parent =
-            if root_task = top_root
-            then None
-            else Some (match tree with
-                        | Types.Tree.Nil -> root_task
-                        | Types.Tree.Node (t, _) -> t.Types.t_parent)
-          in
-            self#header ~fields ~sp ~id:root_task ?parent ~nl_service
-        in
+        show_tree ~depth:0 tree         >>= fun core ->
+(*TYPE*)    let core : {{ [ Xhtmltypes_duce.tr+ ] }} = core in
+        let head = self#header ~fields ~sp ~id:root_task in
+(*TYPE*)    let head : {{ [ Xhtmltypes_duce.colgroup Xhtmltypes_duce.thead ] }} = head in
           Lwt.return
             (({{ [
-                  <table
-                     cellpadding = "0px"
-                     border      = "2px"
-                     width       = "90%"
-                     rules       = "cols"
-                     id          = "ocsforge_tree" >[
-                   !{: head :}
-                   !{: core :}
-                 ] ]
-              }} ) : {{ Xhtmltypes_duce.flows }})
+                  <table cellpadding = "0px"
+                         border      = "2px"
+                         width       = "90%"
+                         rules       = "cols"
+                         id          = "ocsforge_tree" >
+                    [ !head !core ]
+                 ] }} ) : {{ [ Xhtmltypes_duce.table ] }})
 
 end
 
