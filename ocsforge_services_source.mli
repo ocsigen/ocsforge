@@ -53,4 +53,4 @@ val log_service :
        unit,[ `Registrable ])
 	Eliom_services.service
 
-val register_repository_services : unit Lwt.t
+val register_repository_services : unit -> unit Lwt.t

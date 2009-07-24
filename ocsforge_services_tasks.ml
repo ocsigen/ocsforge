@@ -186,24 +186,59 @@ let new_task_service =
           ?length ?progress ?importance ?deadline_time ?deadline_version ?kind
           () >>= fun _ -> Lwt.return ())
 
-(*
-let register_dump_tree_service root =
-  Eliom_duce.Xml.register_new_service
-    ~path:[](*TODO: get path out of task*)
-    ~get_params:(  (Params.regexp
-                      (Netstring_pcre.regexp "(xml)") "$1" ((*TODO: give the real needed function*)fun s -> s) "format")
-                 **(  (Params.opt (Params.int "depth")))
-                    **(Params.bool "with_deleted"))
-    (fun sp (fmt, (depth, with_deleted)) () -> match fmt with
+
+let register_dump_tree_service path root il_widget task_widget =
+  Eliom_predefmod.Any.register_new_service
+    ~path:[ path ; Types.string_of_task root ; "" ]
+    ~get_params:Params.unit
+    (fun sp _ _ ->
+       ((task_widget#display ~sp ~root_task:root il_widget) : {{ Xhtmltypes_duce.flows }} Lwt.t) >>= fun content ->
+       Ocsforge_data.get_area_for_task ~sp ~task:root    >>= fun ri ->
+       let gen_box _ =
+         Lwt.return
+           (None,
+            content,
+            Wiki_widgets_interface.Page_displayable,
+            Some "Ocsforge - task tree")
+       in
+         Ocsisite.wikibox_widget#display_container
+           ~sp
+           ~wiki:ri.Types.r_wiki
+           ~menu_style:`Linear
+           ~page:((Ocsigen_lib.string_of_url_path ~encode:true []), [])
+           ~gen_box:gen_box
+         >>= fun (html, code) -> Eliom_duce.Xhtml.send ~sp ~code html)
+
+let register_xml_dump_services il_widget t_widget =
+  Eliom_duce.Xml.register_new_post_coservice'
+    ~name:"ocsforge_task_dump"
+    ~post_params:(
+      (  Params.int32 "root")
+       **(  (Params.regexp(*FIXME: give the real needed function*)
+                (Netstring_pcre.regexp "(xml)") "$1" (fun s -> s) "format")
+          **(  (Params.opt (Params.int "depth")))
+             **(Params.bool "with_deleted")
+         )
+    )
+    (fun sp () (root, (fmt, (depth, with_deleted))) -> match fmt with
        | "xml" ->
            begin
+             let root = Types.task_of_sql root in
              Ocsforge_data.get_tree
                ~sp ~root ~with_deleted ?depth () >>= fun t ->
-             Ocsforge_xml_tree_dump.xml_of_tree t >>= fun t ->
-             Lwt.return (t : {{ Any }})
+             Ocsforge_xml_tree_dump.xml_of_tree ~sp il_widget t >>= fun t ->
+             Lwt.return (t : {{ Ocamlduce.Load.anyxml }})
            end
-       | _     -> failwith "Unsuported format")
- *)
+       | _     -> failwith "Unsuported format") ;
+  let rec reg_aux = function
+    | [] -> Lwt.return ()
+    | (p , n) :: t ->
+        (let _ = register_dump_tree_service p n il_widget t_widget in reg_aux t)
+  in
+  Ocsforge_sql.get_projects_path_list () >>= fun l ->
+    reg_aux l
+
+
 
 
 let set_repository_path_service =

@@ -238,7 +238,7 @@ val is_area_root :
 
 val get_projects_path_list :
   unit ->
-  (string option * int32 option) list Lwt.t
+  (string * Ocsforge_types.task) list Lwt.t
 
 
 (**/**)

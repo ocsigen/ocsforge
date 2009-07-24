@@ -41,7 +41,7 @@ let register_wikiext wp
             in
             let () =  send_css_up "ocsforge_tree.css" sp
             in
-            tree_widget#display ~sp ~root_task:id ~fields inline_widget
+            tree_widget#display ~sp ~root_task:id inline_widget
               >>= fun b ->
             Lwt.return ({{  b }} : {{ Xhtmltypes_duce.flows }})
            )

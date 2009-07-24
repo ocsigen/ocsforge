@@ -111,22 +111,19 @@ let log_service path project = Eliom_predefmod.Any.register_new_service
  
 
 
-let register_repository_services = 
+let register_repository_services () = 
   let rec register_list l = match l with
     | [] -> Lwt.return ()
-    | (page,root_task)::t -> 
-	begin match (page,root_task) with
-	| (Some(path),Some(task)) ->
-	    let rt = Ocsforge_types.task_of_sql task in
-	    let st = Ocsforge_types.string_of_task rt in
-	    Ocsforge_services_hashtable.add_service 
-	      rt
-	      {Sh.sources_service = source_service path st;
-	       Sh.log_service = log_service path st;
-	     };
-	    register_list t
-	| _ -> register_list t
-	end
+    | (page,task)::t -> 
+        begin
+          let st = Ocsforge_types.string_of_task task in
+            Ocsforge_services_hashtable.add_service 
+              task
+              {Sh.sources_service = source_service page st;
+               Sh.log_service = log_service page st;
+              };
+            register_list t
+        end
   in
   Ocsforge_sql.get_projects_path_list () >>= fun l ->
     register_list l

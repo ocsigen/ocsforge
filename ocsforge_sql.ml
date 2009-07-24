@@ -627,12 +627,22 @@ let is_area_root ~task =
        | [] | _::[] | _::_::_::_ -> failwith "Ocsforge_sql.is_area_root unexpected query result")
 
 let get_projects_path_list () =
-  Sql.full_transaction_block(
+  Sql.full_transaction_block
   (fun db ->
-    PGSQL(db)
-      "SELECT wikis.pages, ocsforge_right_areas.root_task
-       FROM wikis, ocsforge_right_areas
-       WHERE wikis.id in (SELECT wiki FROM ocsforge_right_areas)"))
+     (PGSQL(db)
+        "SELECT wikis.pages, ocsforge_right_areas.root_task
+         FROM wikis, ocsforge_right_areas
+         WHERE wikis.id IN (SELECT wiki FROM ocsforge_right_areas)")
+     >>= fun l ->
+      Lwt.return (
+        Olang.filter_map
+          (function
+             | (Some p, Some n) -> Some (p, Types.task_of_sql n)
+             | _ -> None)
+          l
+      )
+  )
+
 
 let first_message ~forum ~wiki ~creator ~title_syntax ~text ~content_type =
   let sticky = false in

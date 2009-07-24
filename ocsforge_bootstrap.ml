@@ -34,7 +34,9 @@ let add_message ~forum () =
     Ocsforge_sql.first_message ~forum ~wiki ~creator:User.admin
       ~text:"ocsforge_first_task" ~title_syntax ~content_type
 
-let first_task () =
+
+
+let first_task () = (*TODO: create forum manually instead of rellying on ocsicreateforum*)
   (*checking for already existing tasks*)
   Ocsforge_sql.get_task_count () >>= fun c ->
   if c > 0
@@ -90,8 +92,6 @@ let _ = Lwt_unix.run ( first_task () )
 
 let forge_wiki_model = Ocsisite.wikicreole_model (*TODO: use a real wiki model*)
 
-let _ = Printf.printf "registering wikiext\n%!"
-
 let _ =
 (*let wiki_widgets = Wiki_models.get_widgets forge_wiki_model in            *)
 (*let services = Forum_services.register_services () in                     *)
@@ -101,16 +101,22 @@ let _ =
 (*let new_task_widget = new Ocsforge_widgets.new_task_widget in*)
   let error_box = new Widget.widget_with_error_box in
   let inline_widget = new Wiki_widgets.frozen_wikibox error_box in
-  
-  Ocsforge_wikiext_tasks.register_wikiext
-    Wiki_syntax.wikicreole_parser
-    tree_widget
-    inline_widget
-  
-let _ = 
-  Ocsforge_wikiext_source.register_wikiext 
-    Wiki_syntax.wikicreole_parser
+  begin
 
-let _ = Printf.printf "done registering wikiext\n%!"
+    Printf.printf "registering ocsforge services\n%!" ;
+    let _ = Ocsforge_services_source.register_repository_services ()
+    and _ = Ocsforge_services_tasks.register_xml_dump_services
+              inline_widget tree_widget in
+    Printf.printf "done registering ocsforge services\n%!" ;
+
+    Printf.printf "registering ocsforge wiki extensions\n%!" ;
+    Ocsforge_wikiext_tasks.register_wikiext
+      Wiki_syntax.wikicreole_parser
+      tree_widget
+      inline_widget ;
+    Ocsforge_wikiext_source.register_wikiext 
+      Wiki_syntax.wikicreole_parser ;
+    Printf.printf "done registering ocsforge wikiextensions\n%!" ;
+  end
 
 
