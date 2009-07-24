@@ -24,24 +24,38 @@ let rec read_input_channel buf res chan =
     dans une string list *)
 let exec_command command error_message = 
   let (outpipe,inpipe) = Lwt_unix.pipe_in () in
+  let (err_outpipe,err_inpipe) = Lwt_unix.pipe_in () in
   let buf = String.create 4096 in
+  let err_buf = String.create 4096 in
   let result = Buffer.create 4096 in
+  let err_result = Buffer.create 4096 in
   let pid = Unix.fork () in
   if (pid == 0) then begin
     Lwt_unix.close outpipe;
+    Lwt_unix.close err_outpipe;
     Unix.dup2 inpipe Unix.stdout;
+    Unix.dup2 err_inpipe Unix.stderr;
     Unix.close inpipe;
+    Unix.close err_inpipe;
     Unix.execv "/bin/sh" [| "/bin/sh"; "-c"; command |];
   end
   else begin
     Unix.close inpipe;
+    Unix.close err_inpipe;
     read_input_channel buf result (Lwt_chan.in_channel_of_descr outpipe) >>= fun res ->
-      Lwt_unix.waitpid [] pid >>= fun status -> match status with
+      read_input_channel err_buf err_result (Lwt_chan.in_channel_of_descr err_outpipe) >>= fun err ->
+        Lwt_unix.waitpid [] pid >>= fun status -> match status with
           (*(0,_) -> wait_nohang ()*)
-          | (_,Unix.WEXITED(0)) ->
+        | (_,Unix.WEXITED(0)) ->
+            if (err = "") then
               Lwt.return res
-	  | (_,_) -> 
-	      Lwt.return error_message
+            else begin 
+              print_endline err;
+              Lwt.fail Ocsforge_version_managers.Manager_command_error
+            end
+              (*begin prerr_endline err; Lwt.return res end*)
+	| (_,_) -> 
+	    Lwt.return error_message
   end
 
 

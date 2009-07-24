@@ -18,6 +18,8 @@
  *)
 
 exception Manager_not_supported
+exception Manager_command_error
+
 
 (* List of supported version management systems *)
 let fun_list:((string * Ocsforge_source_types.fun_pack) list ref) = ref []
