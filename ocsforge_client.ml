@@ -144,10 +144,10 @@ type task = (*As there's no Calendar lib aviable, length is in hours, deadline i
       deadline : int ; milestone : string      ; kind : string       ;
     }
 
-let get_task_tree () (*TODO: limit depth and dynamicly load the remaining branches*)=
+let get_task_tree root_task (*TODO: limit depth and dynamicly load the remaining branches*)=
   let tree = (*TODO: catch error on 1xx, 3xx, 4xx, 5xx*)
     AXOCom.dynload_post "./" 
-      [ ("format", "xml") ; (* ("depth", "3") ; *) ]
+      [ ("__eliom_na__name","ocsforge_task_dump") ; ("root", Int32.to_string root_task) ;("format", "xml") ; (* ("depth", "3") ; *) ]
       AXOCom.parse_xml
   in
   let tree =
@@ -171,8 +171,8 @@ let get_task_tree () (*TODO: limit depth and dynamicly load the remaining branch
   in
     tree
 
-let main_tree () =
-  let task_tree = get_task_tree () in
+let main_tree root_task =
+  let task_tree = get_task_tree root_task in
   AXOToolkit.foldable_tree ~depth:3 ~persistent_as_container:true task_tree
     (fun t l f ->
        let main = new AXOToolkit.li_container in
