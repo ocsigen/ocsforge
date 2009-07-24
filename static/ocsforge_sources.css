@@ -1,3 +1,83 @@
+/* Containers */
+
+div.sources_main_div {
+    position: relative;
+    border: 1px solid #BBBBBB;
+    min-height: 100%;
+    /*width: 800px;*/
+    width: 90%;
+    padding: 0 0px;
+    margin: 0 auto;
+    padding-bottom: 10px;
+    overflow: auto;
+    background: white url(./sources_background.png) repeat-y left top;
+}
+
+div.sources_menu_div {
+    float:left;
+    text-align:center;
+    font-size: small;
+    font-family: arial,sans-serif;
+    color: #33145A;
+    padding: 3px;
+    width: 190px;
+}
+
+div.sources_content_div {
+    padding: 0px;
+    float: right;
+    /*width: 590px;*/
+    width: 80%;
+}
+
+/* Menu */
+
+span.menu_title {
+    font-size: normal;
+    font-family: arial,sans-serif;
+    font-weight: bold;
+    text-align: center;
+    display: block;
+}
+
+table.sources_menu {
+    padding-top: 10px;
+    display:block;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+}
+ 
+table.sources_menu tbody{
+    display: block;
+}
+
+table.sources_menu tr{
+    display: block;
+}
+
+table.sources_menu td{
+    display: block;
+    border-top: 1px solid white;
+    border-bottom: 1px solid white;
+    border-right: 1px solid white;
+    -moz-border-radius: 10px 10px 10px 10px;
+    -webkit-border-radius: 10px 10px 10px 10px;
+}
+
+table.sources_menu td:hover {
+    background: white url(./sources_menu_item.png) repeat-y left top;
+}
+
+a.sources_menu_link {
+    text-decoration: none;
+    height: 100%;
+    display: block;
+}
+
+
+
+/* Global styles */
 a.sources_img_link { 
     text-decoration:none;
 }
@@ -34,11 +114,6 @@ a.path:hover{
     background-color: #DED4ED;
 }
 
-h5 {
-    text-align: center;
-    border-bottom: 1px solid;
-    font-family: arial,sans-serif;
-}
 
 body { font-family: arial, sans-serif; }
 
@@ -47,7 +122,9 @@ body { font-family: arial, sans-serif; }
 table.sources_table{
     margin-left: auto; 
     margin-right: auto; 
+    margin-top: 0;
     width: 90%;
+    heigth: 100%;
     border-collapse:collapse;
     text-align:left;
 }
@@ -117,31 +194,55 @@ tr.sources { border: 1px solid #BBBBBB; }
 pre.left_lines {
     text-align:right;
     padding: 2px;
-    background-color: #DEF4F6;
+    background-color: #E8E8E8;
     margin: 0px;
+    -moz-border-radius: 10px 0px 0px 10px;
+    -webkit-border-radius: 10px 0px 0px 10px;
 }
 
 pre.right_lines {
     text-align:left;
     padding: 2px;
-    background-color: #DEF4F6;
+    background-color: #E8E8E8;
     margin: 0px;
+    -moz-border-radius: 0px 10px 10px 0px;
+    -webkit-border-radius: 0px 10px 10px 0px;
 }
 
-div.lines {
+div.left_lines {
     border: 1px solid #BBBBBB;
     float:  left;
-    background-color: #DEF4F6;
+    width: 6%;
+    background-color: #E8E8E8;
+    -moz-border-radius: 10px 0px 0px 10px;
+    -webkit-border-radius: 10px 0px 0px 10px;
 }
+
+div.right_lines {
+    border: 1px solid #BBBBBB;
+    float:  left;
+    width: 6%;
+    background-color: #E8E8E8;
+    -moz-border-radius: 0px 10px 10px 0px;
+    -webkit-border-radius: 0px 10px 10px 0px;
+}
+
 
 span.line_num { font-weight: 500}
 
 div.source_code{
     border: 1px solid #BBBBBB;
     background-color: #E8E8E8; 
-    width: 80%;
+    width: 86%;
     overflow: auto;
     float:left;
+    /*float:left;*/
+}
+
+div.source_code_container {
+    margin: 0 auto;
+    width: 90%;
+    overflow: auto;
 }
 
 div.sources_div {
@@ -156,6 +257,11 @@ div.sources_div {
 }
 
 /** File options page */
+
+.version_select {
+    max-width: 95%;
+    font-size: small;
+}
 
 div.file_version_select{
     border: 1px solid #BBBBBB;
@@ -180,13 +286,23 @@ div.file_diff_select{
 
 div.diff {
     border: 1px solid #BBBBBB;
-    width: 40%;
+    width: 45%;
     font-size:normal;
     float:left;
     margin-right: 2px;
+    overflow: auto;
     -moz-border-radius: 10px;
     -webkit-border-radius: 10px;
 }
+
+span.diff_title {
+    text-align: center;
+    border-bottom: 1px solid;
+    font-family: arial,sans-serif;
+    font-size: small;
+    display: block;
+}
+
 
 pre.diff { overflow:auto; }
 
@@ -203,6 +319,7 @@ div.annot_author {
     font-size:normal;
     float:left;
     padding: 2px;
+    width: 20%;
     -moz-border-radius: 10px 0px 0px 10px;
     -webkit-border-radius: 10px 0px 0px 10px;
 }
@@ -212,7 +329,7 @@ div.annot_content {
     font-size:normal;
     float:left;
     padding: 2px;
-    width: 80%;
+    width: 78%;
     overflow: hidden;
     -moz-border-radius: 0px 10px 10px 0px;
     -webkit-border-radius: 0px 10px 10px 0px;
@@ -231,7 +348,7 @@ table.log_links {
     font-size:small;
     margin-left: auto; 
     margin-right: auto; 
-    width: 50%;
+    width: 90%;
     text-align:center;
 }
 
@@ -291,7 +408,7 @@ a.log_link {
 /** Syntax highlighting */
 
 pre.color {
-    background-color: #E8E8E8;
+    background-color: #EDF0F9;
     padding: 2px;
     margin: 0px;
 }

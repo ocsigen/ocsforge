@@ -99,7 +99,7 @@ let log_service path project = Eliom_predefmod.Any.register_new_service
       in
       Ocsforge_widgets_source.draw_log_table ~sp ~id ~file:None ~start_rev ~end_rev >>= fun pc ->
         Ocsforge_data.get_area_for_task sp id >>= fun r_infos ->
-          let gen_box menu_style = 
+          let gen_box _ = 
             Lwt.return (None,pc,Wiki_widgets_interface.Page_displayable,Some("Ocsforge - Repository history"))
           in
           Ocsisite.wikibox_widget#display_container 
