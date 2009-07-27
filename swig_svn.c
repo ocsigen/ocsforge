@@ -185,12 +185,12 @@ svn_client_ctx_t *initialize_context(apr_pool_t *pool)
   
   // -- Initialisation des parametres d'authentification --
   svn_cmdline_create_auth_baton(&ctx->auth_baton,
-                                FALSE,
-                                NULL,
-                                NULL,
-                                NULL,
-                                FALSE,
                                 TRUE,
+                                NULL,
+                                NULL,
+                                cfg_path->data,
+                                FALSE,
+                                FALSE,
                                 cfg,
                                 cancel,
                                 ctx->cancel_baton,
@@ -269,6 +269,7 @@ apr_array_header_t *svn_support_list(char *rep_path, int rev)
 			 pool);
   if (err) {
     svn_handle_error2(err, stderr, FALSE, "svn_support_list: ");
+    return NULL;
   } 
   svn_cstring_split_append(list_result,res->data,"\n",TRUE,pool);    
   return list_result;
@@ -354,6 +355,7 @@ apr_array_header_t *svn_support_log(char *rep_path, int start, int end, int limi
   
   if (err) {
     svn_handle_error2(err, stderr, FALSE, "svn_support_log: ");
+    return NULL;
   }
   svn_cstring_split_append(list_result,res->data,"\n",FALSE,pool);
   return list_result;
@@ -374,14 +376,14 @@ apr_array_header_t *svn_support_diff(char *rep_path,
   svn_opt_revision_t rev1;
   svn_opt_revision_t rev2;
 
-  if (svn_cmdline_init ("svn_support", stderr) != EXIT_SUCCESS)
+  if (svn_cmdline_init ("svn_support_diff", stderr) != EXIT_SUCCESS)
     return NULL;
   
   pool = svn_pool_create(NULL);
   err = svn_fs_initialize(pool);
   
   if (err) {
-    svn_handle_error2 (err, stderr, FALSE, "svn_support: ");
+    svn_handle_error2 (err, stderr, FALSE, "svn_support_diff: ");
     return NULL;
   }
 
@@ -445,7 +447,7 @@ apr_array_header_t *svn_support_diff(char *rep_path,
 			   ctx,
 			   pool);
     if (err) {
-      svn_handle_error2 (err, stderr, FALSE, "svn_support: ");
+      svn_handle_error2 (err, stderr, FALSE, "svn_support_diff: ");
       return NULL;
     }
     exit(0);
@@ -499,14 +501,14 @@ apr_array_header_t *svn_support_cat(char *file_path, int revision){
   svn_opt_revision_t rev;
   svn_stream_t *out;
  
-  if (svn_cmdline_init ("svn_support", stderr) != EXIT_SUCCESS)
+  if (svn_cmdline_init ("svn_support_cat", stderr) != EXIT_SUCCESS)
     return NULL;
 
   pool = svn_pool_create(NULL);
   err = svn_fs_initialize(pool);
  
   if (err) {
-    svn_handle_error2 (err, stderr, FALSE, "svn_support: ");
+    svn_handle_error2 (err, stderr, FALSE, "svn_support_cat: ");
     return NULL;
   }
 
@@ -527,13 +529,17 @@ apr_array_header_t *svn_support_cat(char *file_path, int revision){
   
   // -- Initialisation du flux de sortie --
   out = svn_stream_from_stringbuf(res,pool);
-
-  svn_client_cat2(out, 
-		  file_path,
-		  &rev,
-		  &rev,
-		  ctx,
-		  pool);
+  
+  err = svn_client_cat2(out, 
+                        file_path,
+                        &rev,
+                        &rev,
+                        ctx,
+                        pool);
+  if (err) {
+    svn_handle_error2 (err, stderr, FALSE, "svn_support_cat: ");
+    return NULL;
+  }
 
   svn_cstring_split_endline_append(list_result,res->data,pool);
   return list_result;
@@ -548,14 +554,14 @@ apr_array_header_t *svn_support_blame(char *file_path, int revision)
   svn_opt_revision_t peg_rev,start,end;
   svn_diff_file_options_t *diff_options;
 
-  if (svn_cmdline_init ("svn_support", stderr) != EXIT_SUCCESS)
+  if (svn_cmdline_init ("svn_support_blame", stderr) != EXIT_SUCCESS)
     return NULL;
   
   pool = svn_pool_create(NULL);
   err = svn_fs_initialize(pool);
   
   if (err) {
-    svn_handle_error2 (err, stderr, FALSE, "svn_support: ");
+    svn_handle_error2 (err, stderr, FALSE, "svn_support_blame: ");
     return NULL;
   }
 
@@ -598,7 +604,8 @@ apr_array_header_t *svn_support_blame(char *file_path, int revision)
                           ctx,
                           pool);
   if (err) {
-    svn_handle_error2(err, stderr, FALSE, "svn_support: ");
+    svn_handle_error2(err, stderr, FALSE, "svn_support_blame: ");
+    return NULL;
   }
   svn_cstring_split_append(list_result,res->data,"\n",FALSE,pool);
   return list_result;

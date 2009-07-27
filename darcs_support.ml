@@ -4,6 +4,8 @@ open Ocsforge_source_types
 open Ocsforge_source_tree
 open Xmltypes
 
+module Vm = Ocsforge_version_managers
+
 (** Expression régulière utilisée pour darcs diff *)
 let index_regexp = regexp "Index: "
 
@@ -24,38 +26,25 @@ let rec read_input_channel buf res chan =
     dans une string list *)
 let exec_command command error_message = 
   let (outpipe,inpipe) = Lwt_unix.pipe_in () in
-  let (err_outpipe,err_inpipe) = Lwt_unix.pipe_in () in
   let buf = String.create 4096 in
-  let err_buf = String.create 4096 in
   let result = Buffer.create 4096 in
-  let err_result = Buffer.create 4096 in
   let pid = Unix.fork () in
   if (pid == 0) then begin
     Lwt_unix.close outpipe;
-    Lwt_unix.close err_outpipe;
     Unix.dup2 inpipe Unix.stdout;
-    Unix.dup2 err_inpipe Unix.stderr;
     Unix.close inpipe;
-    Unix.close err_inpipe;
     Unix.execv "/bin/sh" [| "/bin/sh"; "-c"; command |];
   end
   else begin
     Unix.close inpipe;
-    Unix.close err_inpipe;
     read_input_channel buf result (Lwt_chan.in_channel_of_descr outpipe) >>= fun res ->
-      read_input_channel err_buf err_result (Lwt_chan.in_channel_of_descr err_outpipe) >>= fun err ->
-        Lwt_unix.waitpid [] pid >>= fun status -> match status with
-          (*(0,_) -> wait_nohang ()*)
-        | (_,Unix.WEXITED(0)) ->
-            if (err = "") then
-              Lwt.return res
-            else begin 
-              print_endline err;
-              Lwt.fail Ocsforge_version_managers.Manager_command_error
-            end
-              (*begin prerr_endline err; Lwt.return res end*)
-	| (_,_) -> 
-	    Lwt.return error_message
+      Lwt_unix.waitpid [] pid >>= fun status -> match status with
+      | (_,Unix.WEXITED(0)) ->
+            Lwt.return res
+      | (_,Unix.WEXITED(_)) ->
+          Lwt.fail Ocsforge_version_managers.Manager_command_error
+      | (_,_) -> 
+	  Lwt.return error_message
   end
 
 
@@ -182,17 +171,17 @@ let rec handle_summary res patch content = match content with
         | Simplexmlparser.PCData(_) -> handle_summary res patch t
 	| Simplexmlparser.Element(name,args,econtent) ->
 	    let next_res = 
-	      if (String.compare name "add_file" == 0) then
+	      if (name = "add_file") then
 		handle_add_file res patch econtent
-	      else if (String.compare name "remove_file" == 0) then
+	      else if (name = "remove_file") then
 		handle_remove_file res patch econtent
-	      else if (String.compare name "add_directory" == 0) then
+	      else if (name = "add_directory") then
 		handle_add_directory res patch econtent
-	      else if (String.compare name "remove_directory" == 0) then
+	      else if (name = "remove_directory") then
 		handle_remove_directory res patch econtent
-	      else if (String.compare name "modify_file" == 0) then
+	      else if (name = "modify_file") then
 		handle_modify_file res patch econtent
-	      else if (String.compare name "move" == 0) then 
+	      else if (name = "move") then 
 		handle_move res args
 	      else res
 	      in
@@ -200,19 +189,19 @@ let rec handle_summary res patch content = match content with
 
       
 
-let handle_comment content = match content with
-  | [] -> ""
-  | h::_ -> 
+let rec handle_comment res content = match content with
+  | [] -> res
+  | h::t -> 
       match h with
-        | Simplexmlparser.PCData(comment) -> comment
-	| _ -> ""
+        | Simplexmlparser.PCData(comment) -> handle_comment (res^comment) t
+	| _ -> handle_comment res t
 
-let handle_name content = match content with
-  | [] -> ""
-  | h::_ -> 
+let rec handle_name res content = match content with
+  | [] -> res
+  | h::t -> 
       match h with
-        | Simplexmlparser.PCData(name) -> name
-	| _ -> ""
+        | Simplexmlparser.PCData(name) -> handle_name (res^name) t
+	| _ -> handle_name res t
 
 let fill_patch_fields root_tree args = 
   let res = {id = ref "";
@@ -225,12 +214,12 @@ let fill_patch_fields root_tree args =
   let rec aux p args = match args with
     | [] -> p
     | (f,v)::t ->
-	if (String.compare f "author" == 0) then
+	if (f = "author") then
 	  let parsed_author = split (regexp "&lt") v in
 	  p.author := List.hd (parsed_author)
-	else if (String.compare f "local_date" == 0) then
+	else if (f = "local_date") then
 	  p.date := v
-	else if (String.compare f "hash" == 0) then
+	else if (f = "hash") then
 	  p.id := v
 	else ();
 	aux p t
@@ -243,15 +232,15 @@ let rec handle_patch patch content = match content with
       match h with
         | Simplexmlparser.PCData(_) -> handle_patch patch t 
 	| Simplexmlparser.Element(name,_,econtent) ->
-	    if (String.compare name "name" == 0) then begin
-	      patch.name := handle_name econtent;
+	    if (name = "name") then begin
+	      patch.name := handle_name "" econtent;
 	      handle_patch patch t 
 	    end
-	    else if (String.compare name "comment" == 0) then begin
-	      patch.comment := handle_comment econtent;
+	    else if (name = "comment") then begin
+	      patch.comment := handle_comment "" econtent;
 	      handle_patch patch t 
 	    end
-	    else if (String.compare name "summary" == 0) then
+	    else if (name = "summary") then
 	      handle_patch ({
 			    id = patch.id;
 			    name = patch.name;
@@ -273,7 +262,7 @@ let rec handle_changelog res content = match content with
       match p with
         | Simplexmlparser.PCData(_) -> handle_changelog res t 
 	| Simplexmlparser.Element(name,args,econtent) ->
-	    if (String.compare name "patch" == 0) then
+	    if (name = "patch") then
 	      handle_patch (fill_patch_fields root_tree args) econtent >>=
 	      fun patch ->
 		handle_changelog (patch::res) t
@@ -288,7 +277,7 @@ let rec handle_log_xml_list res l = match l with
       match h with
         | Simplexmlparser.PCData(_) -> handle_log_xml_list res t
 	| Simplexmlparser.Element(name,_,content) ->
-	    if (String.compare name "changelog" == 0) then begin
+	    if (name = "changelog") then begin
               handle_changelog res content >>= fun new_res ->
 	      handle_log_xml_list new_res t
             end
@@ -299,7 +288,7 @@ let rec handle_log_xml_list res l = match l with
 let rec handle_annot_patch args = match args with
   | [] -> ""
   | (f,v)::t -> 
-      if (String.compare f "author" == 0) then
+      if (f = "author") then
         let parsed_author = split (regexp "&lt") v in
 	List.hd (parsed_author)
       else
@@ -313,35 +302,53 @@ let rec handle_added_by l = match l with
       | Simplexmlparser.PCData(_) -> 
           handle_added_by t
       | Simplexmlparser.Element(name,args,_) ->
-          if (String.compare name "patch" == 0) then 
+          if (name = "patch") then 
             handle_annot_patch args
           else
             handle_added_by t
 
 
-let rec handle_normal_line aut line_content l = match l with
+let rec handle_line aut line_content l = match l with
   | [] -> Lwt.return ((aut^"\n"),(line_content^"\n"))
   | h::t -> 
       match h with
         | Simplexmlparser.PCData(line) ->
-            handle_normal_line aut (line_content^line) t
+            handle_line aut (line_content^line) t
         | Simplexmlparser.Element(name,_,content) ->
-            if (String.compare name "added_by" == 0) then
-              handle_normal_line (handle_added_by content) line_content t
-            else handle_normal_line aut line_content t
+            if (name = "added_by") then
+              handle_line (handle_added_by content) line_content t
+            else handle_line aut line_content t
             
 
-let rec handle_file res l = match l with
+let rec handle_modified l = match l with
+  | [] -> ""
+  | h::t ->
+      match h with
+      | Simplexmlparser.Element(name,args,_) ->
+          if (name = "patch") then
+            handle_annot_patch args
+          else
+            handle_modified t
+      | _ ->
+          handle_modified t
+
+
+let rec handle_file res aut l = match l with
   | [] -> Lwt.return res
   | h::t ->
       match h with
-        | Simplexmlparser.PCData(_) -> handle_file res t
+        | Simplexmlparser.PCData(_) -> handle_file res aut t
         | Simplexmlparser.Element(name,_,content) -> 
-            if (String.compare name "normal_line" == 0) then
-              handle_normal_line "" "" content >>= fun line ->
-                handle_file (line::res) t
+            if (name = "normal_line") then
+              handle_line "" "" content >>= fun line ->
+                handle_file (line::res) aut t
+            else if (name = "modified") then
+              handle_file res (handle_modified content) t
+            else if (name = "added_line") then
+              handle_line aut "" content >>= fun line ->
+                handle_file (line::res) aut t
             else
-              handle_file res t
+              handle_file res aut t
 
 (** Recupere la liste (auteur,ligne) depuis le résultat darcs annotate *)      
 let rec handle_annot_xml_list res l = match l with
@@ -350,8 +357,8 @@ let rec handle_annot_xml_list res l = match l with
       match h with
         | Simplexmlparser.PCData(_) -> handle_annot_xml_list res t
         | Simplexmlparser.Element(name,_,content) -> 
-            if (String.compare name "file" == 0) then
-              handle_file [] content
+            if (name = "file") then
+              handle_file [] "" content
             else
               handle_annot_xml_list res t
 
@@ -495,14 +502,14 @@ let darcs_wc_list ?dir repos_path =
           parse_wc_list ~dir:d dir_list file_list >>= fun tree ->
             let (target,name) = format_name d ~eatblanks:false in
             let res = get_node name target tree in match res with
-              | None -> Lwt.return (Dir("",[])) (* a traiter ? *)
+              | None -> Lwt.fail Vm.Node_not_found
               | Some(t) -> Lwt.return t
 
 
 (** Recuperes l'arbre associé au patch précisé *)
 let darcs_list ?id ?dir repos_path = 
   let rec find_rev rev l = match l with
-    | [] -> Lwt.return (Dir("",[])) (* a traiter ? *)
+    | [] -> Lwt.fail Vm.Revision_not_found
     | p::t -> 
         if ((String.compare rev !(p.id)) == 0) then
 	  Lwt.return (p.tree)
@@ -513,19 +520,19 @@ let darcs_list ?id ?dir repos_path =
         darcs_wc_list repos_path;
     | (Some(i),None) -> 
         get_patch_list ~id:i repos_path >>= fun l -> begin match l with
-          | [] -> Lwt.return (Dir("",[])) (* a traiter ? *)
+          | [] -> Lwt.fail Vm.Revision_not_found
           | _ -> find_rev i l
         end
     | (None,Some(d)) -> 
         darcs_wc_list ~dir:d repos_path
     | (Some(i),Some(d)) -> 
         get_patch_list ~id:i ~dir:d repos_path >>= fun l -> begin match l with
-          | [] -> Lwt.return (Dir("",[])) (* a traiter ? *)
+          | [] -> Lwt.fail Vm.Revision_not_found
           | _ -> 
               find_rev i l >>= fun tree -> 
                 let (target,name) = format_name d ~eatblanks:false in
                 let res = get_node name target tree in match res with
-                  | None -> Lwt.return (Dir("",[])) (* a traiter ? *)
+                  | None -> Lwt.fail Vm.Node_not_found
                   | Some(t) -> Lwt.return t
         end
             
@@ -551,25 +558,7 @@ let rec get_nb_cancel_char cancel_char nb_cur_char res l = match l with
       else if (h.[0] == cancel_char) then
 	  get_nb_cancel_char cancel_char (nb_cur_char-1) (res+1) t
       else res
-(*
-let rec get_nb_char cur_char res l = match l with
-  | [] -> 0
-  | h::t ->
-      if (String.length h > 0) && (h.[0] == cur_char) then
-	get_nb_char cur_char (res+1) t
-      else if (res > 0) then
-	if (cur_char == '+') then
-	  get_nb_cancel_char '-' res 0 t
-	else
-	  get_nb_cancel_char '+' res 0 t
-*)
-(*
-let parse_diff_aux parsed_res nb_to_add nb_added cur_char l = 
-  match l with
-    | [] -> (parsed_res,[])
-    | h::t -> 
-	if  
-*)
+
 
 (** Parse le résultat de darcs diff pour stocker son contenu dans 
     une liste de types file_diff *)
@@ -698,14 +687,6 @@ let rec parse_diff diff_res parsed_res started = match diff_res with
 (** Execute la commande darcs diff et applique parse_diff sur le résultat *)
 let darcs_diff file rep from_patch to_patch = 
   let error_message = "Error while getting diff result (signal received)" in
-  (*match file with
-  | None ->
-      let command = ("darcs diff --from-match 'hash "^from_patch^
-		     "' --to-match 'hash "^to_patch^
-		     "' -u --repodir "^rep) in
-      exec_command command error_message >>= fun res ->
-	(parse_diff res []) 
-    | Some(filename) ->*)
   let command = ("darcs diff --from-match 'hash "^from_patch^
 		 "' --to-match 'hash "^to_patch^
 		 "' "^file^
@@ -713,9 +694,7 @@ let darcs_diff file rep from_patch to_patch =
   exec_command command error_message >>= fun res_string ->
     let res = split (regexp "\n") res_string in
     parse_diff res [{fileName=file; oldContent=[]; newContent=[]}] false
-	(*| [] -> Lwt.return {fileName=file; oldContent=[]; newContent=[]}
-	| h::_ -> Lwt.return h *)
-
+	
 
 let rec print_tree path tree = match tree with
   | File(f,a,(v,_)) -> 

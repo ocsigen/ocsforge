@@ -29,7 +29,7 @@ let keyword = (
   | "!="  | "#"  | "&&" | "'" |  ","
   | "-."  | "->" | ".." | "::" | ":=" | ":>" | ";" | ";;"
   | "<-"  | ">]" | ">}" | "?" | "??" | "[<" | "[>"
-  | "_" | "`" | "{<" | "|]" |  "~"
+  | "`" | "{<" | "|]" |  "~"
 )
   
 let ite = ( "if" | "then" | "else")
@@ -45,7 +45,7 @@ let comment = ("(*" | "(**")
 
 let newline_char = ['\n' '\r']
 
-let alpha = ['a'-'z''A'-'Z''0'-'9''_']*
+let alpha = ['a'-'z''A'-'Z''0'-'9''_']+
 
 let spaces = [' ']+
 
@@ -71,9 +71,9 @@ rule token = parse
       { Oct o }
   | hex as h             
       { Hex h }
-  | (['A'-'Z'](alpha)) as m  
+  | (['_']?['A'-'Z'](alpha)) as m  
       { UpperCaseID m } 
-  | (['a'-'z'](alpha)) as c  
+  | (['_']?['a'-'z'](alpha)) as c  
       { Id c }
   | operator as o
       { Operator o }
