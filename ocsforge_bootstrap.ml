@@ -104,9 +104,13 @@ let _ =
   begin
 
     Printf.printf "registering ocsforge services\n%!" ;
-    let _ = Ocsforge_services_source.register_repository_services ()
-    and _ = Ocsforge_services_tasks.register_xml_dump_services
-              inline_widget tree_widget in
+    let _ = Lwt_unix.run
+              (Ocsforge_services_source.register_repository_services ())
+    and _ = Lwt_unix.run
+              (Ocsforge_services_tasks.register_xml_dump_services
+                 inline_widget
+                 tree_widget)
+    in
     Printf.printf "done registering ocsforge services\n%!" ;
 
     Printf.printf "registering ocsforge wiki extensions\n%!" ;

@@ -35,14 +35,15 @@ type task_attrs = (*TODO: improve type checking*)
          kind       =? String
          deleted    =? boolean
     } }}
-type xml_task_tree =
+type xml_task =
     {{ <task (task_attrs) >
          [ Ocamlduce.Load.anyxml
-           <children>[ xml_task_tree* ]
+           <children>[ xml_task* ]
          ]
     }}
+type xml_task_tree = {{ <task_tree>[ xml_task ] }}
 
-let rec xml_of_tree ~sp inline_widget (*TODO : use all fields ? *)
+let rec xml_task_of_tree ~sp inline_widget (*TODO : use all fields ? *)
   { Types.Tree.content =
       { Types.t_id = id                ; Types.t_message = msg       ;
         Types.t_length = len           ; Types.t_progress = pro      ;
@@ -57,7 +58,7 @@ let rec xml_of_tree ~sp inline_widget (*TODO : use all fields ? *)
 
   Ocsforge_widgets_tasks.draw_message_title ~sp ~message:msg inline_widget
                                                         >>= fun msg -> 
-  Lwt_util.map_serial (xml_of_tree ~sp inline_widget) l >>= fun l ->
+  Lwt_util.map_serial (xml_task_of_tree ~sp inline_widget) l >>= fun l ->
   Lwt.return
     ({{ <task id         = {: to_utf8 (Types.string_of_task id)      :}
               length     = {: to_utf8 (Olang.string_of_t_opt
@@ -72,6 +73,9 @@ let rec xml_of_tree ~sp inline_widget (*TODO : use all fields ? *)
                                          (fun k -> k) kin)           :}
               deleted    = {{ boolean_of_bool del }}
           >[ msg <children>[ !{: l :} ] ]
-      }} : {{ xml_task_tree }} )
+      }} : {{ xml_task }} )
 
 
+let xml_of_tree ~sp il_widget tree =
+  xml_task_of_tree ~sp il_widget tree >>= fun tasks ->
+  Lwt.return {{ <task_tree>[ tasks ] }}

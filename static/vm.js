@@ -527,7 +527,7 @@ RT.caml_int32_format = function (f, v) {
     return RT.caml_format_int.call (this, f, v.get (1));
 }
 RT.caml_int32_of_string = function (s) {
-    return mk_custom (int32_ops, RT.caml_int_of_string.call (this, s));
+    return mk_custom (RT.caml_int_of_string.call (this, s));
 }
 nativeint_ops = {
     id : "_n",
@@ -1916,18 +1916,27 @@ RT.caml_js_http_post = function (vurl, type, data) {
 }
 RT.caml_js_dom_of_xml = function (str)
 {
+  var sstr = string_from_value (str);
   try {
     xmlDoc = new ActiveXObject("Microsoft.XMLDOM");
     xmlDoc.async = "false";
-    xmlDoc.loadXML(str);
+    xmlDoc.loadXML(sstr);
     return xmlDoc;
   } catch(e) {
     try {
       parser = new DOMParser();
-      xmlDoc = parser.parseFromString(str,"text/xml");
+      xmlDoc = parser.parseFromString(sstr,"text/xml");
       return xmlDoc;
     } catch(e) { throw new Error ("unable to parse : " + e.message) }
   }
+}
+RT.caml_js_xml_of_dom = function (o)
+{
+  try {
+    var serializer = new XMLSerializer();
+    var prettyString = XML(serializer.serializeToString(o)).toXMLString();
+    return (value_from_string (prettyString)) ;
+  } catch(e) { throw new Error ("unable to pretty print : " + e.message) }
 }
 RT["jsoo_new"] = function (o) {
     return [];

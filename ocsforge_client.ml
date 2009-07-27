@@ -18,6 +18,7 @@
  *)
 
 open AXOLang
+let (>>>) x f = f x
 
 (*poping up the new task form*)
 let new_task_pop_up id =
@@ -136,10 +137,11 @@ let tree_of_dom_tree get_content get_children dt =
       LTree.content  = get_content  dt  ;
       LTree.children = List.map aux (get_children dt) ;
     }
-  in aux dt
+  in
+    aux dt
 
 type task = (*As there's no Calendar lib aviable, length is in hours, deadline is a number of days (relative to the current one) *)
-    { id : int32     ; msg : AXOWidgets.common ;
+    { id : int32     ; msg : AXOWidgets.generic_widget ;
       length : int   ; progress : int32        ; importance : int32  ;
       deadline : int ; milestone : string      ; kind : string       ;
     }
@@ -147,53 +149,69 @@ type task = (*As there's no Calendar lib aviable, length is in hours, deadline i
 let get_task_tree root_task (*TODO: limit depth and dynamicly load the remaining branches*)=
   let tree = (*TODO: catch error on 1xx, 3xx, 4xx, 5xx*)
     AXOCom.dynload_post "./" 
-      [ ("__eliom_na__name","ocsforge_task_dump") ; ("root", Int32.to_string root_task) ;("format", "xml") ; (* ("depth", "3") ; *) ]
+      [
+        ("__eliom_na__name", "ocsforge_task_dump") ;
+        ("root", Int32.to_string root_task) ;
+        ("format", "xml") ;
+        (* ("depth", "3") ; *)
+      ]
       AXOCom.parse_xml
   in
+  (try AXOCom.check_for_error tree with Failure s -> AXOJs.blunt_alert s) ;
+  AXOJs.blunt_alert (tree >>> AXOCom.print_xml) ;
   let tree =
-    let get_attr = AXOJs.Node.get_attribute in
+    let get_attr n o = AXOJs.blunt_alert (o >>> AXOCom.print_xml) ; AXOJs.Node.get_attribute n o in
     tree_of_dom_tree
       (fun o ->
-         { id  = Int32.of_string (o >>> get_attr "id") ;
-           msg = new AXOWidgets.common_wrap (o >>> AXOJs.Node.child 0) ;
+         let sid = o >>> get_attr "id" in
+         AXOJs.blunt_alert sid ;
+         let msg_ = new AXOWidgets.widget_wrap (o >>> AXOJs.Node.child 0) in
+         msg_#set_attribute "id" ("task" ^ sid) ;
+         {
+                  msg = msg_ ;
                length = (o >>> get_attr "length"    ) >>> int_of_string   ;
              progress = (o >>> get_attr "progress"  ) >>> Int32.of_string ;
            importance = (o >>> get_attr "importance") >>> Int32.of_string ;
              deadline = (o >>> get_attr "deadline"  ) >>> int_of_string   ;
             milestone = (o >>> get_attr "milestone" ) ;
                  kind = (o >>> get_attr "kind"      ) ;
+                   id = Int32.of_string sid ;
          } )
       (fun o ->
          if o >>> AXOJs.Node.n_children = 2
          then (o >>> AXOJs.Node.child 1) >>> AXOJs.Node.children
          else [] )
-      tree
+      (tree >>> JSOO.get "documentElement" >>> JSOO.get "firstChild")
   in
     tree
 
 let main_tree root_task =
   let task_tree = get_task_tree root_task in
-  AXOToolkit.foldable_tree ~depth:3 ~persistent_as_container:true task_tree
-    (fun t l f ->
-       let main = new AXOToolkit.li_container in
-         main#add_common t.msg ;
-       ((if l = []
-         then
-           ( (new AXOToolkit.inline_text_widget_button ~activated:false "x "
-             ) :> AXOWidgets.generic_button )
-         else
-           ( (if f
-              then new AXOToolkit.cyclic_block_text_button "+ " ["- "]
-              else new AXOToolkit.cyclic_block_text_button "- " ["+ "]
-             ) :> AXOWidgets.generic_button )
-        ),
-        (new AXOToolkit.li_container),
-        (new AXOToolkit.ul_container)
-       )
-    
-    )
-    (new AXOToolkit.ul_container)
-
-
+  let dom_tree =
+    AXOToolkit.foldable_tree ~depth:3 ~persistent_as_container:true task_tree
+      (fun t l f ->
+         let main = new AXOToolkit.li_container in
+           main#add_common (t.msg :> AXOWidgets.common) ;
+         ((if l = []
+           then
+             ( (new AXOToolkit.inline_text_widget_button ~activated:false "x "
+               ) :> AXOWidgets.generic_button )
+           else
+             ( (if f
+                then new AXOToolkit.cyclic_block_text_button "+ " ["- "]
+                else new AXOToolkit.cyclic_block_text_button "- " ["+ "]
+               ) :> AXOWidgets.generic_button )
+          ),
+          (new AXOToolkit.li_container),
+          (new AXOToolkit.ul_container)
+         )
+      
+      )
+      (new AXOToolkit.ul_container)
+  in
+  let root = AXOJs.Node.body >>> AXOJs.Node.get_element_by_id "ocsforge_task_tree" in
+  let container = new AXOWidgets.container_wrap root in
+    container#add_common (dom_tree :> AXOWidgets.common)
 
 let _ = Eliom_obrowser_client.register_closure 189 main_tree
+let _ = AXOJs.alert ".uue loaded"

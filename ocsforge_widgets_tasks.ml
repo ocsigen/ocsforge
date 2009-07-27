@@ -302,9 +302,10 @@ object (self)
 
   method display ~sp ~root_task inline_widget =
     ( self#display_noscript ~sp ~root_task inline_widget ) >>= fun ns ->
-      Ocsimore_page.add_onload_function sp (run 189 root_task) ;
+      Ocsimore_page.add_obrowser_header sp ;
+(*      Ocsimore_page.add_onload_function sp (run 189 root_task) ; *)
     Lwt.return
-      ({{ [ <div id="ocsforge_task_tree">[ <noscript>[ ns ] ] ] }}
+      ({{ [ <div id="ocsforge_task_tree">[ <span onclick={: run 189 root_task :} >[ !{: to_utf8 "toto" :} ] <noscript>[ ns ] ] ] }}
          : {{ Xhtmltypes_duce.flows }} )
 
 end
