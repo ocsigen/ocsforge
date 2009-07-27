@@ -5,19 +5,90 @@
 #include "svn_fs.h"
 #include "svn_utf.h"
 #include "svn_props.h"
+#include "caml/signals.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
 
+static apr_pool_t *pool;
+svn_client_ctx_t *ctx;
+
+/* fonction déterminant le comportement en cas d'annulation 
+   de l'opération courante */
+svn_error_t *cancel(void *cancel_baton)
+{
+  return SVN_NO_ERROR;
+} 
+
+
+/* fonction permettant d'initialiser le contexte avant toute opération svn */
+svn_client_ctx_t *initialize_context(apr_pool_t *pool)
+{  
+  svn_error_t *err;
+  svn_config_t *cfg;
+  
+  err = svn_config_ensure (NULL, pool);
+  
+  if (err) {
+    svn_handle_error2 (err, stderr, FALSE, "svn_support: ");
+    return NULL;
+  }
+  
+  // -- Creation du contexte --
+  svn_client_create_context(&ctx,pool);
+  svn_config_get_config (&(ctx->config), NULL, pool);
+ 
+  // -- Récupération du fichier de config dans ~/.subversion --
+  const char *config_path;
+  svn_config_get_user_config_path(&config_path,
+                                  NULL,
+                                  SVN_CONFIG_CATEGORY_CONFIG,
+                                  pool);
+  svn_config_read(&cfg,
+		  config_path,
+		  TRUE,
+		  pool);
+  
+  // -- Initialisation des parametres d'authentification --
+  svn_cmdline_create_auth_baton(&ctx->auth_baton,
+                                TRUE,
+                                NULL,
+                                NULL,
+                                config_path,
+                                FALSE,
+                                FALSE,
+                                cfg,
+                                cancel,
+                                ctx->cancel_baton,
+                                pool);
+  return ctx;
+}
+  
+
+/* Fonction d'initialisation SVN / APR */
+void svn_init(){
+  if (svn_cmdline_init ("svn_support", stderr) != EXIT_SUCCESS)
+    return;
+  pool = svn_pool_create(NULL);
+  ctx = initialize_context(pool);
+  /*err = svn_fs_initialize(pool);
+  
+  if (err) {
+    svn_handle_error2 (err, stderr, FALSE, "svn_init: ");
+    return;
+    }*/
+}
+ 
+
 
 /* création d'un stringbuf dont la chaine se termine par un "\n" */
-svn_stringbuf_t *stringbuf_endline_utf8(const char *string,apr_pool_t *pool)
+svn_stringbuf_t *stringbuf_endline_utf8(const char *string,apr_pool_t *subpool)
 {  
-  const svn_stringbuf_t *endline = svn_stringbuf_create("\n",pool);
-  svn_stringbuf_t *res_utf8,*res = svn_stringbuf_create(string,pool);
+  const svn_stringbuf_t *endline = svn_stringbuf_create("\n",subpool);
+  svn_stringbuf_t *res_utf8,*res = svn_stringbuf_create(string,subpool);
   svn_stringbuf_appendstr(res,endline);
-  svn_utf_stringbuf_to_utf8(&res_utf8,res,pool);  
+  svn_utf_stringbuf_to_utf8(&res_utf8,res,subpool);  
   return res_utf8;
 }
 
@@ -27,21 +98,21 @@ svn_error_t *list_callback(void *baton,
 			   const svn_dirent_t *dirent,
 			   const svn_lock_t *lock,
 			   const char *abs_path,
-			   apr_pool_t *pool)
+			   apr_pool_t *subpool)
 {  
   if (strcmp(path,"") == 0) return SVN_NO_ERROR;
   svn_stringbuf_t *temp = NULL; 
   if (dirent->kind == svn_node_dir){
-    const svn_stringbuf_t *slash = svn_stringbuf_create("/",pool);
-    svn_stringbuf_t *dir_format = svn_stringbuf_create(path,pool);
+    const svn_stringbuf_t *slash = svn_stringbuf_create("/",subpool);
+    svn_stringbuf_t *dir_format = svn_stringbuf_create(path,subpool);
     svn_stringbuf_appendstr(dir_format,slash);
-    temp = stringbuf_endline_utf8(dir_format->data,pool);
+    temp = stringbuf_endline_utf8(dir_format->data,subpool);
   } 
   else
-    temp = stringbuf_endline_utf8(path,pool);
-  svn_stringbuf_t *author = stringbuf_endline_utf8(dirent->last_author,pool);
-  char *rev = apr_psprintf(pool,"%d\n",(int)dirent->created_rev);
-  svn_stringbuf_t *revbuf = stringbuf_endline_utf8(rev,pool);
+    temp = stringbuf_endline_utf8(path,subpool);
+  svn_stringbuf_t *author = stringbuf_endline_utf8(dirent->last_author,subpool);
+  char *rev = apr_psprintf(subpool,"%d\n",(int)dirent->created_rev);
+  svn_stringbuf_t *revbuf = stringbuf_endline_utf8(rev,subpool);
   svn_stringbuf_appendstr((svn_stringbuf_t *)baton, (const svn_stringbuf_t *)temp);
   svn_stringbuf_appendstr((svn_stringbuf_t *)baton,(const svn_stringbuf_t *)author);
   svn_stringbuf_appendstr((svn_stringbuf_t *)baton,(const svn_stringbuf_t *)revbuf);
@@ -144,60 +215,6 @@ svn_error_t* svn_info_callback(void *baton, const char *path,
   return SVN_NO_ERROR;
 } 
 
-/* fonction déterminant le comportement en cas d'annulation 
-   de l'opération courante */
-svn_error_t *cancel(void *cancel_baton)
-{
-  return SVN_NO_ERROR;
-} 
-
-
-/* fonction permettant d'initialiser le contexte avant toute opération svn */
-svn_client_ctx_t *initialize_context(apr_pool_t *pool)
-{  
-  svn_error_t *err;
-  svn_client_ctx_t *ctx;
-  svn_config_t *cfg;
-  
-  err = svn_config_ensure (NULL, pool);
-  
-  if (err) {
-    svn_handle_error2 (err, stderr, FALSE, "svn_support: ");
-    return NULL;
-  }
-  
-  // -- Creation du contexte --
-  svn_client_create_context(&ctx,pool);
-  svn_config_get_config (&(ctx->config), NULL, pool);
-  
-  // -- Initialisation de l'utf-8 --
-  svn_utf_initialize(pool);
-  
-  // -- Récupération du fichier de config dans ~/.subversion --
-  const svn_stringbuf_t *svn_path = 
-    svn_stringbuf_create("/.subversion/config",pool);
-  svn_stringbuf_t *cfg_path = svn_stringbuf_create(getenv("HOME"),pool);
-  svn_stringbuf_appendstr(cfg_path,svn_path);
-  svn_config_read(&cfg,
-		  cfg_path->data,
-		  TRUE,
-		  pool);
-  
-  // -- Initialisation des parametres d'authentification --
-  svn_cmdline_create_auth_baton(&ctx->auth_baton,
-                                TRUE,
-                                NULL,
-                                NULL,
-                                cfg_path->data,
-                                FALSE,
-                                FALSE,
-                                cfg,
-                                cancel,
-                                ctx->cancel_baton,
-                                pool);
-  return ctx;
-}
-
 
 /*const svn_info_t **/ 
 int svn_support_info(apr_pool_t *pool,svn_client_ctx_t *ctx,const char *path)
@@ -223,26 +240,11 @@ int svn_support_info(apr_pool_t *pool,svn_client_ctx_t *ctx,const char *path)
 }
 
 /* fonction simulant la commande svn list */
-apr_array_header_t *svn_support_list(char *rep_path, int rev)
+
+apr_array_header_t *svn_support_list_call(char *rep_path, int rev,apr_pool_t *subpool)
 {  
-  apr_pool_t *pool ;
   svn_error_t *err;
-  svn_client_ctx_t *ctx; 
   svn_opt_revision_t revision;
-  
-  if (svn_cmdline_init ("svn_support", stderr) != EXIT_SUCCESS)
-    return NULL;
-
-  pool = svn_pool_create(NULL);
-  err = svn_fs_initialize(pool);
-  
-  if (err) {
-    svn_handle_error2 (err, stderr, FALSE, "svn_support: ");
-    return NULL;
-  }
-
-  // -- Initialisation du contexte --
-  ctx = initialize_context(pool);
   
   // -- Initialisation de la revision --
   if (rev != -1) {
@@ -254,9 +256,11 @@ apr_array_header_t *svn_support_list(char *rep_path, int rev)
   }
 
   // -- Initialisation du tableau et du buffer de résultats -- 
-  apr_array_header_t *list_result = apr_array_make(pool, 1, sizeof (const char *));
-  svn_stringbuf_t *res = svn_stringbuf_create("",pool);		 
+  apr_array_header_t *list_result = apr_array_make(subpool, 1, sizeof (const char *));
+  svn_stringbuf_t *res = svn_stringbuf_create("",subpool);	
+  
   // -- Appel de svn list --
+  
   err = svn_client_list2(rep_path,
 			 &revision,
 			 &revision,
@@ -266,40 +270,43 @@ apr_array_header_t *svn_support_list(char *rep_path, int rev)
 			 list_callback,
 			 res,
 			 ctx,
-			 pool);
+			 subpool);
+  
   if (err) {
     svn_handle_error2(err, stderr, FALSE, "svn_support_list: ");
+    svn_pool_destroy(subpool);
     return NULL;
   } 
-  svn_cstring_split_append(list_result,res->data,"\n",TRUE,pool);    
+  
+  svn_cstring_split_append(list_result,res->data,"\n",TRUE,subpool);  
+  
+  svn_pool_destroy(subpool);
   return list_result;
 }
 
+apr_array_header_t *svn_support_list(char *rep_path, int revision){
+  apr_pool_t * subpool = svn_pool_create(pool);
+  svn_stringbuf_t * rep = svn_stringbuf_create (rep_path, subpool);
+  caml_enter_blocking_section ();
+  apr_array_header_t *res = svn_support_list_call(rep->data,revision,subpool); 
+  caml_leave_blocking_section ();
+  return res;
+}
+
 /* fonction simulant la commande svn log */
-apr_array_header_t *svn_support_log(char *rep_path, int start, int end, int limit)
+apr_array_header_t *svn_support_log_call(char *rep_path, 
+                                         int start, 
+                                         int end, 
+                                         int limit, 
+                                         apr_pool_t *subpool)
 {  
-  apr_pool_t *pool ;
   svn_error_t *err;
-  svn_client_ctx_t *ctx; 
   svn_opt_revision_t revision_start;
   svn_opt_revision_t revision_end;
-  
-  if (svn_cmdline_init ("svn_support", stderr) != EXIT_SUCCESS)
-    return NULL;
-  
-  pool = svn_pool_create(NULL);
-  err = svn_fs_initialize(pool);
-  
-  if (err) {
-    svn_handle_error2 (err, stderr, FALSE, "svn_support: ");
-    return NULL;
-  }
 
-  // -- Initialisation du contexte --
-  ctx = initialize_context(pool);
   
   // -- Initialisation de la cible --
-  apr_array_header_t *targets = apr_array_make (pool, 1, sizeof (char *));
+  apr_array_header_t *targets = apr_array_make (subpool, 1, sizeof (char *));
   *(char **)apr_array_push(targets) = rep_path;
   
   // -- Initialisation de l'intervalle de revisions --
@@ -331,14 +338,14 @@ apr_array_header_t *svn_support_log(char *rep_path, int start, int end, int limi
   }
     
   // -- Choix des propriétés a récupérer --
-  apr_array_header_t *revprops = apr_array_make (pool, 3, sizeof (char *));
+  apr_array_header_t *revprops = apr_array_make (subpool, 3, sizeof (char *));
   *(char **)apr_array_push(revprops) = SVN_PROP_REVISION_AUTHOR;
   *(char **)apr_array_push(revprops) = SVN_PROP_REVISION_DATE;
   *(char **)apr_array_push(revprops) = SVN_PROP_REVISION_LOG;
 
   // -- Initialisation du tableau et du buffer de résultats -- 
-  apr_array_header_t *list_result = apr_array_make(pool, 1, sizeof (const char *));
-  svn_stringbuf_t *res = svn_stringbuf_create("",pool);	
+  apr_array_header_t *list_result = apr_array_make(subpool, 1, sizeof (const char *));
+  svn_stringbuf_t *res = svn_stringbuf_create("",subpool);	
   err = svn_client_log4(targets,
 			&revision_start,
 			&revision_start,
@@ -351,53 +358,49 @@ apr_array_header_t *svn_support_log(char *rep_path, int start, int end, int limi
 			log_callback,
 			res,
 			ctx,
-			pool);
+			subpool);
   
   if (err) {
     svn_handle_error2(err, stderr, FALSE, "svn_support_log: ");
+    svn_pool_destroy(subpool);
     return NULL;
   }
-  svn_cstring_split_append(list_result,res->data,"\n",FALSE,pool);
+  svn_cstring_split_append(list_result,res->data,"\n",FALSE,subpool);
+  svn_pool_destroy(subpool);
   return list_result;
 }
 
+apr_array_header_t *svn_support_log(char *rep_path, int start, int end, int limit){
+  apr_pool_t * subpool = svn_pool_create(pool);
+  svn_stringbuf_t * rep = svn_stringbuf_create(rep_path, subpool);
+  caml_enter_blocking_section ();
+  apr_array_header_t *res = svn_support_log_call(rep->data,start,end,limit,subpool); 
+  caml_leave_blocking_section ();
+  return res;
+}
+
 /* fonction simulant la commande svn diff */
-apr_array_header_t *svn_support_diff(char *rep_path,
-				     char *filename,
-   				     int revision1,
-				     int revision2)
+apr_array_header_t *svn_support_diff_call(char *rep_path,
+                                          char *filename,
+                                          int revision1,
+                                          int revision2,
+                                          apr_pool_t* subpool)
 {
-  apr_pool_t *pool ;
   svn_error_t *err;
-  svn_client_ctx_t *ctx; 
   apr_file_t *outfile;
   apr_file_t *errfile;
   apr_status_t rv;
   svn_opt_revision_t rev1;
   svn_opt_revision_t rev2;
-
-  if (svn_cmdline_init ("svn_support_diff", stderr) != EXIT_SUCCESS)
-    return NULL;
-  
-  pool = svn_pool_create(NULL);
-  err = svn_fs_initialize(pool);
-  
-  if (err) {
-    svn_handle_error2 (err, stderr, FALSE, "svn_support_diff: ");
-    return NULL;
-  }
-
-  // -- Initialisation du contexte --
-  ctx = initialize_context(pool);
-  
+ 
   // -- Initialisation du tableau et du buffer de résultats -- 
-  apr_array_header_t *list_result = apr_array_make(pool, 1, sizeof (const char *));
-  svn_stringbuf_t *res = svn_stringbuf_create("",pool);	
+  apr_array_header_t *list_result = apr_array_make(subpool, 1, sizeof (const char *));
+  svn_stringbuf_t *res = svn_stringbuf_create("",subpool);	
   
   // -- Initialisation des chemins des fichiers --
-  const svn_stringbuf_t *slash = svn_stringbuf_create("/",pool);
-  const svn_stringbuf_t *filepath = svn_stringbuf_create(filename,pool);
-  svn_stringbuf_t *path = svn_stringbuf_create(rep_path,pool);
+  const svn_stringbuf_t *slash = svn_stringbuf_create("/",subpool);
+  const svn_stringbuf_t *filepath = svn_stringbuf_create(filename,subpool);
+  svn_stringbuf_t *path = svn_stringbuf_create(rep_path,subpool);
   if (strcmp(filename,"") != 0) {
     svn_stringbuf_appendstr(path,slash);
     svn_stringbuf_appendstr(path,filepath);
@@ -409,25 +412,28 @@ apr_array_header_t *svn_support_diff(char *rep_path,
   rev2.value.number=revision2;
   
   // -- Initialisation des fichiers d'output --
-  if ((rv = apr_file_open_stdout(&outfile,pool)) != APR_SUCCESS) {
+  if ((rv = apr_file_open_stdout(&outfile,subpool)) != APR_SUCCESS) {
+    svn_pool_destroy(subpool);
     return NULL;
   }
-  if ((rv = apr_file_open_stdout(&errfile,pool)) != APR_SUCCESS) {
+  if ((rv = apr_file_open_stdout(&errfile,subpool)) != APR_SUCCESS) {
+    svn_pool_destroy(subpool);
     return NULL;
   }
-  const apr_array_header_t *diff_options =  apr_array_make(pool, 1, sizeof (const char *));
+  const apr_array_header_t *diff_options =  apr_array_make(subpool, 1, sizeof (const char *));
   //apr_file_t *write_end;
   //apr_file_t *read_end;
-  //apr_file_pipe_create(&write_end,&read_end,pool);
+  //apr_file_pipe_create(&write_end,&read_end,subpool);
   int tube[2];
   pipe(tube);
   switch(fork()){
   case -1: 
     perror("fork");
+    svn_pool_destroy(subpool);
     return NULL;
   case 0:
     //apr_file_close(read_end);
-    //apr_file_dup2(outfile,write_end,pool);
+    //apr_file_dup2(outfile,write_end,subpool);
     close(tube[0]);
     dup2(tube[1],STDOUT_FILENO);
     err = svn_client_diff4(diff_options,
@@ -445,9 +451,10 @@ apr_array_header_t *svn_support_diff(char *rep_path,
 			   errfile,
 			   NULL,
 			   ctx,
-			   pool);
+			   subpool);
     if (err) {
       svn_handle_error2 (err, stderr, FALSE, "svn_support_diff: ");
+      svn_pool_destroy(subpool);
       return NULL;
     }
     exit(0);
@@ -463,13 +470,29 @@ apr_array_header_t *svn_support_diff(char *rep_path,
       //if(APR_STATUS_IS_EOF(rv))
       //break;
     buf[rc]='\0';
-    tmp = svn_stringbuf_create(buf,pool);
+    tmp = svn_stringbuf_create(buf,subpool);
     svn_stringbuf_appendstr(res,tmp);
     //*(char **)apr_array_push(list_result) = buf;
   }
 
-  svn_cstring_split_append(list_result,res->data,"\n",FALSE,pool);
+  svn_cstring_split_append(list_result,res->data,"\n",FALSE,subpool);
+  svn_pool_destroy(subpool);
   return list_result;
+}
+
+
+apr_array_header_t *svn_support_diff(char *rep_path, 
+                                    char *filename, 
+                                    int revision1, 
+                                    int revision2)
+{
+  apr_pool_t *subpool = svn_pool_create(pool);
+  svn_stringbuf_t * rep = svn_stringbuf_create(rep_path, subpool);
+  svn_stringbuf_t * file = svn_stringbuf_create(filename, subpool);
+  caml_enter_blocking_section ();
+  apr_array_header_t *res = svn_support_diff_call(rep->data,file->data,revision1,revision2,subpool); 
+  caml_leave_blocking_section ();
+  return res;
 }
 
 
@@ -493,28 +516,14 @@ void svn_cstring_split_endline_append (apr_array_header_t *array,
   *(char **)apr_array_push(array) = "\n";
 } 	
 
-/* fonction simulant la commande svn cat */
-apr_array_header_t *svn_support_cat(char *file_path, int revision){
-  apr_pool_t *pool ;
+/* fonction simulant la commande svn cat */  
+apr_array_header_t *svn_support_cat_call(char *file_path, 
+                                         int revision, 
+                                         apr_pool_t *subpool){
   svn_error_t *err;
-  svn_client_ctx_t *ctx; 
   svn_opt_revision_t rev;
   svn_stream_t *out;
- 
-  if (svn_cmdline_init ("svn_support_cat", stderr) != EXIT_SUCCESS)
-    return NULL;
-
-  pool = svn_pool_create(NULL);
-  err = svn_fs_initialize(pool);
- 
-  if (err) {
-    svn_handle_error2 (err, stderr, FALSE, "svn_support_cat: ");
-    return NULL;
-  }
-
-  // -- Initialisation du contexte --
-  ctx = initialize_context(pool);
- 
+  
   // -- Initialisation de la révision --
   if (revision != -1) {
     rev.kind = svn_opt_revision_number;
@@ -524,50 +533,47 @@ apr_array_header_t *svn_support_cat(char *file_path, int revision){
     rev.kind = svn_opt_revision_unspecified;
  
   // -- Initialisation du tableau et du buffer de résultats -- 
-  apr_array_header_t *list_result = apr_array_make(pool, 1, sizeof (const char *));
-  svn_stringbuf_t *res = svn_stringbuf_create("",pool);	
+  apr_array_header_t *list_result = apr_array_make(subpool, 1, sizeof (const char *));
+  svn_stringbuf_t *res = svn_stringbuf_create("",subpool);	
   
   // -- Initialisation du flux de sortie --
-  out = svn_stream_from_stringbuf(res,pool);
+  out = svn_stream_from_stringbuf(res,subpool);
   
   err = svn_client_cat2(out, 
                         file_path,
                         &rev,
                         &rev,
                         ctx,
-                        pool);
+                        subpool);
   if (err) {
     svn_handle_error2 (err, stderr, FALSE, "svn_support_cat: ");
+    svn_pool_destroy(subpool);
     return NULL;
   }
 
-  svn_cstring_split_endline_append(list_result,res->data,pool);
+  svn_cstring_split_endline_append(list_result,res->data,subpool);
+  svn_pool_destroy(subpool);
   return list_result;
 }
 
+apr_array_header_t *svn_support_cat(char *file_path, int revision){
+  apr_pool_t *subpool = svn_pool_create(pool);
+  svn_stringbuf_t * file = svn_stringbuf_create(file_path, subpool);
+  caml_enter_blocking_section ();
+  apr_array_header_t *res = svn_support_cat_call(file->data,revision,subpool); 
+  caml_leave_blocking_section ();
+  return res;
+}
 
-apr_array_header_t *svn_support_blame(char *file_path, int revision)
+
+apr_array_header_t *svn_support_blame_call(char *file_path, 
+                                           int revision, 
+                                           apr_pool_t *subpool)
 {
-  apr_pool_t *pool ;
   svn_error_t *err;
-  svn_client_ctx_t *ctx; 
   svn_opt_revision_t peg_rev,start,end;
   svn_diff_file_options_t *diff_options;
-
-  if (svn_cmdline_init ("svn_support_blame", stderr) != EXIT_SUCCESS)
-    return NULL;
   
-  pool = svn_pool_create(NULL);
-  err = svn_fs_initialize(pool);
-  
-  if (err) {
-    svn_handle_error2 (err, stderr, FALSE, "svn_support_blame: ");
-    return NULL;
-  }
-
-  // -- Initialisation du contexte --
-  ctx = initialize_context(pool);
- 
   // -- Initialisation des révisions --
   if (revision != -1) {
     peg_rev.kind = end.kind = svn_opt_revision_number;
@@ -605,10 +611,22 @@ apr_array_header_t *svn_support_blame(char *file_path, int revision)
                           pool);
   if (err) {
     svn_handle_error2(err, stderr, FALSE, "svn_support_blame: ");
+    svn_pool_destroy(subpool);
     return NULL;
   }
   svn_cstring_split_append(list_result,res->data,"\n",FALSE,pool);
+  svn_pool_destroy(subpool);
   return list_result;
+}
+
+
+apr_array_header_t *svn_support_blame(char *file_path, int revision){
+  apr_pool_t *subpool = svn_pool_create(pool);
+  svn_stringbuf_t *file = svn_stringbuf_create(file_path,subpool);
+  caml_enter_blocking_section ();
+  apr_array_header_t *res = svn_support_blame_call(file->data,revision,subpool); 
+  caml_leave_blocking_section ();
+  return res;
 }
 
 /*

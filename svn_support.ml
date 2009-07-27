@@ -70,38 +70,40 @@ let rec create_tree list_res tree name author step = match list_res with
 (** Stocke la liste des repertoires/fichiers sous gestionnaire de version 
     à la révision demandée dans un arbre de type rep_tree (si aucune révision
     n'est précisée, renvoie la version la plus récente) *)
-let svn_list ?id ?dir rep = 
+let svn_list ?id ?dir rep =
   try 
-    let svn_result =  match (id,dir) with
+    let list_call () = match (id,dir) with
     | (None,None) ->
-        extract_list (Swig_svn._svn_support_list (Swig.C_list[
-				                  Swig.C_string(rep);
-      				                  Swig.C_int(-1)]))
+        Swig_svn._svn_support_list (Swig.C_list[
+				    Swig.C_string(rep);
+      				    Swig.C_int(-1)])
     | (Some(s),None) ->
         let r = int_of_string s in
-        extract_list (Swig_svn._svn_support_list (Swig.C_list[
-				                  Swig.C_string(rep);
-				                  Swig.C_int(r)]))
+        Swig_svn._svn_support_list (Swig.C_list[
+				    Swig.C_string(rep);
+				    Swig.C_int(r)])
     | (None,Some(d)) ->
-        extract_list (Swig_svn._svn_support_list (Swig.C_list[
-				                  Swig.C_string(rep^"/"^d);
-      				                  Swig.C_int(-1)]))
+        Swig_svn._svn_support_list (Swig.C_list[
+				    Swig.C_string(rep^"/"^d);
+      				    Swig.C_int(-1)])
     | (Some(s),Some(d)) ->
         let r = int_of_string s in
-        extract_list (Swig_svn._svn_support_list (Swig.C_list[
-				                  Swig.C_string(rep^"/"^d);
-				                  Swig.C_int(r)]))
+        Swig_svn._svn_support_list (Swig.C_list[
+				    Swig.C_string(rep^"/"^d);
+				    Swig.C_int(r)])
           
     in
-    let list_res = 
-      List.map (fun s -> 
-        match s with
-        | Swig.C_string(s) -> s
-        | _ -> "") (svn_result) 
-    in
-    create_tree list_res  (Dir("",[])) "" "" 0
+    Lwt_preemptive.detach list_call () >>= fun l ->
+      let svn_result = (extract_list l) in 
+      let list_res = 
+        List.map (fun s -> 
+          match s with
+          | Swig.C_string(s) -> s
+          | _ -> "") (svn_result) 
+      in
+      create_tree list_res  (Dir("",[])) "" "" 0
   with _ -> Lwt.fail Vm.Manager_command_error
-       
+      
 (** Crée la liste des patchs à partir du resultat de svn_log  *)
 let rec create_patch_list log_res patch_list step = match log_res with
   | [] -> Lwt.return patch_list
@@ -187,9 +189,8 @@ let svn_log ?file ?range ?limit rep =
     in
     Lwt_preemptive.detach a () >>= fun (l1,l2) ->
       create_patch_list l1 [] 0 >>= fun tmp ->
-        (*create_patch_list l2 [] 0 >>= fun tmp2 ->
-          Lwt.return (func tmp tmp2)
-       *)create_patch_list l2 (List.rev tmp) 0 >>= fun l -> Lwt.return (List.rev l)
+        create_patch_list l2 (List.rev tmp) 0 >>= fun l -> 
+          Lwt.return (List.rev l)
   with _ -> Lwt.fail Vm.Manager_command_error
  
 let rec tabcount s i =
@@ -333,17 +334,22 @@ let rec parse_diff diff_res parsed_res started = match diff_res with
 let svn_diff file rep id1 id2 =
   try
     let rev1 = int_of_string id1 in
-    let rev2 = int_of_string id2 in 
-    let diff_res =  
-      List.map (fun s -> 
-        match s with
-        | Swig.C_string(s) -> s
-        | _ -> "") (extract_list (Swig_svn._svn_support_diff(Swig.C_list[Swig.C_string(rep); 
-							                 Swig.C_string(file);
-							 Swig.C_int(rev1);
-							                 Swig.C_int(rev2)])))
+    let rev2 = int_of_string id2 in
+    let diff_call () =
+      Swig_svn._svn_support_diff(Swig.C_list[Swig.C_string(rep); 
+					     Swig.C_string(file);
+					     Swig.C_int(rev1);
+					     Swig.C_int(rev2)])
     in
-    parse_diff diff_res [{fileName = file; oldContent = []; newContent = []}] false
+    Lwt_preemptive.detach diff_call () >>= fun l ->
+      let diff_res = extract_list l in
+      let map = 
+        List.map (fun s -> 
+          match s with
+          | Swig.C_string(s) -> s
+          | _ -> "") diff_res
+      in
+      parse_diff map [{fileName = file; oldContent = []; newContent = []}] false
   with _ -> Lwt.fail Vm.Manager_command_error
 
 (** Récupère le contenu d'un fichier à la révision demandée (si aucune
@@ -351,21 +357,24 @@ let svn_diff file rep id1 id2 =
 let svn_cat ?id rep file =
   try 
     let file_path = (rep^"/"^file) in
-    let cat_res = 
+    let cat_call () = 
       match id with
       | None ->
-          extract_list (Swig_svn._svn_support_cat(
-		        Swig.C_list[Swig.C_string(file_path);Swig.C_int(-1)]))
+          Swig_svn._svn_support_cat(
+	  Swig.C_list[Swig.C_string(file_path);Swig.C_int(-1)])
       | Some(s) -> 
           let r = int_of_string s in
-          extract_list (Swig_svn._svn_support_cat(
-		        Swig.C_list[Swig.C_string(file_path);Swig.C_int(r)]))
+          Swig_svn._svn_support_cat(
+	  Swig.C_list[Swig.C_string(file_path);Swig.C_int(r)])
     in
-    Lwt_util.map(fun s ->
-      match s with
-      | Swig.C_string(s) -> Lwt.return s
-      | _ -> Lwt.return "") (cat_res) >>= fun l ->
-          Lwt.return (String.concat "\n" l)
+    Lwt_preemptive.detach cat_call () >>= fun l -> 
+      let cat_res = extract_list l in
+      let map = List.map (fun s ->
+        match s with
+        | Swig.C_string(s) -> s
+        | _ -> "") cat_res
+      in
+      Lwt.return (String.concat "\n" map)
   with _ -> Lwt.fail Vm.Manager_command_error
 
 
@@ -382,46 +391,33 @@ let rec extract_annot_result step res l = match l with
 let svn_annot ?id rep file = 
   try
     let file_path = (rep^"/"^file) in
-    let annot_res = match id with
+    let annot_call () = match id with
     | None ->
-        extract_list (Swig_svn._svn_support_blame(
-                      Swig.C_list[Swig.C_string(file_path);Swig.C_int(-1)]))
+        Swig_svn._svn_support_blame(
+        Swig.C_list[Swig.C_string(file_path);Swig.C_int(-1)])
     | Some(s) ->
         let r = int_of_string s in
-        extract_list (Swig_svn._svn_support_blame(
-		      Swig.C_list[Swig.C_string(file_path);Swig.C_int(r)]))
+        Swig_svn._svn_support_blame(
+	Swig.C_list[Swig.C_string(file_path);Swig.C_int(r)])
     in
-    Lwt_util.map 
-      (fun s -> match s with
-      | Swig.C_string(s) -> Lwt.return s
-      | _ -> Lwt.return "")
-    (annot_res) >>= fun l ->
-      extract_annot_result 0 [] l
+    Lwt_preemptive.detach annot_call () >>= fun l ->
+      let annot_res = extract_list l in
+      let map = List.map 
+          (fun s -> match s with
+          | Swig.C_string(s) -> s
+          | _ -> "")
+          (annot_res) 
+      in
+      extract_annot_result 0 [] map
   with _ -> Lwt.fail Vm.Manager_command_error
 
 let _ = 
-  (** test svn list *)
-  (*let res = svn_list "https://forge.mancoosi.univ-paris-diderot.fr/svn/ocsforge"*)
-  (** test svn log *)
-  (*let res = svn_log "https://forge.mancoosi.univ-paris-diderot.fr/svn/ocsforge"*)
- 
-  (** test svn cat *)
-  (*let res = svn_cat ~rev:27 "https://forge.mancoosi.univ-paris-diderot.fr/svn/ocsforge" "README" *)
-  
-  (** test svn diff *) 
-  (*
-  svn_diff "pages.ml" "https://forge.mancoosi.univ-paris-diderot.fr/svn/ocsforge" "125" "140" >>= fun res ->
-    List.iter (fun (_,p) -> print_endline p) res.oldContent;
-    print_endline "********************************";
-    List.iter (fun (_,p) -> print_endline p) res.newContent;
-    Lwt.return (print_endline "FIN")
-      
-	*)
-	let svn_fun_pack = 
-	{vm_list = svn_list;
-	 vm_cat = svn_cat;
-	 vm_log = svn_log;
-	 vm_diff = svn_diff;
-         vm_annot = svn_annot} in
-	Ocsforge_version_managers.set_fun_pack "SVN" svn_fun_pack
+  ignore(Swig_svn._svn_init (Swig.C_void));  
+  let svn_fun_pack = 
+    {vm_list = svn_list;
+     vm_cat = svn_cat;
+     vm_log = svn_log;
+     vm_diff = svn_diff;
+     vm_annot = svn_annot} in
+  Ocsforge_version_managers.set_fun_pack "SVN" svn_fun_pack
       
