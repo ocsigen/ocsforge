@@ -95,12 +95,21 @@ let cut_string s size =
     ((String.sub s 0 (size-3))^"...")
   else s
 
-     
+let utf8_span (spanclass:(string option)) s = 
+  try
+    match spanclass with 
+    | None -> {{ <span> {: (Ocamlduce.Utf8.make s) :}  }}
+    | Some(sc) -> {{ <span class={: sc :}> {: (Ocamlduce.Utf8.make s) :}  }}
+  with _ -> 
+    match spanclass with
+    | None -> {{ <span> {: s :} }}
+    | Some(sc) -> {{ <span class={: sc :}> {: s :} }}
+
 let rec utf8_lines l = match l with
 | [] -> ({{ [] }} : {{ Xhtmltypes_duce.flows }})
 | h::t -> 
     let b = utf8_lines t in
-    ({{ [<span> {:(Ocamlduce.Utf8.make h):} <br> [] !b] }} : {{ Xhtmltypes_duce.flows }})
+    ({{ [{{ utf8_span None h }} <br> [] !b] }} : {{ Xhtmltypes_duce.flows }})
 
 let utf8_td content (tdclass:string) =
   Lwt.try_bind 
@@ -319,10 +328,10 @@ let create_source_code_content ~sp ~id ~file ~version =
 		        <div class="source_code">[<pre class="color"> {: content :}]
 		            <div class="right_lines">[<pre class="right_lines"> {: lines :}]
                      ]]}} : {{ [Xhtmltypes_duce.block*] }}))
-            (function _ ->
-              Lwt.return 
-                ({{ [<div class="error_message">
-                        ['Version manager internal error'] ] }}))
+            (function 
+               | Vm.Node_not_found -> error "Error: node not found"
+               | Vm.Revision_not_found -> error "Error: revision not found"
+               | _ -> error "Version manager internal error")
     | (_,_) -> failwith "Unable to retrieve repository informations"
 
 
@@ -545,7 +554,9 @@ let create_log_table_content ~sp ~id ~file ~range ~project_services =
             | (None,Some(r)) -> fun_pack.STypes.vm_log ~range:r ~limit:_PAGE_SIZE path
             | (Some(f),Some(r)) -> fun_pack.STypes.vm_log ~file:f ~range:r ~limit:_PAGE_SIZE path
 	  in
-	  log >>= fun log_result ->
+          Lwt.try_bind
+	  (fun () -> log)
+          (fun log_result ->  
             let assoc_list = extract_version_assoc_list log_result in
             let log_select = 
               create_log_select 
@@ -572,7 +583,11 @@ let create_log_table_content ~sp ~id ~file ~range ~project_services =
                                     :}]*)
                                  linktable
                                  <table class="log_table">
-		                   [!log_table_header !b]] }}
+		                   [!log_table_header !b]] }})
+            (function 
+               | Vm.Node_not_found -> error "Error: node not found"
+               | Vm.Revision_not_found -> error "Error: revision not found"
+               | _ -> error "Version manager internal error")
     | _ -> failwith "Unable to retrieve repository informations"
       
 
@@ -615,13 +630,16 @@ let create_diff_view_content ~sp ~id ~file ~diff1 ~diff2 =
     | [] -> Lwt.return {{ [] }}
     | (rt,s)::t ->
 	extract_diff_result span_class t >>= fun b ->
-	  match rt with 
+	  let span = begin match rt with 
 	  | STypes.Common ->
-	      Lwt.return ({{ [ <span>{: (s^"\n") :} !b ]  }} : {{ [Xhtmltypes_duce.special_pre*] }})
+              utf8_span None (s^"\n")
 	  | STypes.Diff ->
-	      Lwt.return ({{ [ <span class={: span_class :}>{: (s^"\n") :} !b ]  }} : {{ [Xhtmltypes_duce.special_pre*] }})
+              utf8_span (Some(span_class)) (s^"\n")
 	  | STypes.Blank ->
-	      Lwt.return ({{ [ <span class="blank">{: (s^"\n") :} !b ]  }} : {{ [Xhtmltypes_duce.special_pre*] }})
+              utf8_span (Some("blank")) (s^"\n")
+	  end 
+          in 
+          Lwt.return ({{ [ span !b ]  }} : {{ [Xhtmltypes_duce.special_pre*] }})
   in 
   Data.get_area_for_task sp id >>= fun r_infos -> 
     match (r_infos.Types.r_repository_kind,r_infos.Types.r_repository_path) with
@@ -631,23 +649,30 @@ let create_diff_view_content ~sp ~id ~file ~diff1 ~diff2 =
 	    if (snd (diff1) > snd (diff2)) then (fst diff1,fst diff2)
 	    else (fst diff2,fst diff1) 
 	  in
-	  fun_pack.STypes.vm_diff file path old_file new_file  >>= fun diff_result ->
-	    extract_diff_result "old" diff_result.STypes.oldContent >>= fun oldf ->
-	      extract_diff_result "new" diff_result.STypes.newContent >>= fun newf -> 
-		Lwt.return ({{ [
-			       <div class="diff">[
-				 <span class="diff_title"> {: ("@ "^old_file) :} 
-				   <pre class="diff"> 
-				     {:
+	  Lwt.try_bind
+            (fun () -> fun_pack.STypes.vm_diff file path old_file new_file)
+            (fun diff_result ->
+	      extract_diff_result "old" diff_result.STypes.oldContent >>= fun oldf ->
+	        extract_diff_result "new" diff_result.STypes.newContent >>= fun newf -> 
+		  Lwt.return ({{ [
+			         <div class="diff">[
+				   <span class="diff_title"> {: ("@ "^old_file) :} 
+				       <pre class="diff"> 
+				         {:
 					oldf
-					:}]
-				   <div class="diff">[
-				     <span class="diff_title"> {: ("@ "^new_file) :}
-				       <pre class="diff">
-					 {:
-					    newf 
 					    :}]
-			     ] }} : {{ [Xhtmltypes_duce.block*] }})
+				     <div class="diff">[
+				       <span class="diff_title"> {: ("@ "^new_file) :}
+				           <pre class="diff">
+					     {:
+					        newf 
+					        :}]
+			       ] }} : {{ [Xhtmltypes_duce.block*] }}))
+             (function 
+               | Vm.Node_not_found -> error "Error: node not found"
+               | Vm.Revision_not_found -> error "Error: revision not found"
+               | _ -> error "Version manager internal error")
+            
     | _ -> failwith "Unable to retrieve repository informations"
 	
 
@@ -677,7 +702,9 @@ let create_file_page ~sp ~id ~target ~range ~project_services =
 	  let file_path = String.concat "/" target in
           let log_call = fun_pack.STypes.vm_log ~file:file_path ~range ~limit:_PAGE_SIZE path
 	  in
-	  log_call >>= fun log_result -> 
+          Lwt.try_bind
+          (fun () -> log_call)
+	  (fun log_result -> 
 	    log_table_content ~sp ~log:log_result ~project_services >>= fun log ->
 	      let v_list = extract_version_assoc_list log_result in
 	      let code_list = string_soption_list_of_list v_list in
@@ -807,8 +834,13 @@ let create_file_page ~sp ~id ~target ~range ~project_services =
 				               file_diff_form :} 
 				        ]]] }} :} ] }}, 
 			  {{ [ <table class="log_table"> [!log_table_header !log]] }})
-			   : ({{ [Xhtmltypes_duce.tr+] }}*{{ Xhtmltypes_duce.flows }}))
-	        
+			   : ({{ [Xhtmltypes_duce.tr*] }}*{{ Xhtmltypes_duce.flows }})))
+	    (fun exn ->
+              let error_content = match exn with
+              | Vm.Node_not_found -> error "Error: node not found"
+              | Vm.Revision_not_found -> error "Error: revision not found"
+              | _ -> error "Version manager internal error"
+              in error_content >>= fun content -> Lwt.return ({{ [] }},content))
     | _ -> failwith "Unable to retrieve repository informations"
 	  
   
@@ -869,16 +901,22 @@ let create_annotate_page ~sp ~id ~target ~version ~project_services =
             | None -> fun_pack.STypes.vm_annot path file_path 
             | Some(v) -> fun_pack.STypes.vm_annot ~id:v path file_path 
           in
-          annot_command >>= fun annot_result -> 
-            extract_annotate_result annot_result >>= fun (a,b) ->
-              Lwt.return {{ [
-                            <div class="annot_author"> [
+          Lwt.try_bind 
+            (fun () -> annot_command)
+            (fun annot_result -> 
+              extract_annotate_result annot_result >>= fun (a,b) ->
+                Lwt.return {{ [
+                              <div class="annot_author"> [
                                 <pre> [!a]
                               ] 
                               <div class="annot_content"> [
                                 <pre> [<code>[!b]] 
                               ]
-                            ] }}
+                            ] }})
+            (function 
+              | Vm.Node_not_found -> error "Error: node not found"
+              | Vm.Revision_not_found -> error "Error: revision not found"
+              | _ -> error "Version manager internal error")
     | _ -> failwith "Unable to retrieve repository informations"
 	 
 
