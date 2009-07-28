@@ -17,27 +17,49 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 
+type src_page_kind = [
+  | `Browse
+  | `Cat
+  | `Annot
+  | `Diff
+  | `Options 
+  | `Error ]
+
+type log_page_kind = [ `Log of (string option * string option) ]
+
+(* Used by the menu *)
+type page_kind = [ src_page_kind | log_page_kind ]
+ 
+
+let kind_to_string kind = match kind with
+  | `Browse -> "browse"
+  | `Diff -> "diff"
+  | `Cat -> "content"
+  | `Annot -> "annot"
+  | `Options -> "options"
+  | `Error -> "error"
+      
+let string_to_kind s = 
+  if (s = "browse") then `Browse
+  else if (s = "diff") then `Diff
+  else if (s = "content") then `Cat
+  else if (s = "annot") then `Annot
+  else if (s = "options") then `Options
+  else `Error
+
+
 type project_services = 
     { sources_service:
-	(string list * 
-           (string option * 
-              (bool * 
-                 ((string option * string option) option *
-                    (bool * 
-                       (bool *
-                          ((string * int) option * (string * int) option))))))
+	(string list * (src_page_kind * (string option * string option))
            , unit,
          [ `Attached of
            Eliom_services.get_attached_service_kind Eliom_services.a_s ],
          [ `WithSuffix ],
          ([`One of string list] Eliom_parameters.param_name *
-	    ([ `One of string ] Eliom_parameters.param_name *
-	       ([ `One of bool ] Eliom_parameters.param_name * 
-                  ([ `One of (string option *string option)] Eliom_parameters.param_name *
-                     ([ `One of bool ] Eliom_parameters.param_name * 
-	                ([ `One of bool ] Eliom_parameters.param_name * 
-                           ([ `One of (string * int) ] Eliom_parameters.param_name *
-		              ([ `One of (string * int) ] Eliom_parameters.param_name)))))))), unit,
+	    ([ `One of src_page_kind ] Eliom_parameters.param_name *
+               ([ `One of string ] Eliom_parameters.param_name *
+                  [ `One of string ] Eliom_parameters.param_name)))
+            ,unit,
          [ `Registrable ])
 	Eliom_services.service;
       log_service:

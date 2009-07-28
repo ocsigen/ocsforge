@@ -22,7 +22,57 @@ let ( >>= ) = Lwt.bind
 module Sh = Ocsforge_services_hashtable
 module Vm = Ocsforge_version_managers
 
-
+let source_service path project = Eliom_predefmod.Any.register_new_service
+    ~path:[path; project; "sources"; ""]
+    ~get_params:
+    (Eliom_parameters.suffix_prod
+       (Eliom_parameters.all_suffix "file")
+       (Eliom_parameters.user_type
+          Sh.string_to_kind 
+          Sh.kind_to_string
+          "view" **
+          (Eliom_parameters.opt (Eliom_parameters.string "version") **
+             (Eliom_parameters.opt (Eliom_parameters.string "to")))))
+    (fun sp (file,(view,(v1,v2))) () -> 
+      let () =  Ocsforge_wikiext_common.send_css_up "ocsforge_sources.css" sp in
+      let id = Ocsforge_types.task_of_string project in
+      let (title,page_content) = match (file,(view,(v1,v2))) with
+        | (l,(`Browse,(version,_))) ->
+            begin match l with
+            | [] | [""] ->
+                (Some("Ocsforge - Repository browser"),
+                 Ocsforge_widgets_source.draw_repository_table ~sp ~id ~version ~dir:None)
+            | _ ->
+                (Some("Ocsforge - Repository browser"),
+                 Ocsforge_widgets_source.draw_repository_table ~sp ~id ~version ~dir:(Some(l)))
+            end
+	| (l,(`Diff,(Some(diff1),Some(diff2)))) ->
+	    (Some("Ocsforge - File diff"),
+             Ocsforge_widgets_source.draw_diff_view ~sp ~id ~target:l ~diff1 ~diff2)
+        | (l,(`Options,(version,log_start))) -> 
+	    (Some("Ocsforge - File browser"),
+             Ocsforge_widgets_source.draw_file_page ~sp ~id ~target:l ~version ~log_start)
+	| (l,(`Annot,(version,_))) ->
+            (Some("Ocsforge - File annotate"),
+             Ocsforge_widgets_source.draw_annotate ~sp ~id ~target:l ~version)
+	| (l,(`Cat,(version,_))) ->
+	      (Some("Ocsforge - File content"),
+               Ocsforge_widgets_source.draw_source_code_view ~sp ~id ~target:l ~version)
+	| _ -> 
+            (None,Ocsforge_widgets_source.draw_source_code_view ~sp ~id ~target:[] ~version:None)
+      in
+      page_content >>= fun pc ->
+      Ocsforge_data.get_area_for_task sp id >>= fun r_infos ->
+      let gen_box _ = 
+            Lwt.return (None,pc,Wiki_widgets_interface.Page_displayable,title)
+      in
+      Ocsisite.wikibox_widget#display_container 
+            ~sp ~wiki:(r_infos.Ocsforge_types.r_wiki) ~menu_style:`Linear
+            ~page:((Ocsigen_lib.string_of_url_path ~encode:true file),file)
+            ~gen_box:gen_box
+      >>= fun (html, code) ->
+      Eliom_duce.Xhtml.send ~sp ~code html)
+(*
 let source_service path project = Eliom_predefmod.Any.register_new_service
     ~path:[path; project; "sources"; ""]
     ~get_params:
@@ -68,7 +118,7 @@ let source_service path project = Eliom_predefmod.Any.register_new_service
 	| (l,(_,(false,(true,(false,(None,None)))))) ->
 	      (Some("Ocsforge - File content"),
                Ocsforge_widgets_source.draw_source_code_view ~sp ~id ~target:l ~version)
-	| _ -> (* TODO : gestion erreur ?*)
+	| _ -> 
             (None,Ocsforge_widgets_source.draw_source_code_view ~sp ~id ~target:[] ~version:None)
       in
       page_content >>= fun pc ->
@@ -82,7 +132,7 @@ let source_service path project = Eliom_predefmod.Any.register_new_service
             ~gen_box:gen_box
       >>= fun (html, code) ->
       Eliom_duce.Xhtml.send ~sp ~code html)
-
+*)
 
 
 let log_service path project = Eliom_predefmod.Any.register_new_service

@@ -527,7 +527,7 @@ RT.caml_int32_format = function (f, v) {
     return RT.caml_format_int.call (this, f, v.get (1));
 }
 RT.caml_int32_of_string = function (s) {
-    return mk_custom (RT.caml_int_of_string.call (this, s));
+    return mk_custom (int32_ops, RT.caml_int_of_string.call (this, s));
 }
 nativeint_ops = {
     id : "_n",
