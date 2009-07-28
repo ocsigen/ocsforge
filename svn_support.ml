@@ -189,7 +189,11 @@ let svn_log ?file ?range ?limit rep =
     in
     Lwt_preemptive.detach a () >>= fun (l1,l2) ->
       create_patch_list l1 [] 0 >>= fun tmp ->
-        create_patch_list l2 (List.rev tmp) 0 >>= fun l -> 
+        let tl_rev_tmp = match tmp with
+        | [] -> []
+        | _ -> List.tl (List.rev tmp)
+        in
+        create_patch_list l2 tl_rev_tmp 0 >>= fun l -> 
           Lwt.return (List.rev l)
   with _ -> Lwt.fail Vm.Manager_command_error
  

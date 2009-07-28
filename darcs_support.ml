@@ -388,14 +388,11 @@ let get_patch_list ?id ?dir repo =
 
 let darcs_log ?file ?range ?limit rep =
   let lwt_index = match (range,limit) with
-  | (Some(None,Some(end_rev)),Some(l)) ->
+  | (Some(Some(end_rev),None),Some(l)) ->
       get_patch_index end_rev rep >>= fun num ->
           Lwt.return ("-n 1-"^(string_of_int (num+l)))
-  | (Some(Some(start_rev),None),Some(l)) ->
-      get_nb_patches rep >>= fun total ->
-        get_patch_num start_rev rep >>= fun num ->
-          let sr = max (total-num-l) 1 in
-          Lwt.return ("-n "^(string_of_int sr)^"-"^(string_of_int total)) 
+  | (Some(None,Some(start_rev)),Some(l)) ->
+      Lwt.return ("--to-match 'hash "^start_rev^"'")
   | (Some(Some(start_rev),Some(end_rev)),Some(l)) ->
       get_patch_index start_rev rep >>= fun start ->
         get_patch_index end_rev rep >>= fun er ->
@@ -418,7 +415,7 @@ let darcs_log ?file ?range ?limit rep =
 	        ^" "^index^"--xml-output --reverse "^f)
       | Some(i) ->
           ("darcs changes --repodir "^rep
-	   ^" "^index^"--xml-output --max-count "^(string_of_int (3*i))
+	   ^" "^index^" --xml-output --max-count "^(string_of_int (3*i))
            ^" --reverse "^f)
       end
   in let error_message = "Error while getting changelog (signal received)" in

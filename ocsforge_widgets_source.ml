@@ -325,54 +325,59 @@ let rec list_after l n = match l with
 
 
 let rec extract_version_assoc_list log =
-  let i = ref 0 in
   List.map 
     (fun p -> 
       let name = cut_string !(p.STypes.name) 30 in
-      let pos = !i in
-      i := !i + 1;
-      (!(p.STypes.id),(name,pos))) 
+      (!(p.STypes.id),name)) 
     log
 
+let find_name list id = List.assoc id list
+           
+let rec get_pos id cpt l = match l with
+| [] -> -1
+| h::t -> 
+    if ((fst h) = id) then cpt
+    else get_pos id (cpt+1) t
 
-let rec create_log_select ~log_result ~page_size = match log_result with
-  | [] -> []
-  | _ ->
-      let select_start = List.hd log_result in      
-      let select_end = 
-        if (List.length log_result >= page_size) then
-          List.nth (log_result) (page_size-1)
-        else
-          List.hd (List.rev log_result) 
-      in
-      let msg = ((cut_string (fst (snd select_start)) 25)^" -> "^(cut_string (fst (snd select_end)) 25)) in
-      let opt = (msg,((fst select_start),(fst select_end))) in
-      if (List.length log_result <= page_size) then [opt]
-      else
-        opt::
-        (create_log_select ~log_result:(list_after log_result page_size) ~page_size)
-
-
-let create_log_links ~sp ~log_service ~log_select ~start_rev =
-  let (a,b,c) = 
-    if (List.length log_select = 1) then
-      (("",("","")),(List.nth log_select 0),("",("","")))
-    else if (List.length log_select = 2) then
-      match start_rev with
-      | None ->
-          (("",("","")),List.nth log_select 0,List.nth log_select 1)
-      | Some(r) ->
-          if (fst (snd (List.nth log_select 0)) = r) then
-            (("",("","")),List.nth log_select 0,List.nth log_select 1)
-          else
-            (List.nth log_select 0,List.nth log_select 1,("",("","")))
-    else match start_rev with
-    | None ->
-        (("",("","")),List.nth log_select 0,List.nth log_select 1) 
-    | _ ->
-      (List.nth log_select 0,List.nth log_select 1,List.nth log_select 2) 
+let split_log_list ~log_select ~start_rev ~end_rev = 
+  let last_elt = (List.length log_select - 1) in
+  let (log_from,log_to) = match (start_rev,end_rev) with
+  | (None,None) -> (0,(min last_elt (_PAGE_SIZE-1)))
+  | (None,Some(e)) -> (0,(get_pos e 0 log_select))
+  | (Some(s),None) -> ((get_pos s 0 log_select),(min last_elt (_PAGE_SIZE-1)))
+  | (Some(s),Some(e)) -> ((get_pos s 0 log_select),(get_pos e 0 log_select))
   in
-  (utf8_td (fst b) "middle") >>= fun middle ->
+  let range = (fst (List.nth log_select log_to),fst (List.nth log_select log_from)) 
+  in
+  begin match (log_from,log_to) with
+  | (0,e) ->
+      if (e = last_elt) then (("",""),range,("",""))
+      else 
+        let last_pos = min last_elt  (e + _PAGE_SIZE) in
+        (("",""),
+         range,
+         (fst (List.nth log_select (e+1)),fst (List.nth log_select last_pos)))
+  | (s,e) ->
+      let first_pos = max 0 (s - _PAGE_SIZE) in
+      let last_pos = min last_elt (e + _PAGE_SIZE) in
+      if (e = last_elt) then
+        ((fst (List.nth log_select first_pos),fst (List.nth log_select (s-1))),
+         range,
+         ("",""))
+      else
+        ((fst (List.nth log_select first_pos),fst (List.nth log_select (s-1))),
+         range,
+         (fst (List.nth log_select (e+1)),fst (List.nth log_select last_pos)))
+  end
+  
+      
+      
+   
+let create_log_links ~sp ~log_service ~log_select ~start_rev ~end_rev =
+  let (a,b,c) = split_log_list ~log_select ~start_rev ~end_rev in
+  let end_name = find_name log_select (snd b) in
+  let start_name = find_name log_select (fst b) in
+  (utf8_td (end_name^" - "^start_name) "middle") >>= fun middle ->
   match start_rev with
     | None -> 
         Lwt.return ({{ 
@@ -390,7 +395,7 @@ let create_log_links ~sp ~log_service ~log_select ~start_rev =
 		                        ~service:log_service
 		                        ~sp 
                                         {{ ['next >'] }}
-                                        (Some(Some(fst (snd c)),Some(snd (snd c)))) :}] 
+                                        (Some(Some(fst c),Some(snd c))) :}] 
                                   }} }} ]] }})
     | Some(_) ->
         Lwt.return 
@@ -407,7 +412,7 @@ let create_log_links ~sp ~log_service ~log_select ~start_rev =
 		         ~service:log_service
 		         ~sp 
                          {{ ['< previous'] }}
-                         (Some(Some(fst (snd a)),Some(snd (snd a)))) :}]
+                         (Some(Some(fst a),Some(snd a))) :}]
                                             }} }}
                 !middle
                 {{ 
@@ -419,38 +424,12 @@ let create_log_links ~sp ~log_service ~log_select ~start_rev =
 		            ~service:log_service
 		            ~sp 
                             {{ ['next >'] }}
-                            (Some(Some(fst (snd c)),Some(snd (snd c)))) :}]
+                            (Some(Some(fst c),Some(snd c))) :}]
                       }} }}]] }})
-      
 
-(* Unused *)
-let log_range_form 
-    ~log_select 
-    (range : [ `One of (string option *string option)] 
-       Eliom_parameters.param_name) = 
-  {{ [<p> [
-       {: 
-	  Eliom_duce.Xhtml.user_type_select
-	  Vm.range_to_string
-	  ~name: range
-	  (List.hd log_select)
-          (List.tl log_select)
-          :}
-	 {: Eliom_duce.Xhtml.button
-	    ~button_type: {: "submit" :}
-	    {{ "View log" }}
-            :}
-     ]] }}
-            
-  
-        
-let create_log_table_content ~sp ~id ~file ~range ~project_services = 
+
+let log_table_content ~sp ~log ~ps ~start_rev ~end_rev = 
   let cpt = ref 0 in
-  let ps = project_services in
-  let (start_rev,end_rev) = match range with
-  | None -> (None,None) 
-  | Some(r) -> (fst r ,snd r)
-  in
   let rec extract_result log_result sr er started limit = match log_result with
     | [] -> Lwt.return {{ [] }} 
     | p::t ->
@@ -526,6 +505,23 @@ let create_log_table_content ~sp ~id ~file ~range ~project_services =
 	                    <td class="xsmall_font"> {: !(p.STypes.date) :}
                                 !comment_td] !b]}} :{{ [Xhtmltypes_duce.tr*] }})
   in
+  match (start_rev,end_rev) with
+  | (None,None) ->
+      extract_result log "" "" true _PAGE_SIZE
+  | (None,Some(er)) ->
+      extract_result log "" er false _PAGE_SIZE
+  | (Some(sr),None) ->
+      extract_result log sr "" true _PAGE_SIZE
+  | (Some(sr),Some(er)) ->  
+      extract_result log sr er false _PAGE_SIZE
+
+
+let create_log_table_content ~sp ~id ~file ~range ~project_services = 
+  let ps = project_services in
+  let (start_rev,end_rev) = match range with
+  | None -> (None,None) 
+  | Some(r) -> (fst r ,snd r)
+  in
   Data.get_area_for_task sp id >>= fun r_infos -> 
     match (r_infos.Types.r_repository_kind,r_infos.Types.r_repository_path) with
     | (Some(kind),Some(path)) ->
@@ -540,73 +536,25 @@ let create_log_table_content ~sp ~id ~file ~range ~project_services =
 	  (fun () -> log)
           (fun log_result ->  
             let assoc_list = extract_version_assoc_list log_result in
-            let log_select = 
-              create_log_select 
-                ~log_result:assoc_list
-                ~page_size:_PAGE_SIZE
-             in 
-             let log_table_content = match (start_rev,end_rev) with
-             | (None,None) ->
-                 extract_result log_result "" "" true _PAGE_SIZE
-             | (None,Some(er)) ->
-                 extract_result log_result "" er false _PAGE_SIZE
-             | (Some(sr),None) ->
-                 extract_result log_result sr "" true _PAGE_SIZE
-             | (Some(sr),Some(er)) ->  
-	         extract_result log_result sr er false _PAGE_SIZE
-             in log_table_content >>= fun b ->
-               create_log_links ~sp ~log_service:ps.Sh.log_service ~log_select ~start_rev >>= fun (linktable) ->
-               Lwt.return {{ [ 
-                             (*<div class="file_version_select">
-                               [ {:Eliom_duce.Xhtml.get_form
-			            ~service: ps.Sh.log_service
-			            ~sp  
-			            (log_range_form ~log_select)
-                                    :}]*)
-                                 linktable
-                                 <table class="log_table">
-		                   [!log_table_header !b]] }})
+            log_table_content ~sp ~log:log_result ~ps ~start_rev ~end_rev >>= fun b ->
+              create_log_links 
+                ~sp 
+                ~log_service:ps.Sh.log_service 
+                ~log_select:assoc_list 
+                ~start_rev
+                ~end_rev >>= fun (linktable) ->
+                  Lwt.return {{ [ 
+                                linktable
+                                  <table class="log_table">
+		                    [!log_table_header !b]] }})
             (function 
-               | Vm.Node_not_found -> error "Error: node not found"
-               | Vm.Revision_not_found -> error "Error: revision not found"
-               | _ -> error "Version manager internal error")
+              | Vm.Node_not_found -> error "Error: node not found"
+              | Vm.Revision_not_found -> error "Error: revision not found"
+              | _ -> error "Version manager internal error")
     | _ -> failwith "Unable to retrieve repository informations"
-      
-
-let log_table_content ~sp ~log ~project_services = 
-  let cpt = ref 0 in
-  let ps = project_services in
-  let rec extract_result log_result = match log_result with
-    | [] -> Lwt.return {{ [] }} 
-    | p::t ->
-	extract_result t >>= fun b ->
-          (utf8_td (cut_string !(p.STypes.comment) 70) "small_ifont") >>= fun comment_td ->
-	    Lwt.return 
-	      ({{ [<tr class={:
-			      if (!cpt mod 2 == 0) then begin 
-			        cpt := !cpt + 1;
-			        "odd"
-			      end
-			      else begin
-			        cpt := !cpt + 1;
-			        "even"
-			      end
-				  :}> 
-	        [  <td class="small_font"> 
-		  [{: Eliom_duce.Xhtml.a
-		      ~service:ps.Sh.sources_service
-		      ~sp {{ {: !(p.STypes.name):} }}
-		      ([],(`Browse,(Some(!(p.STypes.id)),None)))
-		      :}] 
-	       <td class="small_font"> {: !(p.STypes.author) :}
-	       <td class="xsmall_font"> {: !(p.STypes.date) :}
-	       !comment_td] !b]}} 
-	       :{{ [Xhtmltypes_duce.tr*] }})
-  in
-  extract_result log
 
 
-(* TODO *)
+
 let create_diff_view_content ~sp ~id ~file ~diff1 ~diff2 =
   let rec extract_diff_result (span_class:string) (content_list:((STypes.rowType*string) list)) = match content_list with
     | [] -> Lwt.return {{ [] }}
@@ -627,10 +575,7 @@ let create_diff_view_content ~sp ~id ~file ~diff1 ~diff2 =
     match (r_infos.Types.r_repository_kind,r_infos.Types.r_repository_path) with
     | (Some(kind),Some(path)) ->
 	Ocsforge_version_managers.get_fun_pack kind >>= fun fun_pack ->
-	  let (old_file,new_file) = (diff1,diff2) (* TODO : trier ? *)
-	    (*if (snd (diff1) > snd (diff2)) then (fst diff1,fst diff2)
-	    else (fst diff2,fst diff1) *)
-	  in
+	  let (old_file,new_file) = (diff1,diff2) in
 	  Lwt.try_bind
             (fun () -> fun_pack.STypes.vm_diff file path old_file new_file)
             (fun diff_result ->
@@ -660,34 +605,68 @@ let create_diff_view_content ~sp ~id ~file ~diff1 ~diff2 =
 
 
 
-let rec soption_list_of_list l =
-  List.map (fun h -> 
-    (Eliom_duce.Xhtml.Option ({{ {} }},(fst h,snd (snd h)),
-			      Some(Ocamlduce.Utf8.make (fst (snd h))),false))) l
-  
 let rec string_soption_list_of_list l =
   List.map (fun h -> 
     (Eliom_duce.Xhtml.Option ({{ {} }},fst h,
-			      Some(Ocamlduce.Utf8.make (fst (snd h))),false))) l
-    
+			      Some(Ocamlduce.Utf8.make (snd h)),false))) l
 
-let find_id ~list name = List.assoc name list
+let create_file_log_links ~sp ~project_services ~target ~version ~log_start ~log_result = 
+  let ps = project_services in
+  begin match log_result with [] -> print_endline "lol"; | _ -> () end;
+  let range_start = List.hd log_result in
+  let range_end = 
+    if (List.length log_result >= _PAGE_SIZE) then
+      List.nth log_result (_PAGE_SIZE-1)
+    else
+      List.hd (List.rev (List.tl log_result)) in
+  let range = ((snd (range_start)^
+               " - "^
+               (snd (range_end)))) in
+  (utf8_td range "middle") >>= fun middle ->
+    Lwt.return 
+      {{ <table class="log_links"> [
+        <tr> [
+        {{ match log_start with
+        | None -> {{ <td class="no_previous_entries"> {: "First page" :} }}
+        | Some(ls) -> 
+            {{ <td class="previous_entries_link"> 
+              [{: Eliom_duce.Xhtml.a 
+		  ~a: {{ {class="log_link"} }}
+		  ~service:ps.Sh.sources_service
+		  ~sp {{ {: "First page" :} }}
+                  (target,(`Options,(version,None))):}] }} }}
+        !middle
+        {{ if (List.length log_result > _PAGE_SIZE) then 
+              {{ <td class="next_entries_link"> 
+                [{: Eliom_duce.Xhtml.a 
+		  ~a: {{ {class="log_link"} }}
+		  ~service:ps.Sh.sources_service
+		  ~sp {{ {: "Next log entries" :} }}
+                  (target,(`Options,(version,Some((fst(range_end)))))) :}]
+               }}
+            else 
+              {{ <td class="no_next_entries"> {: "Next log entries" :} }}
+        }}
+      ]] }}
+  
 
 let create_file_page ~sp ~id ~target ~version ~log_start ~project_services = 
-  (* TODO : determiner si path est un fichier ou répertoire *)
-  (* Seul le cas du fichier est traité pour l'instant *)
   let ps = project_services in
   Data.get_area_for_task sp id >>= fun r_infos -> 
     match (r_infos.Types.r_repository_kind,r_infos.Types.r_repository_path) with
     | (Some(kind),Some(path)) ->
 	Ocsforge_version_managers.get_fun_pack kind >>= fun fun_pack ->
 	  let file_path = String.concat "/" target in
-          let log_call = fun_pack.STypes.vm_log ~file:file_path ~range:(log_start,None) ~limit:_PAGE_SIZE path
+          let log_call = 
+            fun_pack.STypes.vm_log 
+              ~file:file_path 
+              ~range:(None,log_start) 
+              ~limit:(_PAGE_SIZE) path
 	  in
           Lwt.try_bind
           (fun () -> log_call)
 	  (fun log_result -> 
-	    log_table_content ~sp ~log:log_result ~project_services >>= fun log ->
+            log_table_content ~sp ~log:log_result ~ps ~start_rev:log_start ~end_rev:None >>= fun log ->
 	      let v_list = extract_version_assoc_list log_result in
 	      let select_list = string_soption_list_of_list v_list in
 	      let file_version_select_form
@@ -777,6 +756,13 @@ let create_file_page ~sp ~id ~target ~version ~log_start ~project_services =
 		         :} 
 		  ]] }}
 	      in
+              create_file_log_links 
+                ~sp 
+                ~project_services:ps
+                ~target 
+                ~version 
+                ~log_start 
+                ~log_result:v_list >>= fun log_links ->
               Lwt.return (({{ [ 
                               <tr class="sources_menu"> [
                                 <td class="sources_menu_current">
@@ -801,7 +787,7 @@ let create_file_page ~sp ~id ~target ~version ~log_start ~project_services =
 				               ~sp  
 				               file_diff_form :} 
 				        ]]] }} :} ] }}, 
-			  {{ [ <table class="log_table"> [!log_table_header !log]] }})
+			  {{ [ log_links <table class="log_table"> [!log_table_header !log]] }})
 			   : ({{ [Xhtmltypes_duce.tr*] }}*{{ Xhtmltypes_duce.flows }})))
 	    (fun exn ->
               let error_content = match exn with
