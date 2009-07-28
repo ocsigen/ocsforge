@@ -38,12 +38,16 @@ type right_area_info = {
   r_version              : string ;
   r_repository_kind      : string option ;
   r_repository_path      : string option ;
+  r_root_task            : task option ; 
   r_wiki_container       : Wiki_types.wikibox option ;
   r_wiki                 : Wiki_types.wiki ;
 }
 
 let right_area_of_sql (u : int32) = (Opaque.int32_t u : right_area)
 let sql_of_right_area (u : right_area) = Opaque.t_int32 u
+
+let task_of_sql (u : int32) = (Opaque.int32_t u : task)
+let sql_of_task (u : task) = Opaque.t_int32 u
 
 let right_area_of_sql_option (u : int32 option) = 
   (Opaque.int32_t_option u : right_area option)
@@ -54,15 +58,17 @@ let right_area_of_string s = (Opaque.int32_t (Int32.of_string s) : right_area)
 
 type raw_right_area_info =
     (int32 * int32 * string *
-     string option * string option * int32 option * int32)
+     string option * string option * int32 option * int32 option * int32)
 
-let get_right_area_info (id, forum_id, ver, kind, path, cont, wik) =
+let get_right_area_info (id, forum_id, ver, kind, path, task, cont, wik) =
   {
     r_id                   = right_area_of_sql id ;
     r_forum                = Forum_sql.Types.forum_of_sql forum_id ;
     r_version              = ver ;
     r_repository_kind      = kind ;
     r_repository_path      = path ;
+    r_root_task            = Ocsforge_lang.apply_on_opted 
+                                task_of_sql task ;
     r_wiki_container       = Ocsforge_lang.apply_on_opted
                                Wiki_types.wikibox_of_sql cont ;
     r_wiki                 = Wiki_types.wiki_of_sql wik ;
@@ -97,8 +103,6 @@ type task_info = {
 
 
 
-let task_of_sql (u : int32) = (Opaque.int32_t u : task)
-let sql_of_task (u : task) = Opaque.t_int32 u
 
 let task_of_int (u : int) : task = Opaque.int32_t (Int32.of_int u)
 

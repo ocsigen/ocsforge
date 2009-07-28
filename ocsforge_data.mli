@@ -111,6 +111,11 @@ val get_area_for_task :
   sp:Eliom_sessions.server_params ->
   task:Ocsforge_types.task -> Ocsforge_types.right_area_info Lwt.t
 
+val get_area_for_page :
+  sp:Eliom_sessions.server_params ->
+  page:string -> Ocsforge_types.right_area_info Lwt.t
+
+
 
 (** Get tasks sharing a common editor.
   * [get_tasks_edited_by sp editor] result in the list of tasks with the

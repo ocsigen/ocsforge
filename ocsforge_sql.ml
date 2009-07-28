@@ -269,11 +269,27 @@ let get_area_for_task ~task_id =
                   more than one result"
     )
 
+let get_area_for_page ~page_id =
+  (fun db ->
+    PGSQL(db)
+      "SELECT id
+      FROM ocsforge_right_areas
+      WHERE wiki = (SELECT id FROM wikis 
+                    WHERE pages=$page_id)
+      AND root_task IS NOT NULL"
+    >>= function
+      | [r] -> Lwt.return (Types.right_area_of_sql r)
+      | []  -> Lwt.fail Not_found
+      | _   -> failwith "Ocsforge_sql.get_area_inheritance, \
+                  more than one result"
+    )
+
+
 let get_area_info_for_task ~task_id =
   let task = Types.sql_of_task task_id in
     (fun db ->
        PGSQL(db)
-         "SELECT id, forum_id, version, repository_kind, repository_path,
+         "SELECT id, forum_id, version, repository_kind, repository_path, root_task,
                  wiki_container, wiki
           FROM ocsforge_right_areas
           WHERE id = (SELECT area
@@ -284,12 +300,27 @@ let get_area_info_for_task ~task_id =
            Types.get_right_area_info)
     )
 
+let get_area_info_for_page ~page_id =
+  (fun db ->
+    PGSQL(db)
+      "SELECT id, forum_id, version, repository_kind, repository_path, root_task,
+      wiki_container, wiki
+      FROM ocsforge_right_areas
+      WHERE wiki = (SELECT id
+                    FROM wikis
+                    WHERE pages = $page_id)
+      AND root_task IS NOT NULL"
+      >>= (Ocsforge_lang.apply_on_uniq_or_fail_lwt
+             "Ocsforge_sql.get_area_info_for_page"
+             Types.get_right_area_info)
+    )
+
 let get_area_by_id ~area_id =
   let area = Types.sql_of_right_area area_id in
     (fun db ->
        PGSQL(db)
          "SELECT id, forum_id, version, \
-                 repository_kind, repository_path, wiki_container, wiki
+                 repository_kind, repository_path, root_task, wiki_container, wiki
           FROM ocsforge_right_areas
           WHERE id = $area"
      >>= function
@@ -630,17 +661,16 @@ let get_projects_path_list () =
   Sql.full_transaction_block
   (fun db ->
      (PGSQL(db)
-        "SELECT wikis.pages, ocsforge_right_areas.root_task
-         FROM wikis, ocsforge_right_areas
-         WHERE wikis.id IN (SELECT wiki FROM ocsforge_right_areas)")
-     >>= fun l ->
+        "SELECT pages FROM ocsforge_right_areas, wikis
+        WHERE ocsforge_right_areas.wiki = wikis.id AND root_task IS NOT NULL;")
+     (*>>= fun l ->
       Lwt.return (
         Olang.filter_map
           (function
-             | (Some p, Some n) -> Some (p, Types.task_of_sql n)
+             | (Some p) -> Some (p, Types.task_of_sql n)
              | _ -> None)
           l
-      )
+      )*)
   )
 
 

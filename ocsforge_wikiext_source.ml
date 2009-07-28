@@ -27,7 +27,7 @@ let register_wikiext wp =
 	(Lwt.catch
 	   (fun () ->
 	     let sp = bi.Wiki_widgets_interface.bi_sp in
-       	     let id = Ocsforge_types.task_of_string (List.assoc "id" args) in
+       	     let id = List.assoc "id" args in
 	     let file = 
 	       try Some(List.assoc "file" args)
 	       with Not_found -> None

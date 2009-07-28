@@ -341,6 +341,9 @@ let rec handle_file res aut l = match l with
         | Simplexmlparser.Element(name,_,content) -> 
             if (name = "normal_line") then
               handle_line "" "" content >>= fun line ->
+                if (fst line = "\n") then
+                  handle_file res aut t
+                else
                 handle_file (line::res) aut t
             else if (name = "modified") then
               handle_file res (handle_modified content) t

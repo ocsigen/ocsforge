@@ -74,7 +74,7 @@ type project_services =
 
 
 (* Hashtable (task id, service) *)
-let repos_services_table : (Ocsforge_types.task,project_services) Hashtbl.t = 
+let repos_services_table : (string,project_services) Hashtbl.t = 
   Hashtbl.create 50
 
 let add_service id service = 

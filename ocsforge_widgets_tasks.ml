@@ -255,15 +255,20 @@ object (self)
       let show_line ~task:t =
         self#task_snippet ~sp ~message:t.Types.t_message inline_widget
                                                                >>= fun snip ->
-        (match (Services_ht.find_service t.Types.t_id) with
+        Data.get_area ~sp ~area:t.Types.t_area >>= fun ainfo ->
+        Wiki_sql.get_wiki_info_by_id ainfo.Types.r_wiki >>= fun winfo ->
+          (match winfo.Wiki_types.wiki_pages with
           | None -> Lwt.return ({{ [ ] }} : {{ [Xhtmltypes_duce.a*] }})
-          | Some s -> Lwt.return
-             {{ [ {: EDuce.Xhtml.a
-                        ~service:s.Services_ht.sources_service
-                        ~sp
+          | Some(pages) ->
+              (match (Services_ht.find_service pages) with
+              | None -> Lwt.return ({{ [ ] }} : {{ [Xhtmltypes_duce.a*] }})
+              | Some s -> Lwt.return
+                    {{ [ {: EDuce.Xhtml.a
+                            ~service:s.Services_ht.sources_service
+                            ~sp
                         {{ [ 'repository' ] }}
-                        ([],(`Browse,(None,None)))
-             :} ] }} )
+                            ([],(`Browse,(None,None)))
+                            :} ] }} ))
                                                          >>= fun repo_link ->
         Lwt_util.map_serial
           (fun field -> Lwt.return ( self#show_static_field ~field ~task:t ) )

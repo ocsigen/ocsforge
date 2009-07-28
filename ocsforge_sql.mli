@@ -103,9 +103,21 @@ val get_area_for_task :
   task_id:Ocsforge_types.task ->
   Sql.db_t -> Ocsforge_types.right_area Lwt.t
 
+(** Get the area corresponding to a wiki path *)
+val get_area_for_page :
+  page_id:string ->
+  Sql.db_t -> Ocsforge_types.right_area Lwt.t
+
+
 (** Get the info for the area the task is in *)
 val get_area_info_for_task :
   task_id:Ocsforge_types.task ->
+  Sql.db_t -> Ocsforge_types.right_area_info Lwt.t
+
+
+(** Get the info for the area corresponding to a wiki path *)
+val get_area_info_for_page :
+  page_id:string ->
   Sql.db_t -> Ocsforge_types.right_area_info Lwt.t
 
 
@@ -238,7 +250,7 @@ val is_area_root :
 
 val get_projects_path_list :
   unit ->
-  (string * Ocsforge_types.task) list Lwt.t
+  string option list Lwt.t
 
 
 (**/**)

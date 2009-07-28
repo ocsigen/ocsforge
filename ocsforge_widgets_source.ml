@@ -154,7 +154,7 @@ let log_table_header =
     
 let create_repository_table_content ~sp ~id ~version ~dir ~project_services =
   let ps = project_services in
-  Data.get_area_for_task sp id >>= fun r_infos -> 
+  Data.get_area_for_page sp id >>= fun r_infos -> 
     match (r_infos.Types.r_repository_kind,r_infos.Types.r_repository_path) with
     | (Some(kind),Some(path)) ->
 	Ocsforge_version_managers.get_fun_pack kind >>= fun fun_pack ->
@@ -288,7 +288,7 @@ let create_repository_table_content ~sp ~id ~version ~dir ~project_services =
     
 	  
 let create_source_code_content ~sp ~id ~file ~version =
-  Data.get_area_for_task sp id >>= fun r_infos -> 
+  Data.get_area_for_page sp id >>= fun r_infos -> 
     match (r_infos.Types.r_repository_kind,r_infos.Types.r_repository_path) with
     | (Some(kind),Some(path)) ->
 	Ocsforge_version_managers.get_fun_pack kind >>= fun fun_pack ->
@@ -522,7 +522,7 @@ let create_log_table_content ~sp ~id ~file ~range ~project_services =
   | None -> (None,None) 
   | Some(r) -> (fst r ,snd r)
   in
-  Data.get_area_for_task sp id >>= fun r_infos -> 
+  Data.get_area_for_page sp id >>= fun r_infos -> 
     match (r_infos.Types.r_repository_kind,r_infos.Types.r_repository_path) with
     | (Some(kind),Some(path)) ->
 	Ocsforge_version_managers.get_fun_pack kind >>= fun fun_pack ->
@@ -571,7 +571,7 @@ let create_diff_view_content ~sp ~id ~file ~diff1 ~diff2 =
           in 
           Lwt.return ({{ [ span !b ]  }} : {{ [Xhtmltypes_duce.special_pre*] }})
   in 
-  Data.get_area_for_task sp id >>= fun r_infos -> 
+  Data.get_area_for_page sp id >>= fun r_infos -> 
     match (r_infos.Types.r_repository_kind,r_infos.Types.r_repository_path) with
     | (Some(kind),Some(path)) ->
 	Ocsforge_version_managers.get_fun_pack kind >>= fun fun_pack ->
@@ -612,7 +612,6 @@ let rec string_soption_list_of_list l =
 
 let create_file_log_links ~sp ~project_services ~target ~version ~log_start ~log_result = 
   let ps = project_services in
-  begin match log_result with [] -> print_endline "lol"; | _ -> () end;
   let range_start = List.hd log_result in
   let range_end = 
     if (List.length log_result >= _PAGE_SIZE) then
@@ -652,7 +651,7 @@ let create_file_log_links ~sp ~project_services ~target ~version ~log_start ~log
 
 let create_file_page ~sp ~id ~target ~version ~log_start ~project_services = 
   let ps = project_services in
-  Data.get_area_for_task sp id >>= fun r_infos -> 
+  Data.get_area_for_page sp id >>= fun r_infos -> 
     match (r_infos.Types.r_repository_kind,r_infos.Types.r_repository_path) with
     | (Some(kind),Some(path)) ->
 	Ocsforge_version_managers.get_fun_pack kind >>= fun fun_pack ->
@@ -756,39 +755,44 @@ let create_file_page ~sp ~id ~target ~version ~log_start ~project_services =
 		         :} 
 		  ]] }}
 	      in
-              create_file_log_links 
-                ~sp 
-                ~project_services:ps
-                ~target 
-                ~version 
-                ~log_start 
-                ~log_result:v_list >>= fun log_links ->
-              Lwt.return (({{ [ 
-                              <tr class="sources_menu"> [
-                                <td class="sources_menu_current">
-                                  ['File options page']]
-                              <tr class="sources_menu"> [
-                                <td class="sources_menu_item">
-			          [ {: Eliom_duce.Xhtml.get_form
-                                       ~a: {{ {class="version_select"} }}
-				       ~service: ps.Sh.sources_service
-				       ~sp  
-				       (file_version_select_form) :} 
-			          ]]
-                                 !{:
-                                  match select_list with
-                                  | [] -> {{ [] }}
-                                  | _ -> 
-                                      {{ [<tr class="sources_menu"> [
-                                        <td class="sources_menu_item">
-				          [ {: Eliom_duce.Xhtml.get_form
-                                               ~a: {{ {class="version_select"} }}
-				               ~service: ps.Sh.sources_service
-				               ~sp  
-				               file_diff_form :} 
-				        ]]] }} :} ] }}, 
-			  {{ [ log_links <table class="log_table"> [!log_table_header !log]] }})
-			   : ({{ [Xhtmltypes_duce.tr*] }}*{{ Xhtmltypes_duce.flows }})))
+              Lwt.try_bind
+              (fun () -> 
+                create_file_log_links 
+                  ~sp 
+                  ~project_services:ps
+                  ~target 
+                  ~version 
+                  ~log_start 
+                  ~log_result:v_list)
+               (fun log_links ->
+                 Lwt.return (({{ [ 
+                                 <tr class="sources_menu"> [
+                                   <td class="sources_menu_current">
+                                     ['File options page']]
+                                   <tr class="sources_menu"> [
+                                   <td class="sources_menu_item">
+			              [ {: Eliom_duce.Xhtml.get_form
+                                           ~a: {{ {class="version_select"} }}
+				           ~service: ps.Sh.sources_service
+				           ~sp  
+				           (file_version_select_form) :} 
+			              ]]
+                                     !{:
+                                       match select_list with
+                                       | [] -> {{ [] }}
+                                       | _ -> 
+                                           {{ [<tr class="sources_menu"> [
+                                             <td class="sources_menu_item">
+				               [ {: Eliom_duce.Xhtml.get_form
+                                                    ~a: {{ {class="version_select"} }}
+				                    ~service: ps.Sh.sources_service
+				                    ~sp  
+				                    file_diff_form :} 
+				               ]]] }} :} ] }}, 
+			       {{ [ log_links <table class="log_table"> [!log_table_header !log]] }})
+			        : ({{ [Xhtmltypes_duce.tr*] }}*{{ Xhtmltypes_duce.flows }})))
+                (fun _ ->
+                  error "Error: file not found" >>= fun c -> Lwt.return ({{ [] }},c)))
 	    (fun exn ->
               let error_content = match exn with
               | Vm.Node_not_found -> error "Error: node not found"
@@ -846,7 +850,7 @@ let create_annotate_page ~sp ~id ~target ~version ~project_services =
                                 !b] }}) 
                             : ({{ [Xhtmltypes_duce.span*] }}*{{ [Xhtmltypes_duce.span*] }})))
   in
-  Data.get_area_for_task sp id >>= fun r_infos -> 
+  Data.get_area_for_page sp id >>= fun r_infos -> 
     match (r_infos.Types.r_repository_kind,r_infos.Types.r_repository_path) with
     | (Some(kind),Some(path)) ->
         Ocsforge_version_managers.get_fun_pack kind >>= fun fun_pack ->

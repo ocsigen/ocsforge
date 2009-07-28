@@ -198,6 +198,8 @@ let get_task ~sp ~task =
 let get_area_for_task ~sp:_ ~task =
   do_sql(Ocsforge_sql.get_area_info_for_task ~task_id:task)
 
+let get_area_for_page ~sp:_ ~page =
+  do_sql(Ocsforge_sql.get_area_info_for_page ~page_id:page)
 
 let get_task_history ~sp ~task =
   do_sql (Ocsforge_sql.get_area_for_task ~task_id:task)   >>= fun area ->
