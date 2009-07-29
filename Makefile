@@ -114,7 +114,8 @@ static/vm.js: $(OBROWSERDIR)/vm.js
 	cp -f $(STATICDIR)/crayon.png static
 
 install:
-	$(OCAMLFIND) install ocsforge META ocsforge.cma ocsforge_svn.cma
+	$(OCAMLFIND) install ocsforge META _build/ocsforge.cma \
+	_build/ocsforge_svn.cma
 	cp -f $(STATICFILES) $(STATICDIR)
 
 uninstall:
