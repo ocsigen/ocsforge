@@ -23,8 +23,7 @@ svn_error_t *cancel(void *cancel_baton)
 
 
 /* fonction permettant d'initialiser le contexte avant toute opération svn */
-svn_client_ctx_t *initialize_context(apr_pool_t *pool)
-{  
+svn_client_ctx_t *initialize_context(){  
   svn_error_t *err;
   svn_config_t *cfg;
   
@@ -71,7 +70,7 @@ void svn_init(){
   if (svn_cmdline_init ("svn_support", stderr) != EXIT_SUCCESS)
     return;
   pool = svn_pool_create(NULL);
-  ctx = initialize_context(pool);
+  ctx = initialize_context();
   /*err = svn_fs_initialize(pool);
   
   if (err) {
@@ -629,6 +628,7 @@ apr_array_header_t *svn_support_blame(char *file_path, int revision){
 
 /*
 int main(void){
+  svn_init();
   svn_support_cat("https://forge.mancoosi.univ-paris-diderot.fr/svn/ocsforge/README",149);
-}
-*/
+  }*/
+

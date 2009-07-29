@@ -98,6 +98,13 @@ let cut_string s size =
     ((String.sub s 0 (size-3))^"...")
   else s
 
+let cut_author_mail aut = 
+  let l = Netstring_pcre.split (Netstring_pcre.regexp "@") aut in
+  if (List.length l > 1) then
+    ((List.hd l)^"@...")
+  else
+    aut
+
 let utf8_span (spanclass:(string option)) s = 
   try
     match spanclass with 
@@ -174,7 +181,9 @@ let create_repository_table_content ~sp ~id ~version ~dir ~project_services =
   Data.get_area_for_page sp id >>= fun r_infos -> 
     match (r_infos.Types.r_repository_kind,r_infos.Types.r_repository_path) with
     | (Some(kind),Some(path)) ->
-	Ocsforge_version_managers.get_fun_pack kind >>= fun fun_pack ->
+        Lwt.try_bind 
+        (fun () -> Ocsforge_version_managers.get_fun_pack kind)
+	(fun fun_pack ->
 	  let cpt = ref 0 in
 	  let rec build_content tree depth = match tree with
 	    | STypes.File(f,aut,(rev_name,rev_id)) ->
@@ -300,7 +309,9 @@ let create_repository_table_content ~sp ~id ~version ~dir ~project_services =
              (function 
                | Vm.Node_not_found -> error sp "File or directory not found"
                | Vm.Revision_not_found -> error sp "Revision not found"
-               | _ -> error sp "Version manager internal error")
+               | _ -> error sp "Version manager internal error"))
+          (function
+            | _ -> error sp "Manager not supported")
     | _ -> failwith "Unable to retrieve repository informations"
     
 	  
@@ -308,8 +319,10 @@ let create_source_code_content ~sp ~id ~file ~version =
   Data.get_area_for_page sp id >>= fun r_infos -> 
     match (r_infos.Types.r_repository_kind,r_infos.Types.r_repository_path) with
     | (Some(kind),Some(path)) ->
-	Ocsforge_version_managers.get_fun_pack kind >>= fun fun_pack ->
-	  let cat_call = 
+        Lwt.try_bind 
+          (fun () -> Ocsforge_version_managers.get_fun_pack kind)
+	  (fun fun_pack ->
+	    let cat_call = 
 	    begin match version with
 	    | None -> fun_pack.STypes.vm_cat path file
 	    | Some(v) ->
@@ -337,7 +350,8 @@ let create_source_code_content ~sp ~id ~file ~version =
             (function 
               | Vm.Node_not_found -> error sp "File or directory not found"
               | Vm.Revision_not_found -> error sp "Revision not found"
-              | _ -> error sp "Version manager internal error")
+              | _ -> error sp "Version manager internal error"))
+          (function _ -> error sp "Manager not supported")
     | (_,_) -> failwith "Unable to retrieve repository informations"
 
 
@@ -478,7 +492,7 @@ let log_table_content ~sp ~log ~ps ~start_rev ~end_rev =
 			  ~sp {{ {: cut_string !(p.STypes.name) 50 :} }}
 			  ([],(`Browse,(Some(!(p.STypes.id)),None)))
 			  :}]
-		        <td class="small_font"> {: !(p.STypes.author) :}
+		        <td class="small_font"> {: (cut_author_mail !(p.STypes.author)) :}
 	                    <td class="xsmall_font"> {: !(p.STypes.date) :}
                                 !comment_td] !b]}} :{{ [Xhtmltypes_duce.tr*] }})
           else extract_result t sr er false limit
@@ -502,7 +516,7 @@ let log_table_content ~sp ~log ~ps ~start_rev ~end_rev =
 		                     ~sp {{ {: cut_string !(p.STypes.name) 50 :} }}
 			             ([],(`Browse,(Some(!(p.STypes.id)),None)))
 			             :}]
-		                   <td class="small_font"> {: !(p.STypes.author) :}
+		                   <td class="small_font"> {: (cut_author_mail !(p.STypes.author)) :}
 	                               <td class="xsmall_font"> {: !(p.STypes.date) :}
                                            !comment_td] ]}} :{{ [Xhtmltypes_duce.tr*] }})
           end else
@@ -525,7 +539,7 @@ let log_table_content ~sp ~log ~ps ~start_rev ~end_rev =
 			  ~sp {{ {: cut_string !(p.STypes.name) 50 :} }}
 			  ([],(`Browse,(Some(!(p.STypes.id)),None)))
 			  :}]
-		        <td class="small_font"> {: !(p.STypes.author) :}
+		        <td class="small_font"> {: (cut_author_mail !(p.STypes.author)) :}
 	                    <td class="xsmall_font"> {: !(p.STypes.date) :}
                                 !comment_td] !b]}} :{{ [Xhtmltypes_duce.tr*] }})
   in
@@ -549,8 +563,10 @@ let create_log_table_content ~sp ~id ~file ~range ~project_services =
   Data.get_area_for_page sp id >>= fun r_infos -> 
     match (r_infos.Types.r_repository_kind,r_infos.Types.r_repository_path) with
     | (Some(kind),Some(path)) ->
-	Ocsforge_version_managers.get_fun_pack kind >>= fun fun_pack ->
-	  let log = match (file,range) with
+          Lwt.try_bind 
+          (fun () -> Ocsforge_version_managers.get_fun_pack kind)
+	  (fun fun_pack ->
+	    let log = match (file,range) with
 	    | (None,None) -> fun_pack.STypes.vm_log ~limit:_PAGE_SIZE path 
 	    | (Some(f),None) -> fun_pack.STypes.vm_log ~file:f ~limit:_PAGE_SIZE path
             | (None,Some(r)) -> fun_pack.STypes.vm_log ~range:r ~limit:_PAGE_SIZE path
@@ -574,7 +590,8 @@ let create_log_table_content ~sp ~id ~file ~range ~project_services =
             (function 
               | Vm.Node_not_found -> error sp "File or directory not found"
               | Vm.Revision_not_found -> error sp "Revision not found"
-              | _ -> error sp "Version manager internal error")
+              | _ -> error sp "Version manager internal error"))
+          (function _ -> error sp "Manager not supported")
     | _ -> failwith "Unable to retrieve repository informations"
 
 
@@ -598,31 +615,34 @@ let create_diff_view_content ~sp ~id ~file ~diff1 ~diff2 =
   Data.get_area_for_page sp id >>= fun r_infos -> 
     match (r_infos.Types.r_repository_kind,r_infos.Types.r_repository_path) with
     | (Some(kind),Some(path)) ->
-	Ocsforge_version_managers.get_fun_pack kind >>= fun fun_pack ->
-	  let (old_file,new_file) = (diff1,diff2) in
-	  Lwt.try_bind
-            (fun () -> fun_pack.STypes.vm_diff file path old_file new_file)
-            (fun diff_result ->
-	      extract_diff_result "old" diff_result.STypes.oldContent >>= fun oldf ->
-	        extract_diff_result "new" diff_result.STypes.newContent >>= fun newf -> 
-		  Lwt.return ({{ [
-			         <div class="diff">[
-				   <span class="diff_title"> {: ("@ "^old_file) :} 
-				       <pre class="diff"> 
+        Lwt.try_bind 
+          (fun () -> Ocsforge_version_managers.get_fun_pack kind)
+	  (fun fun_pack ->
+	    let (old_file,new_file) = (diff1,diff2) in
+	    Lwt.try_bind
+              (fun () -> fun_pack.STypes.vm_diff file path old_file new_file)
+              (fun diff_result ->
+	        extract_diff_result "old" diff_result.STypes.oldContent >>= fun oldf ->
+	          extract_diff_result "new" diff_result.STypes.newContent >>= fun newf -> 
+		    Lwt.return ({{ [
+			           <div class="diff">[
+				     <span class="diff_title"> {: ("@ "^old_file) :} 
+				         <pre class="diff"> 
 				         {:
-					oldf
+					    oldf
 					    :}]
-				     <div class="diff">[
-				       <span class="diff_title"> {: ("@ "^new_file) :}
-				           <pre class="diff">
-					     {:
+				       <div class="diff">[
+				         <span class="diff_title"> {: ("@ "^new_file) :}
+				             <pre class="diff">
+					       {:
 					        newf 
-					        :}]
-			       ] }} : {{ [Xhtmltypes_duce.block*] }}))
-             (function 
-               | Vm.Node_not_found -> error sp "File or directory not found"
-               | Vm.Revision_not_found -> error sp "Revision not found"
-               | _ -> error sp "Version manager internal error")
+					          :}]
+			         ] }} : {{ [Xhtmltypes_duce.block*] }}))
+              (function 
+                | Vm.Node_not_found -> error sp "File or directory not found"
+                | Vm.Revision_not_found -> error sp "Revision not found"
+                | _ -> error sp "Version manager internal error"))
+          (function _ -> error sp "Manager not supported")
             
     | _ -> failwith "Unable to retrieve repository informations"
 	
@@ -678,151 +698,154 @@ let create_file_page ~sp ~id ~target ~version ~log_start ~project_services =
   Data.get_area_for_page sp id >>= fun r_infos -> 
     match (r_infos.Types.r_repository_kind,r_infos.Types.r_repository_path) with
     | (Some(kind),Some(path)) ->
-	Ocsforge_version_managers.get_fun_pack kind >>= fun fun_pack ->
-	  let file_path = String.concat "/" target in
-          let log_call = 
-            fun_pack.STypes.vm_log 
-              ~file:file_path 
-              ~range:(None,log_start) 
-              ~limit:(_PAGE_SIZE) path
-	  in
-          Lwt.try_bind
-          (fun () -> log_call)
-	  (fun log_result -> 
-            log_table_content ~sp ~log:log_result ~ps ~start_rev:log_start ~end_rev:None >>= fun log ->
-	      let v_list = extract_version_assoc_list log_result in
-	      let select_list = string_soption_list_of_list v_list in
-	      let file_version_select_form
-		  ((file,(kind,(version,_))) : 
-                     ([`One of string list] Eliom_parameters.param_name *
-			([ `One of Sh.src_page_kind ] Eliom_parameters.param_name *
-                           ([ `One of string ] Eliom_parameters.param_name *
-                              ([ `One of string ] Eliom_parameters.param_name))))) =
-		{{ [ <p class="menu_form"> 
-                   [  <span class="menu_form_title">['Content viewing'] 
-                      <br> []
-		    {:
-		       Eliom_duce.Xhtml.user_type_input
-		       (Ocsigen_extensions.string_of_url_path ~encode:false)
-		       ~input_type: {: "hidden" :}
-		       ~name: file
-		       ~value: target
-		       ()
-		       :}
-                       'Select a version  '
-		      !{: match select_list with
-                      | [] -> {{ [] }}
-                      | _ -> {{ [{:
-                                    Eliom_duce.Xhtml.string_select
-                                    ~a: {{ {class="version_select"} }}
-		                    ~name: version
-		                    (List.hd select_list)
-                                    (List.tl select_list)
-                                    :}] }}
-                            :}
-                      
-		      {: 
-		         Eliom_duce.Xhtml.user_type_button
-                         Sh.kind_to_string
-                         ~name: kind
-		         ~value: `Cat
-		         {{ {: "View code" :} }}
-		         :}
-                       {: 
-		         Eliom_duce.Xhtml.user_type_button
-                         Sh.kind_to_string
-                         ~name: kind
-		          ~value: `Annot
-		         {{ {: "Annotate" :} }}
-		         :}
-		  ]] }}
-	      in
-	      let file_diff_form
-		   ((file,(kind,(diff1,diff2))) : 
-                     ([`One of string list] Eliom_parameters.param_name *
-			([ `One of Sh.src_page_kind ] Eliom_parameters.param_name *
-                           ([ `One of string ] Eliom_parameters.param_name *
-                              ([ `One of string ] Eliom_parameters.param_name))))) =
-                {{[<p class="menu_form">
-                    [ <span class="menu_form_title"> ['Diff viewing'] 
-                    <br>[]
-		    {:
-		       Eliom_duce.Xhtml.user_type_input
-		       (Ocsigen_extensions.string_of_url_path ~encode:false)
-		       ~input_type: {: "hidden" :}
-		       ~name: file
-		       ~value: target 
-		       ()
-		       :}
-		      'Version 1 '
-		      {: 
-		         Eliom_duce.Xhtml.string_select
-		         ~a: {{ {class="version_select"} }}
-		         ~name: diff1
-		         (List.hd select_list)
-                         (List.tl select_list)
+         Lwt.try_bind 
+          (fun () -> Ocsforge_version_managers.get_fun_pack kind)
+	  (fun fun_pack ->
+	    let file_path = String.concat "/" target in
+            let log_call = 
+              fun_pack.STypes.vm_log 
+                ~file:file_path 
+                ~range:(None,log_start) 
+                ~limit:(_PAGE_SIZE) path
+	    in
+            Lwt.try_bind
+              (fun () -> log_call)
+	      (fun log_result -> 
+                log_table_content ~sp ~log:log_result ~ps ~start_rev:log_start ~end_rev:None >>= fun log ->
+	          let v_list = extract_version_assoc_list log_result in
+	          let select_list = string_soption_list_of_list v_list in
+	          let file_version_select_form
+		      ((file,(kind,(version,_))) : 
+                         ([`One of string list] Eliom_parameters.param_name *
+			    ([ `One of Sh.src_page_kind ] Eliom_parameters.param_name *
+                               ([ `One of string ] Eliom_parameters.param_name *
+                                  ([ `One of string ] Eliom_parameters.param_name))))) =
+		    {{ [ <p class="menu_form"> 
+                      [  <span class="menu_form_title">['Content viewing'] 
+                          <br> []
+		          {:
+		             Eliom_duce.Xhtml.user_type_input
+		             (Ocsigen_extensions.string_of_url_path ~encode:false)
+		             ~input_type: {: "hidden" :}
+		             ~name: file
+		             ~value: target
+		             ()
+		             :}
+                          'Select a version  '
+		          !{: match select_list with
+                          | [] -> {{ [] }}
+                          | _ -> {{ [{:
+                                        Eliom_duce.Xhtml.string_select
+                                        ~a: {{ {class="version_select"} }}
+		                        ~name: version
+		                        (List.hd select_list)
+                                        (List.tl select_list)
+                                        :}] }}
+                                :}
+                          
+		          {: 
+		             Eliom_duce.Xhtml.user_type_button
+                             Sh.kind_to_string
+                             ~name: kind
+		             ~value: `Cat
+		             {{ {: "View code" :} }}
+		             :}
+                          {: 
+		             Eliom_duce.Xhtml.user_type_button
+                             Sh.kind_to_string
+                             ~name: kind
+		             ~value: `Annot
+		             {{ {: "Annotate" :} }}
+		             :}
+		       ]] }}
+	          in
+	          let file_diff_form
+		      ((file,(kind,(diff1,diff2))) : 
+                         ([`One of string list] Eliom_parameters.param_name *
+			    ([ `One of Sh.src_page_kind ] Eliom_parameters.param_name *
+                               ([ `One of string ] Eliom_parameters.param_name *
+                                  ([ `One of string ] Eliom_parameters.param_name))))) =
+                    {{[<p class="menu_form">
+                      [ <span class="menu_form_title"> ['Diff viewing'] 
+                          <br>[]
+		          {:
+		             Eliom_duce.Xhtml.user_type_input
+		             (Ocsigen_extensions.string_of_url_path ~encode:false)
+		             ~input_type: {: "hidden" :}
+		             ~name: file
+		             ~value: target 
+		             ()
+		             :}
+		          'Version 1 '
+		          {: 
+		             Eliom_duce.Xhtml.string_select
+		             ~a: {{ {class="version_select"} }}
+		             ~name: diff1
+		             (List.hd select_list)
+                             (List.tl select_list)
                          :}
-		      <br> []
-		    'Version 2 '
-		      {: 
-		         Eliom_duce.Xhtml.string_select
-		         ~a: {{ {class="version_select"} }}
-		         ~name: diff2
-		         (List.hd select_list)
-                         (List.tl select_list)
-                         :}
-		      {: Eliom_duce.Xhtml.user_type_button
-                         Sh.kind_to_string
-                         ~name: kind
-		         ~value: `Diff
-		         {{ "Execute diff" }}
-		         :} 
-		  ]] }}
-	      in
-              Lwt.try_bind
-              (fun () -> 
-                create_file_log_links 
-                  ~sp 
-                  ~project_services:ps
-                  ~target 
-                  ~version 
-                  ~log_start 
-                  ~log_result:v_list)
-               (fun log_links ->
-                 Lwt.return (({{ [ 
-                                 <tr class="sources_menu"> [
-                                   <td class="sources_menu_current">
-                                     ['File options page']]
-                                   <tr class="sources_menu"> [
-                                   <td class="sources_menu_item">
-			              [ {: Eliom_duce.Xhtml.get_form
-                                           ~a: {{ {class="version_select"} }}
-				           ~service: ps.Sh.sources_service
-				           ~sp  
-				           (file_version_select_form) :} 
-			              ]]
-                                     !{:
-                                       match select_list with
-                                       | [] -> {{ [] }}
-                                       | _ -> 
-                                           {{ [<tr class="sources_menu"> [
-                                             <td class="sources_menu_item">
-				               [ {: Eliom_duce.Xhtml.get_form
-                                                    ~a: {{ {class="version_select"} }}
-				                    ~service: ps.Sh.sources_service
+		          <br> []
+		          'Version 2 '
+		          {: 
+		             Eliom_duce.Xhtml.string_select
+		             ~a: {{ {class="version_select"} }}
+		             ~name: diff2
+		             (List.hd select_list)
+                             (List.tl select_list)
+                             :}
+		          {: Eliom_duce.Xhtml.user_type_button
+                             Sh.kind_to_string
+                             ~name: kind
+		             ~value: `Diff
+		             {{ "Execute diff" }}
+		             :} 
+		      ]] }}
+	          in
+                  Lwt.try_bind
+                    (fun () -> 
+                      create_file_log_links 
+                        ~sp 
+                        ~project_services:ps
+                        ~target 
+                        ~version 
+                        ~log_start 
+                        ~log_result:v_list)
+                    (fun log_links ->
+                      Lwt.return (({{ [ 
+                                      <tr class="sources_menu"> [
+                                        <td class="sources_menu_current">
+                                          ['File options page']]
+                                          <tr class="sources_menu"> [
+                                            <td class="sources_menu_item">
+			                      [ {: Eliom_duce.Xhtml.get_form
+                                                   ~a: {{ {class="version_select"} }}
+				                   ~service: ps.Sh.sources_service
+				                   ~sp  
+				                   (file_version_select_form) :} 
+			                      ]]
+                                              !{:
+                                                match select_list with
+                                                | [] -> {{ [] }}
+                                                | _ -> 
+                                                    {{ [<tr class="sources_menu"> [
+                                                      <td class="sources_menu_item">
+				                        [ {: Eliom_duce.Xhtml.get_form
+                                                             ~a: {{ {class="version_select"} }}
+				                             ~service: ps.Sh.sources_service
 				                    ~sp  
-				                    file_diff_form :} 
-				               ]]] }} :} ] }}, 
-			       {{ [ log_links <table class="log_table"> [!log_table_header !log]] }})
-			        : ({{ [Xhtmltypes_duce.tr*] }}*{{ Xhtmltypes_duce.flows }})))
-                (fun _ ->
-                  error sp "File not found" >>= fun c -> Lwt.return ({{ [] }},c)))
-	    (fun exn ->
-              let error_content = match exn with
-              | Vm.Node_not_found -> error sp "File or directory not found"
-              | Vm.Revision_not_found -> error sp "Revision not found"
-              | _ -> error sp "Version manager internal error"
-              in error_content >>= fun content -> Lwt.return ({{ [] }},content))
+				                             file_diff_form :} 
+				                        ]]] }} :} ] }}, 
+			           {{ [ log_links <table class="log_table"> [!log_table_header !log]] }})
+			            : ({{ [Xhtmltypes_duce.tr*] }}*{{ Xhtmltypes_duce.flows }})))
+                    (fun _ ->
+                      error sp "File not found" >>= fun c -> Lwt.return ({{ [] }},c)))
+	      (fun exn ->
+                let error_content = match exn with
+                | Vm.Node_not_found -> error sp "File or directory not found"
+                | Vm.Revision_not_found -> error sp "Revision not found"
+                | _ -> error sp "Version manager internal error"
+                in error_content >>= fun content -> Lwt.return ({{ [] }},content)))
+          (function _ -> error sp "Manager not supported" >>= fun c -> Lwt.return ({{ [] }},c))
     | _ -> failwith "Unable to retrieve repository informations"
 	  
   
@@ -860,14 +883,14 @@ let create_annotate_page ~sp ~id ~target ~version ~project_services =
             (fun () -> Lwt.return (Ocamlduce.Utf8.make line))
             (fun utf8 ->
               Lwt.return (({{ [<span style={:("display:block; background-color:"^color):}> 
-                                {: aut :}  !a]}},
+                                {: (cut_author_mail aut) :}  !a]}},
                            {{ [
                               <span class="annot" style={:("display:block; background-color:"^color):}> {: utf8 :} 
                                 !b] }}) 
                             : ({{ [Xhtmltypes_duce.span*] }}*{{ [Xhtmltypes_duce.span*] }})))
             (function _ ->
               Lwt.return (({{ [<span style={:("display:block; background-color:"^color):}> 
-                                {: aut :}  !a]}},
+                                {: (cut_author_mail aut) :}  !a]}},
                            {{ [
                               <span class="annot" style={:("display:block; background-color:"^color):}> {: line :} 
                                 
@@ -877,28 +900,31 @@ let create_annotate_page ~sp ~id ~target ~version ~project_services =
   Data.get_area_for_page sp id >>= fun r_infos -> 
     match (r_infos.Types.r_repository_kind,r_infos.Types.r_repository_path) with
     | (Some(kind),Some(path)) ->
-        Ocsforge_version_managers.get_fun_pack kind >>= fun fun_pack ->
-	  let file_path = String.concat "/" target in
-          let annot_command = match version with
+        Lwt.try_bind 
+          (fun () -> Ocsforge_version_managers.get_fun_pack kind)
+	  (fun fun_pack ->
+            let file_path = String.concat "/" target in
+            let annot_command = match version with
             | None -> fun_pack.STypes.vm_annot path file_path 
             | Some(v) -> fun_pack.STypes.vm_annot ~id:v path file_path 
-          in
-          Lwt.try_bind 
-            (fun () -> annot_command)
-            (fun annot_result -> 
-              extract_annotate_result annot_result >>= fun (a,b) ->
-                Lwt.return {{ [
-                              <div class="annot_author"> [
-                                <pre> [!a]
-                              ] 
-                              <div class="annot_content"> [
-                                <pre> [<code>[!b]] 
-                              ]
-                            ] }})
-            (function 
-              | Vm.Node_not_found -> error sp "File or directory not found"
-              | Vm.Revision_not_found -> error sp "Revision not found"
-              | _ -> error sp "Version manager internal error")
+            in
+            Lwt.try_bind 
+              (fun () -> annot_command)
+              (fun annot_result -> 
+                extract_annotate_result annot_result >>= fun (a,b) ->
+                  Lwt.return {{ [
+                                <div class="annot_author"> [
+                                  <pre> [!a]
+                                ] 
+                                    <div class="annot_content"> [
+                                      <pre> [<code>[!b]] 
+                                    ]
+                              ] }})
+              (function 
+                | Vm.Node_not_found -> error sp "File or directory not found"
+                | Vm.Revision_not_found -> error sp "Revision not found"
+                | _ -> error sp "Version manager internal error"))
+          (function _ -> error sp "Manager not supported")
     | _ -> failwith "Unable to retrieve repository informations"
 	 
 
