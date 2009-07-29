@@ -196,7 +196,7 @@ let new_task_service =
 
 let register_dump_tree_service path il_widget task_widget =
   Eliom_predefmod.Any.register_new_service
-    ~path:[ path ; "" ]
+    ~path:[ path ; "" ; "tasks" ]
     ~get_params:Params.unit
     (fun sp _ _ ->
       Ocsforge_data.get_area_for_page ~sp ~page:path    >>= fun ri ->
