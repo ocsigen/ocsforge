@@ -117,6 +117,10 @@ install:
 	$(OCAMLFIND) install ocsforge META _build/ocsforge.cma \
 	_build/ocsforge_svn.cma
 	cp -f $(STATICFILES) $(STATICDIR)
+	mkdir -p $(DESTDIR)/stublibs
+	cp _build/dllocsforge_svn.so $(DESTDIR)/stublibs
+	chmod 664 $(DESTDIR)/stublibs/dllocsforge_svn.so
+
 
 uninstall:
 	$(OCAMLFIND) remove ocsforge

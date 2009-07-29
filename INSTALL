@@ -33,7 +33,11 @@ $ psql -U ocsimore -f ocsforge_dropdb.sql
 compile with
 $ make
 
-3. Run Ocsigen
+3. If you do not want to install, run Ocsigen with:
 
 adapt the ocsforge.conf.local if needed and launch with
 $ CAML_LD_LIBRARY_PATH=_build ocsigen -c ocsforge.conf.local
+
+4. Or run
+
+sudo make install
