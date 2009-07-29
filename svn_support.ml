@@ -20,6 +20,14 @@ module Vm = Ocsforge_version_managers
 
 let index_regexp = regexp "Index: "
 
+let svn_repo_format rep = 
+  try
+    if (rep.[String.length rep - 1] = '/') then
+      Lwt.return (String.sub rep 0 (String.length rep - 1))
+    else Lwt.return rep
+  with _ ->
+    Lwt.fail Vm.Manager_command_error
+
 (** Extrait la liste Caml depuis une C_list *)
 let extract_list res = match res with
   | Swig.C_list(l) -> l
@@ -70,7 +78,8 @@ let rec create_tree list_res tree name author step = match list_res with
 (** Stocke la liste des repertoires/fichiers sous gestionnaire de version 
     à la révision demandée dans un arbre de type rep_tree (si aucune révision
     n'est précisée, renvoie la version la plus récente) *)
-let svn_list ?id ?dir rep =
+let svn_list ?id ?dir repository =
+  svn_repo_format repository >>= fun rep ->
   try 
     let list_call () = match (id,dir) with
     | (None,None) ->
@@ -131,7 +140,8 @@ let rec create_patch_list log_res patch_list step = match log_res with
 	
 
 (** Stocke la liste des révisions du dépôt dans une liste de type patch *)
-let svn_log ?file ?range ?limit rep = 
+let svn_log ?file ?range ?limit repository =
+  svn_repo_format repository >>= fun rep ->
   let last = match limit with
     | None -> 0
     | Some(i) -> i
@@ -335,7 +345,8 @@ let rec parse_diff diff_res parsed_res started = match diff_res with
 
 (** Stocke le résultat du diff sur file@rev1 / file@rev2 
     dans une liste de type file_diff *)
-let svn_diff file rep id1 id2 =
+let svn_diff file repository id1 id2 =
+  svn_repo_format repository >>= fun rep ->
   try
     let rev1 = int_of_string id1 in
     let rev2 = int_of_string id2 in
@@ -358,7 +369,8 @@ let svn_diff file rep id1 id2 =
 
 (** Récupère le contenu d'un fichier à la révision demandée (si aucune
     révision n'est précisée, renvoie la version la plus récente) *)
-let svn_cat ?id rep file =
+let svn_cat ?id repository file =
+  svn_repo_format repository >>= fun rep ->
   try 
     let file_path = (rep^"/"^file) in
     let cat_call () = 
@@ -392,7 +404,8 @@ let rec extract_annot_result step res l = match l with
         extract_annot_result (step+1) ((aut,h)::(List.tl res)) t
 
 
-let svn_annot ?id rep file = 
+let svn_annot ?id repository file =
+  svn_repo_format repository >>= fun rep -> 
   try
     let file_path = (rep^"/"^file) in
     let annot_call () = match id with
