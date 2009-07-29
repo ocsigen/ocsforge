@@ -47,7 +47,7 @@ STATICFILES := static/ocsimore_client.uue \
 	       static/ocsforge_tree.css\
 	       static/open_repository.png\
 	       static/source_file.png\
-	       static/up.png
+	       static/up.png\
 	       static/add.png\
 	       static/down.png\
 	       static/message_warning.png\
@@ -60,7 +60,7 @@ STATICFILES := static/ocsimore_client.uue \
 	       static/ocsforge_tree_importance.css\
 	       static/pencil.png\
 	       static/sources_background.png\
-	       static/wand.png
+	       static/wand.png\
 	       static/application_side_tree.png\
 	       static/magnifier.png\
 	       static/ocsforge_tree_complete.css\
