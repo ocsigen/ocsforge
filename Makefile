@@ -109,7 +109,7 @@ static/ocsimore_client.uue:
 static/vm.js: $(OBROWSERDIR)/vm.js
 	cp -f $(OBROWSERDIR)/vm.js static
 	cp -f $(STATICDIR)/ocsiwikistyle.css static
-	cp -f $(STATICDIR)/ocsiwikiadmin.css static
+	cp -f $(STATICDIR)/ocsiadmin.css static
 	cp -f $(STATICDIR)/creole_cheat_sheet.png static
 	cp -f $(STATICDIR)/crayon.png static
 
