@@ -23,8 +23,59 @@ let (>>>) x f = f x
 (*poping up the new task form*)
 let new_task_pop_up id =
 
-  let form = new AXOToolkit.block_container in
+  (* Base bricks *)
+  let form = new AXOToolkit.vbox in
   let popup = new AXOToolkit.popup form in
+  let details = new AXOToolkit.block_container in
+  let more = new AXOToolkit.block_foldable
+    ( (new AXOToolkit.inline_text_button "More options")
+                           :> AXOWidgets.generic_button)
+    (new AXOToolkit.inline_container)
+    details
+  in
+
+  (* "More options" fields *)
+  let importance_select =
+    new AXOToolkit.select
+      (LOption.string_of_t_opt string_of_int)
+      (LOption.t_opt_of_string int_of_string)
+      None
+      (LList.t_opt_list_of_t_list
+         (LList.int_interval_list ~bump:5 ~min:0 ~max:100 ()))
+  in
+  let progress_select =
+    new AXOToolkit.select
+      (LOption.string_of_t_opt string_of_int)
+      (LOption.t_opt_of_string int_of_string)
+      None
+      (LList.t_opt_list_of_t_list
+         (LList.int_interval_list ~bump:5 ~min:0 ~max:100 ()))
+  in
+  let length_select =
+    new AXOToolkit.select
+      (LOption.string_of_t_opt (fun t -> (string_of_int t) ^ " hours"))
+      (LOption.t_opt_of_string
+         (fun s -> Scanf.sscanf s "%i hours" (fun i -> i)))
+      None
+      (LList.t_opt_list_of_t_list
+         (LList.int_interval_list ~bump:6 ~min:0 ~max:48 ()))
+
+  in
+(*let deadline_select =
+  in
+  let milestone_select =
+  in
+  let kind_select =
+  in  *)
+
+  details#add_common (AXOToolkit.text "importance : ") ;
+  details#add_common (importance_select :> AXOWidgets.common) ;
+  details#add_common (new AXOToolkit.br) ;
+  details#add_common (AXOToolkit.text "progress : ") ;
+  details#add_common (progress_select :> AXOWidgets.common) ;
+  details#add_common (new AXOToolkit.br) ;
+  details#add_common (AXOToolkit.text "length : ") ;
+  details#add_common (length_select :> AXOWidgets.common) ;
 
   let title_input = new AXOToolkit.text_input "Enter your title here" in
     title_input#set_attribute "size" "100" ;
@@ -35,12 +86,21 @@ let new_task_pop_up id =
          let (c,m) =
            AXOCom.http_post "./"
               [ ("__eliom_na__name","ocsforge_add_task") ;
-                ("parent", Int32.to_string id) ;
+                ("parent", string_of_int id) ;
                 ("subject", title_input#get_value) ;
                 ("text", "") ;
-                ("length", "") ;
-                ("progress", "") ;
-                ("importance", "") ;
+                ("length",
+                 LOption.string_of_t_opt
+                   string_of_int
+                   length_select#get_value) ;
+                ("progress",
+                 LOption.string_of_t_opt
+                   string_of_int
+                   progress_select#get_value) ;
+                ("importance",
+                 LOption.string_of_t_opt
+                   string_of_int
+                   importance_select#get_value) ;
                 ("deadline_t", "") ;
                 ("deadline_v", "") ;
                 ("kind", "") ;
@@ -48,88 +108,24 @@ let new_task_pop_up id =
          in
            AXOCom.alert_on_code
              ~on_2xx:(fun _ -> AXOJs.alert "task successfully added")
+             ~on_4xx:(
+               fun (_,m) ->
+                 AXOJs.rich_alert
+                   ((AXOCom.parse_xml m) >>> JSOO.get "documentElement")
+             )
+             ~on_5xx:(
+               fun (_,m) ->
+                 AXOJs.rich_alert
+                   ((AXOCom.parse_xml m) >>> JSOO.get "documentElement")
+             )
              (c,m) ;
       ) ;
 
     form#add_common ( title_input      :> AXOWidgets.common ) ;
-    form#add_common ( new AXOToolkit.br ) ;
+    form#add_common ( more             :> AXOWidgets.common ) ;
     form#add_common ( save_button      :> AXOWidgets.common ) ;
 
     popup#show
-
-let edit_task_popup
-      id subject length progress importance deadline_t deadline_v kind
-      =
-  let form = new AXOToolkit.block_container in
-  let popup = new AXOToolkit.popup form in
-
-  let title_input = new AXOToolkit.text_input subject in
-    title_input#set_attribute "size" "100" ;
-  let progress_input =
-    new AXOToolkit.select
-      (LOption.string_of_t_opt Int32.to_string)
-      (LOption.t_opt_of_string Int32.of_string)
-      progress
-      (LList.t_opt_list_of_t_list
-         (LList.int32_interval_list
-            ~bump:5l ~min:0l ~max:100l
-            ()
-         ))
-  in
-  let importance_input =
-    new AXOToolkit.select
-      (LOption.string_of_t_opt Int32.to_string)
-      (LOption.t_opt_of_string Int32.of_string)
-      importance
-      (LList.t_opt_list_of_t_list
-         (LList.int32_interval_list
-            ~bump:5l ~min:0l ~max:100l
-            ()
-         ))
-  in
-  let save_button = new AXOToolkit.inline_text_widget_button "SAVE" in
-    save_button#add_click_action
-      (fun () ->
-         popup#hide ;
-         let (c,m) =
-           AXOCom.http_post "./"
-              [
-                ( "__eliom_na__name","ocsforge_add_task") ;
-                ( "parent",  Int32.to_string id    ) ;
-                ( "subject", title_input#get_value ) ;
-                ( "text", "") ;
-                ( "length", "") ;
-                ( "progress",
-                   LOption.string_of_t_opt
-                     Int32.to_string
-                     progress_input#get_value) ;
-                ( "importance",
-                   LOption.string_of_t_opt
-                     Int32.to_string
-                     importance_input#get_value) ;
-                ( "deadline_t", "") ;
-                ( "deadline_v", "") ;
-                ( "kind", "") ;
-              ]
-         in
-           AXOCom.alert_on_code
-             ~on_2xx:(fun _ -> AXOJs.alert "task successfully edited")
-             (c,m) ;
-      ) ;
-
-    List.iter (fun c -> form#add_common c)
-      [
-        (                                  title_input :> AXOWidgets.common ) ;
-        (                            new AXOToolkit.br                      ) ;
-        (   (new AXOToolkit.inline_text "progress : ") :> AXOWidgets.common ) ;
-        (                               progress_input :> AXOWidgets.common ) ;
-        (                            new AXOToolkit.br                      ) ;
-        ( (new AXOToolkit.inline_text "importance : ") :> AXOWidgets.common ) ;
-        (                             importance_input :> AXOWidgets.common ) ;
-        (                            new AXOToolkit.br                      ) ;
-        (                                  save_button :> AXOWidgets.common ) ;
-      ]
-
 
 let tree_of_dom_tree get_content get_children dt =
   let rec aux dt =
@@ -140,10 +136,12 @@ let tree_of_dom_tree get_content get_children dt =
   in
     aux dt
 
+(*TODO: use int32 fields (when string conversions works !)*)
 type task = (*As there's no Calendar lib aviable, length is in hours, deadline is a number of days (relative to the current one) *)
-    { id : int32     ; msg : AXOWidgets.generic_widget ;
-      length : int   ; progress : int32        ; importance : int32  ;
-      deadline : int ; milestone : string      ; kind : string       ;
+    { id : int                ; msg : AXOWidgets.generic_widget ;
+      length : int option     ; progress : int option           ;
+      importance : int option ; deadline : int option           ;
+      milestone : string      ; kind : string                   ;
     }
 
 let get_task_tree root_task (*TODO: limit depth and dynamicly load the remaining branches*)=
@@ -157,61 +155,83 @@ let get_task_tree root_task (*TODO: limit depth and dynamicly load the remaining
       ]
       AXOCom.parse_xml
   in
-  (try AXOCom.check_for_error tree with Failure s -> AXOJs.blunt_alert s) ;
-  AXOJs.blunt_alert (tree >>> AXOCom.print_xml) ;
+  AXOCom.check_for_error tree ;
   let tree =
-    let get_attr n o = AXOJs.blunt_alert (o >>> AXOCom.print_xml) ; AXOJs.Node.get_attribute n o in
+    let get_attr n o =
+      o >>> JSOO.get "attributes" >>> JSOO.get n >>> JSOO.get "value" >>> JSOO.as_string
+    in
     tree_of_dom_tree
       (fun o ->
          let sid = o >>> get_attr "id" in
-         AXOJs.blunt_alert sid ;
          let msg_ = new AXOWidgets.widget_wrap (o >>> AXOJs.Node.child 0) in
          msg_#set_attribute "id" ("task" ^ sid) ;
          {
                   msg = msg_ ;
-               length = (o >>> get_attr "length"    ) >>> int_of_string   ;
-             progress = (o >>> get_attr "progress"  ) >>> Int32.of_string ;
-           importance = (o >>> get_attr "importance") >>> Int32.of_string ;
-             deadline = (o >>> get_attr "deadline"  ) >>> int_of_string   ;
+             progress = (o >>> get_attr "progress"  )
+                           >>> LOption.t_opt_of_string int_of_string ;
+           importance = (o >>> get_attr "importance")
+                           >>> LOption.t_opt_of_string int_of_string ;
+             deadline = (o >>> get_attr "deadline"  )
+                           >>> LOption.t_opt_of_string int_of_string   ;
             milestone = (o >>> get_attr "milestone" ) ;
                  kind = (o >>> get_attr "kind"      ) ;
-                   id = Int32.of_string sid ;
+               length = (o >>> get_attr "_length_" )
+                           >>> LOption.t_opt_of_string int_of_string   ;
+                   id = int_of_string sid ;
          } )
       (fun o ->
          if o >>> AXOJs.Node.n_children = 2
          then (o >>> AXOJs.Node.child 1) >>> AXOJs.Node.children
          else [] )
-      (tree >>> JSOO.get "documentElement" >>> JSOO.get "firstChild")
+      (tree >>> JSOO.get "documentElement")
   in
     tree
+
+let make_rw_line t =
+  let main = new AXOToolkit.li_widget_container in
+  let new_button = new AXOToolkit.inline_text_button "NEW" in
+    new_button#add_click_action
+      (fun () ->
+         new_task_pop_up t.id (Some (AXOStyle.Absolute, main#get_x, main#get_y))
+      ) ;
+    main#add_common (new_button :> AXOWidgets.common);
+    main#obj >>> JSOO.get "style" >>> JSOO.set "listStyleType" (AXOJs.string "none") ; (*TODO: make a High level version of that *)
+    main#add_common (t.msg :> AXOWidgets.common) ;
+    main#set_margin_left 200 ;
+    main
+
+let make_r_line t =
+  let main = new AXOToolkit.li_widget_container in
+    main#add_common (t.msg :> AXOWidgets.common) ;
+    main
 
 let main_tree root_task =
   let task_tree = get_task_tree root_task in
   let dom_tree =
     AXOToolkit.foldable_tree ~depth:3 ~persistent_as_container:true task_tree
       (fun t l f ->
-         let main = new AXOToolkit.li_container in
-           main#add_common (t.msg :> AXOWidgets.common) ;
          ((if l = []
            then
              ( (new AXOToolkit.inline_text_widget_button ~activated:false "x "
                ) :> AXOWidgets.generic_button )
            else
              ( (if f
-                then new AXOToolkit.cyclic_block_text_button "+ " ["- "]
-                else new AXOToolkit.cyclic_block_text_button "- " ["+ "]
+                then new AXOToolkit.cyclic_inline_text_button "+ " ["- "]
+                else new AXOToolkit.cyclic_inline_text_button "- " ["+ "]
                ) :> AXOWidgets.generic_button )
           ),
-          (new AXOToolkit.li_container),
+          ((make_rw_line t) :> AXOWidgets.generic_container),
           (new AXOToolkit.ul_container)
          )
       
       )
       (new AXOToolkit.ul_container)
   in
-  let root = AXOJs.Node.body >>> AXOJs.Node.get_element_by_id "ocsforge_task_tree" in
-  let container = new AXOWidgets.container_wrap root in
-    container#add_common (dom_tree :> AXOWidgets.common)
+(*  let container = new AXOWidgets.container_wrap
+       (AXOJs.Node.body >>> AXOJs.Node.get_element_by_id "ocsforge_task_tree")
+  in *)
+    AXOWidgets.body#add_common (dom_tree :> AXOWidgets.common)
+(*    container#add_common (dom_tree :> AXOWidgets.common) *)
 
 let _ = Eliom_obrowser_client.register_closure 189 main_tree
-let _ = AXOJs.alert ".uue loaded"
+let _ = AXOJs.alert ".uue loaded !"

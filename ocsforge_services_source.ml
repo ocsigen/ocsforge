@@ -89,7 +89,11 @@ let log_service path = Eliom_predefmod.Any.register_new_service
       Ocsforge_widgets_source.draw_log_table ~sp ~id ~file:None ~start_rev ~end_rev >>= fun pc ->
         Ocsforge_data.get_area_for_page sp id >>= fun r_infos ->
           let gen_box _ = 
-            Lwt.return (None,pc,Wiki_widgets_interface.Page_displayable,Some("Ocsforge - Repository history"))
+            Lwt.return
+              (None,
+               pc,
+               Wiki_widgets_interface.Page_displayable,
+               Some("Ocsforge - Repository history"))
           in
           Ocsisite.wikibox_widget#display_container 
             ~sp ~wiki:(r_infos.Ocsforge_types.r_wiki) ~menu_style:`Linear
@@ -101,21 +105,15 @@ let log_service path = Eliom_predefmod.Any.register_new_service
 
 
 let register_repository_services () = 
-  let rec register_list l = match l with
-    | [] -> Lwt.return ()
-    | h::t -> 
-        match h with
-        | None -> register_list t
-        | Some(page) -> 
-            begin
-              Ocsforge_services_hashtable.add_service 
-                page
-                {Sh.sources_service = source_service page;
-                 Sh.log_service = log_service page;
-               };
-              register_list t
-            end
-  in
   Ocsforge_sql.get_projects_path_list () >>= fun l ->
-    register_list l
+    Lwt_util.iter_serial
+      (fun page ->
+         Lwt.return (
+           Ocsforge_services_hashtable.add_service 
+             page
+             { Sh.sources_service = source_service page;
+               Sh.log_service = log_service page; }
+         )
+      )
+      l
 

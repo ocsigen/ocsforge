@@ -170,12 +170,16 @@ let period_of_string s =
     with Not_found -> 0
   in Calendar.Period.lmake ~day:days ~hour:hours ()
 
-(*rougthly print date values*)
-let string_of_date =
-  Printer.Date.to_string
+(* give the number of hours to go *)
+let hours_in_period p = 24 * (Date.Period.nb_days (Calendar.Period.to_date p))
 
-let date_of_string =
-  Printer.Date.from_string
+(*rougthly print date values*)
+let string_of_date = Printer.Date.to_string
+
+let date_of_string = Printer.Date.from_string
+
+(* get the number of day until the given date is reached *)
+let days_until d = Date.Period.nb_days (Date.sub d (Date.today ()))
 
 (* class deadlines into 10 groups *)
 let urgency d =

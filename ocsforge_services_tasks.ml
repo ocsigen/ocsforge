@@ -23,6 +23,7 @@ let ( >>= ) = Lwt.bind
 module Params = Eliom_parameters
 module Data = Ocsforge_data
 module Types = Ocsforge_types
+module Olang = Ocsforge_lang
 
 open CalendarLib
 
@@ -38,8 +39,8 @@ let set_length_service =
           Types.string_of_task
           "id") **
        (Params.user_type
-          (Ocsforge_lang.t_opt_of_string Ocsforge_lang.period_of_string)
-          (Ocsforge_lang.string_of_t_opt Ocsforge_lang.string_of_period)
+          (Olang.t_opt_of_string Olang.period_of_string)
+          (Olang.string_of_t_opt Olang.string_of_period)
           "length")
       )
     (* error_handler *)
@@ -56,8 +57,8 @@ let set_progress_service =
           Types.string_of_task
           "id") **
        (Params.user_type
-          (Ocsforge_lang.t_opt_of_string Int32.of_string)
-          (Ocsforge_lang.string_of_t_opt Int32.to_string)
+          (Olang.t_opt_of_string Int32.of_string)
+          (Olang.string_of_t_opt Int32.to_string)
           "progress")
       )
     (* error_handler *)
@@ -74,8 +75,8 @@ let set_importance_service =
           Types.string_of_task
           "id") **
        (Params.user_type
-          (Ocsforge_lang.t_opt_of_string Int32.of_string)
-          (Ocsforge_lang.string_of_t_opt Int32.to_string)
+          (Olang.t_opt_of_string Int32.of_string)
+          (Olang.string_of_t_opt Int32.to_string)
           "importance")
       )
     (* error_handler *)
@@ -92,8 +93,8 @@ let set_deadline_time_service =
           Types.string_of_task
           "id") **
        (Params.user_type
-          (Ocsforge_lang.t_opt_of_string Ocsforge_lang.date_of_string)
-          (Ocsforge_lang.string_of_t_opt Ocsforge_lang.string_of_date)
+          (Olang.t_opt_of_string Olang.date_of_string)
+          (Olang.string_of_t_opt Olang.string_of_date)
           "deadline_t")
       )
     (* error_handler *)
@@ -126,8 +127,8 @@ let set_kind_service =
           Types.string_of_task
           "id") **
        (Params.user_type
-          (Ocsforge_lang.t_opt_of_string (fun s -> s))
-          (Ocsforge_lang.string_of_t_opt (fun s -> s))
+          (Olang.t_opt_of_string (fun s -> s))
+          (Olang.string_of_t_opt (fun s -> s))
           "kind")
       )
     (* error_handler *)
@@ -146,28 +147,34 @@ let new_task_service =
         ((Params.string "subject") **
          ((Params.string "text") **
           ((Params.user_type
-              (Ocsforge_lang.t_opt_of_string Ocsforge_lang.period_of_string)
-              (Ocsforge_lang.string_of_t_opt Ocsforge_lang.string_of_period)
+              (Olang.t_opt_of_string
+                 (fun s -> Calendar.Period.hour (int_of_string s)))
+              (Olang.string_of_t_opt
+                 (fun p -> string_of_int (Olang.hours_in_period p)))
               "length") **
            ((Params.user_type
-               (Ocsforge_lang.t_opt_of_string Int32.of_string)
-               (Ocsforge_lang.string_of_t_opt Int32.to_string)
+               (Olang.t_opt_of_string Int32.of_string)
+               (Olang.string_of_t_opt Int32.to_string)
                "progress") **
             ((Params.user_type
-                (Ocsforge_lang.t_opt_of_string Int32.of_string)
-                (Ocsforge_lang.string_of_t_opt Int32.to_string)
+                (Olang.t_opt_of_string Int32.of_string)
+                (Olang.string_of_t_opt Int32.to_string)
                 "importance") **
              ((Params.user_type
-                  (Ocsforge_lang.t_opt_of_string Ocsforge_lang.date_of_string)
-                  (Ocsforge_lang.string_of_t_opt Ocsforge_lang.string_of_date)
+                  (Olang.t_opt_of_string
+                     (fun s ->
+                        Calendar.Date.add (Calendar.Date.today ())
+                          (Calendar.Date.Period.day (int_of_string s))))
+                  (Olang.string_of_t_opt
+                     (fun d -> string_of_int (Olang.days_until d)))
                   "deadline_t") **
               (((Params.user_type
-                   (Ocsforge_lang.t_opt_of_string (fun k -> k))
-                   (Ocsforge_lang.string_of_t_opt (fun k -> k))
+                   (Olang.t_opt_of_string (fun k -> k))
+                   (Olang.string_of_t_opt (fun k -> k))
                    "deadline_v") **
                ((Params.user_type
-                   (Ocsforge_lang.t_opt_of_string (fun k -> k))
-                   (Ocsforge_lang.string_of_t_opt (fun k -> k))
+                   (Olang.t_opt_of_string (fun k -> k))
+                   (Olang.string_of_t_opt (fun k -> k))
                    "kind")
                ))))))))))
     )
@@ -213,19 +220,27 @@ let register_dump_tree_service path il_widget task_widget =
                 ~gen_box:gen_box
                 >>= fun (html, code) -> Eliom_duce.Xhtml.send ~sp ~code html)
     
+type supported_format =
+  | Xml
+
 let register_xml_dump_services il_widget t_widget =
   Eliom_duce.Xml.register_new_post_coservice'
     ~name:"ocsforge_task_dump"
     ~post_params:(
       (  Params.int32 "root")
-       **(  (Params.regexp(*FIXME: give the real needed function*)
-                (Netstring_pcre.regexp "(xml)") "$1" (fun s -> s) "format")
+       **(  (Params.user_type
+               ~of_string:(
+                 fun s -> if s = "xml" then Xml else failwith "supported_format"
+               )
+               ~to_string:(fun Xml -> "xml")
+               "format"
+               )
           **(  (Params.opt (Params.int "depth")))
              **(Params.bool "with_deleted")
          )
     )
     (fun sp () (root, (fmt, (depth, with_deleted))) -> match fmt with
-       | "xml" ->
+       | Xml ->
            begin
              let root = Types.task_of_sql root in
              Ocsforge_data.get_tree
@@ -233,17 +248,10 @@ let register_xml_dump_services il_widget t_widget =
              Ocsforge_xml_tree_dump.xml_of_tree ~sp il_widget t >>= fun t ->
              Lwt.return (t : {{ Ocamlduce.Load.anyxml }})
            end
-       | _     -> failwith "Unsuported format") ;
-  let rec reg_aux = function
-    | [] -> Lwt.return ()
-    | h  :: t ->
-        match h with
-        | None -> reg_aux t
-        | Some(p) ->
-            (let _ = register_dump_tree_service p il_widget t_widget in reg_aux t)
-  in
+    ) ;
   Ocsforge_sql.get_projects_path_list () >>= fun l ->
-    reg_aux l
+  Lwt_util.iter_serial
+    (fun p -> register_dump_tree_service p il_widget t_widget ; Lwt.return ()) l
 
 
 
@@ -258,8 +266,8 @@ let set_repository_path_service =
           Types.string_of_right_area
           "id") **
        (Params.user_type
-          (Ocsforge_lang.t_opt_of_string (fun s -> s))
-          (Ocsforge_lang.string_of_t_opt (fun s -> s))
+          (Olang.t_opt_of_string (fun s -> s))
+          (Olang.string_of_t_opt (fun s -> s))
           "path")
       )
     (* error_handler *)
@@ -276,8 +284,8 @@ let set_repository_kind_service =
           Types.string_of_right_area
           "id") **
        (Params.user_type
-          (Ocsforge_lang.t_opt_of_string (fun s -> s))
-          (Ocsforge_lang.string_of_t_opt (fun s -> s))
+          (Olang.t_opt_of_string (fun s -> s))
+          (Olang.string_of_t_opt (fun s -> s))
           "kind")
       )
     (* error_handler *)
@@ -310,24 +318,24 @@ let new_project_service =
            "parent") **
         ((Params.string "name") **
           ((Params.user_type
-              (Ocsforge_lang.t_opt_of_string Ocsforge_lang.period_of_string)
-              (Ocsforge_lang.string_of_t_opt Ocsforge_lang.string_of_period)
+              (Olang.t_opt_of_string Olang.period_of_string)
+              (Olang.string_of_t_opt Olang.string_of_period)
               "length") **
            ((Params.user_type
-               (Ocsforge_lang.t_opt_of_string Int32.of_string)
-               (Ocsforge_lang.string_of_t_opt Int32.to_string)
+               (Olang.t_opt_of_string Int32.of_string)
+               (Olang.string_of_t_opt Int32.to_string)
                "progress") **
             ((Params.user_type
-                (Ocsforge_lang.t_opt_of_string Int32.of_string)
-                (Ocsforge_lang.string_of_t_opt Int32.to_string)
+                (Olang.t_opt_of_string Int32.of_string)
+                (Olang.string_of_t_opt Int32.to_string)
                 "importance") **
              ((Params.user_type
-                  (Ocsforge_lang.t_opt_of_string Ocsforge_lang.date_of_string)
-                  (Ocsforge_lang.string_of_t_opt Ocsforge_lang.string_of_date)
+                  (Olang.t_opt_of_string Olang.date_of_string)
+                  (Olang.string_of_t_opt Olang.string_of_date)
                   "deadline_t") **
                ((Params.user_type
-                   (Ocsforge_lang.t_opt_of_string (fun k -> k))
-                   (Ocsforge_lang.string_of_t_opt (fun k -> k))
+                   (Olang.t_opt_of_string (fun k -> k))
+                   (Olang.string_of_t_opt (fun k -> k))
                    "kind") **
                 ((Params.opt (Params.string "repo_kind")) **
                  (Params.opt (Params.string "repo_path"))

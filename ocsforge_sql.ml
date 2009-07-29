@@ -663,14 +663,7 @@ let get_projects_path_list () =
      (PGSQL(db)
         "SELECT pages FROM ocsforge_right_areas, wikis
         WHERE ocsforge_right_areas.wiki = wikis.id AND root_task IS NOT NULL;")
-     (*>>= fun l ->
-      Lwt.return (
-        Olang.filter_map
-          (function
-             | (Some p) -> Some (p, Types.task_of_sql n)
-             | _ -> None)
-          l
-      )*)
+     >>= fun l -> Lwt.return ( Olang.filter_map (fun x -> x) l )
   )
 
 
