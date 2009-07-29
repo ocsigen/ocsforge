@@ -27,7 +27,7 @@ module Services_ht = Ocsforge_services_hashtable
 module Params = Eliom_parameters
 module EDuce = Eliom_duce
 module Olang = Ocsforge_lang
-module FTypes = Forum_sql.Types
+module FTypes = Forum_types
 
 open CalendarLib
 

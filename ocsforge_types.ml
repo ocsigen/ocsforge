@@ -34,7 +34,7 @@ type task_history = task_history_arg Opaque.int32_t
 (** {3 For right tags : right management for project tree} *)
 type right_area_info = {
   r_id                   : right_area ;
-  r_forum                : Forum_sql.Types.forum ;
+  r_forum                : Forum_types.forum ;
   r_version              : string ;
   r_repository_kind      : string option ;
   r_repository_path      : string option ;
@@ -63,7 +63,7 @@ type raw_right_area_info =
 let get_right_area_info (id, forum_id, ver, kind, path, task, cont, wik) =
   {
     r_id                   = right_area_of_sql id ;
-    r_forum                = Forum_sql.Types.forum_of_sql forum_id ;
+    r_forum                = Forum_types.forum_of_sql forum_id ;
     r_version              = ver ;
     r_repository_kind      = kind ;
     r_repository_path      = path ;
@@ -80,7 +80,7 @@ type task_info = {
   t_id        : task;
   t_parent    : task;
 
-  t_message : Forum_sql.Types.message;
+  t_message : Forum_types.message;
 
   t_edit_author  : User_sql.Types.userid;
   t_edit_time    : Calendar.t;
@@ -132,7 +132,7 @@ let get_task_info
     t_id     = task_of_sql id;
     t_parent = task_of_sql parent_id;
 
-    t_message = Forum_sql.Types.message_of_sql message;
+    t_message = Forum_types.message_of_sql message;
 
     t_edit_author  = User_sql.Types.userid_from_sql edit_author;
     t_edit_time    = edit_time;

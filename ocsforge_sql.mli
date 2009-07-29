@@ -24,7 +24,7 @@
   *)
 val new_task :
   parent:Ocsforge_types.task ->
-  message:Forum_sql.Types.message ->
+  message:Forum_types.message ->
   creator:User_sql.Types.userid ->
   version:string ->
   ?length:CalendarLib.Calendar.Period.t ->
@@ -43,7 +43,7 @@ val new_task :
 * BEWARE : id must be unique, use [next_right_area_id]*)
 val new_area :
   ?id:Ocsforge_types.right_area ->
-  forum:Forum_sql.Types.forum ->
+  forum:Forum_types.forum ->
   ?version:string ->
   ?repository_kind:string ->
   ?repository_path:string ->
@@ -256,17 +256,17 @@ val get_projects_path_list :
 (**/**)
 val bootstrap_task :
   area:Ocsforge_types.right_area ->
-  message:Forum_sql.Types.message ->
+  message:Forum_types.message ->
   int32 Lwt.t
 val get_task_count :
   unit -> int Lwt.t
 val first_message :
-  forum:Forum_sql.Types.forum ->
+  forum:Forum_types.forum ->
   wiki:Wiki_types.wiki ->
   creator:User_sql.Types.userid ->
-  title_syntax:Wiki_types.content_type ->
+  title_syntax:'a Wiki_types.content_type ->
   text:string ->
-  content_type:Wiki_types.content_type -> Forum_sql.Types.message Lwt.t
+  content_type:'b Wiki_types.content_type -> Forum_types.message Lwt.t
 
 
 

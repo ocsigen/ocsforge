@@ -19,10 +19,21 @@
 
 open Ocsforge_wikiext_common
 
+let wikicreole_parser = Wiki_syntax.wikicreole_parser
+let reduced_wikicreole_parser0 = Wiki_syntax.reduced_wikicreole_parser0
+let reduced_wikicreole_parser1 = Wiki_syntax.reduced_wikicreole_parser1
+let reduced_wikicreole_parser2 = Wiki_syntax.reduced_wikicreole_parser2
+let inline_wikicreole_parser = Wiki_syntax.inline_wikicreole_parser
+
+let add_extension l ~name ~wiki_content f =
+  List.iter (fun wp -> 
+               Wiki_syntax.add_extension ~wp ~name ~wiki_content (f wp)) l
+
 let register_wikiext wp = 
-  Wiki_syntax.add_extension
-    ~wp ~name:"ocsforge_repository_tree" ~wiki_content:false
-    ((fun bi args content ->
+  add_extension
+    [wikicreole_parser; reduced_wikicreole_parser0; reduced_wikicreole_parser1]
+    ~name:"ocsforge_repository_tree" ~wiki_content:false
+    ((fun _wp bi args content ->
       Wikicreole.Block
 	(Lwt.catch
 	   (fun () ->
@@ -61,3 +72,24 @@ let register_wikiext wp =
 		 !{: Printexc.to_string exc :} ] ] }})
 	)
      ))
+
+
+let _ =
+  add_extension
+    [wikicreole_parser; reduced_wikicreole_parser0; reduced_wikicreole_parser1]
+    ~name:"code"
+    ~wiki_content:false
+    (fun _wp bi args c ->
+       Wikicreole.Block (
+         (match c with
+           | None -> Lwt.return {{ [] }}
+           | Some s -> 
+             let caml = try List.assoc "language" args = "ocaml" with _-> false in
+             let lexer =
+               if caml then Ocaml_lexer.token else Ocsforge_default_lexer.token in
+             let lexbuf = Lexing.from_string s in
+             Ocsforge_color.color2 lexbuf lexer >>= fun (_, r) -> Lwt.return r
+         ) >>= fun c ->
+         Lwt.return {{ [ <pre>{: c :} ] }})
+    )
+

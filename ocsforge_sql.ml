@@ -40,7 +40,7 @@ let new_task
   let deadline_time = Ocsforge_lang.apply_on_opted
                         CalendarLib.Calendar.from_date deadline_time in
   let parent_id     = Types.sql_of_task parent in
-  let message_id    = Forum_sql.Types.sql_of_message message in
+  let message_id    = Forum_types.sql_of_message message in
   let creator_id    = User_sql.Types.sql_from_userid creator in
   let area_id       = Types.sql_of_right_area area in
   let now           = CalendarLib.Calendar.now () in
@@ -79,7 +79,7 @@ let new_task
 
 let new_area ?id ~forum ?(version = "0.0") ?repository_kind ?repository_path
              ?wiki_container ~wiki () =
-  let forum = Forum_sql.Types.sql_of_forum forum in
+  let forum = Forum_types.sql_of_forum forum in
   let wiki_container = Olang.apply_on_opted
                          Wiki_types.sql_of_wikibox wiki_container
   in
@@ -599,7 +599,7 @@ let bootstrap_task ~area ~message =
     (fun db ->
        next_task_id db >>= fun id ->
        let id = Types.sql_of_task id in
-       let message = Forum_sql.Types.sql_of_message message in
+       let message = Forum_types.sql_of_message message in
        let area = Types.sql_of_right_area area in
        let version = "0" in
        let kind = "Forge" in
@@ -671,7 +671,7 @@ let first_message ~forum ~wiki ~creator ~title_syntax ~text ~content_type =
   let sticky = false in
   let moderated = false in
   let creator_id' = User_sql.Types.sql_from_userid creator in
-  let forum_id = Forum_sql.Types.sql_of_forum forum in
+  let forum_id = Forum_types.sql_of_forum forum in
   Sql.full_transaction_block
     (fun db ->
 
@@ -703,6 +703,6 @@ let first_message ~forum ~wiki ~creator ~title_syntax ~text ~content_type =
                       "Forum_sql.new_message: error in nextval(id) in table forums_messages"))
        ) >>= fun () -> 
       Sql.PGOCaml.serial4 db "forums_messages_id_seq" >>= fun s ->
-      Lwt.return (Forum_sql.Types.message_of_sql s)
+      Lwt.return (Forum_types.message_of_sql s)
     )
 

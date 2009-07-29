@@ -37,7 +37,7 @@ type task_history = task_history_arg Opaque.int32_t
 (** {5 info record} *)
 type right_area_info = {
   r_id                   : right_area ;
-  r_forum                : Forum_sql.Types.forum ;
+  r_forum                : Forum_types.forum ;
   r_version              : string ;
   r_repository_kind      : string option ;
   r_repository_path      : string option ;
@@ -66,7 +66,7 @@ val get_right_area_info : raw_right_area_info -> right_area_info
 type task_info = {
   t_id : task;
   t_parent : task;
-  t_message : Forum_sql.Types.message;
+  t_message : Forum_types.message;
   t_edit_author : User_sql.Types.userid;
   t_edit_time : CalendarLib.Calendar.t;
   t_edit_version : string;

@@ -85,6 +85,7 @@ static/vm.js: $(OBROWSERDIR)/vm.js
 	cp -f $(OBROWSERDIR)/vm.js static
 
 install:
+	$(OCAMLFIND) install ocsforge META ocsforge.cma ocsforge_svn.cma
 
 uninstall:
 	$(OCAMLFIND) remove ocsforge

@@ -25,12 +25,12 @@ let ($) = User_sql.Types.apply_parameterized_group
 
 let add_message ~forum () = 
   Forum_sql.get_forum ~forum () >>= fun f ->
-  let wiki = f.Forum_sql.Types.f_messages_wiki in
+  let wiki = f.Forum_types.f_messages_wiki in
   Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
   let content_type = 
     Wiki_models.get_default_content_type wiki_info.Wiki_types.wiki_model
   in
-  let title_syntax = f.Forum_sql.Types.f_title_syntax in
+  let title_syntax = f.Forum_types.f_title_syntax in
     Ocsforge_sql.first_message ~forum ~wiki ~creator:User.admin
       ~text:"ocsforge_first_task" ~title_syntax ~content_type
 
@@ -51,11 +51,11 @@ let first_task () = (*TODO: create forum manually instead of rellying on ocsicre
                                                           >>= fun (wiki,_) ->
       Wiki_sql.get_wiki_info_by_id wiki                   >>= fun wi ->
       Ocsforge_sql.new_area
-        ~forum:(fi.Forum_sql.Types.f_id)
+        ~forum:(fi.Forum_types.f_id)
         ~wiki:(wi.Wiki_types.wiki_id)
         ()
                                                           >>= fun area ->
-      add_message ~forum:(fi.Forum_sql.Types.f_id) ()     >>= fun message ->
+      add_message ~forum:(fi.Forum_types.f_id) ()     >>= fun message ->
       Ocsforge_sql.bootstrap_task
         ~area
         ~message                                          >>= fun task ->

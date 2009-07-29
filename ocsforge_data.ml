@@ -26,7 +26,7 @@
 
 module Roles = Ocsforge_roles
 module Types = Ocsforge_types
-module FTypes = Forum_sql.Types
+module FTypes = Forum_types
 module FRoles = Forum
 (*Can't compile without*)open Sql
 
@@ -451,7 +451,7 @@ let make_project ~sp ~task ?repository_kind ?repository_path () =
           Ocsforge_sql.get_task_by_id ~task_id:task db        >>= fun ti ->
           Ocsforge_sql.get_area_by_id ~area_id:area_old db    >>= fun ai ->
           Forum_sql.get_forum ~forum:ai.Types.r_forum ()      >>= fun fi ->
-          Wiki_sql.get_wiki_info_by_id fi.Forum_sql.Types.f_messages_wiki
+          Wiki_sql.get_wiki_info_by_id fi.Forum_types.f_messages_wiki
                                                               >>= fun wi ->
           let rights = Wiki_models.get_rights wi.Wiki_types.wiki_model in
             (* getting the wikibox *)
