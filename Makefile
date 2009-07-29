@@ -40,7 +40,32 @@ OCSIMOREOBROWSERDIR := $(shell ocamlfind query ocsimore.client)
 
 TOINSTALL := 
 
-STATICFILES := 
+STATICFILES := static/ocsimore_client.uue \
+	       static/accept.png\
+	       static/cross_octagon.png\
+	       static/message_error.png\
+	       static/ocsforge_tree.css\
+	       static/open_repository.png\
+	       static/source_file.png\
+	       static/up.png
+	       static/add.png\
+	       static/down.png\
+	       static/message_warning.png\
+	       static/ocsforge_tree_deadline.css\
+	       static/parent_directory.png\
+	       static/source_folder.png\
+	       static/application_side_list.png\
+	       static/highlighter.png\
+	       static/ocsforge_sources.css\
+	       static/ocsforge_tree_importance.css\
+	       static/pencil.png\
+	       static/sources_background.png\
+	       static/wand.png
+	       static/application_side_tree.png\
+	       static/magnifier.png\
+	       static/ocsforge_tree_complete.css\
+	       static/preview.png\
+	       static/sources_menu_item.png
 
 all: $(MYOCAMLFIND) ocsforge static/vm.js static/ocsimore_client.uue
 
@@ -83,9 +108,14 @@ static/ocsimore_client.uue:
 
 static/vm.js: $(OBROWSERDIR)/vm.js
 	cp -f $(OBROWSERDIR)/vm.js static
+	cp -f $(STATICDIR)/ocsiwikistyle.css static
+	cp -f $(STATICDIR)/ocsiwikiadmin.css static
+	cp -f $(STATICDIR)/creole_cheat_sheet.png static
+	cp -f $(STATICDIR)/crayon.png static
 
 install:
 	$(OCAMLFIND) install ocsforge META ocsforge.cma ocsforge_svn.cma
+	cp -f $(STATICFILES) $(STATICDIR)
 
 uninstall:
 	$(OCAMLFIND) remove ocsforge
