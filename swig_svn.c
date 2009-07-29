@@ -499,7 +499,6 @@ apr_array_header_t *svn_support_diff(char *rep_path,
 void svn_cstring_split_endline_append (apr_array_header_t *array,
 				       const char *input,
 				       apr_pool_t *pool) {
-  
   int start = 0, end;
   int len = strlen(input);
   for (end = 0; end < len; end++){
@@ -513,7 +512,6 @@ void svn_cstring_split_endline_append (apr_array_header_t *array,
     char *sub = apr_pstrndup(pool,(input+start),(len-start));
     *(char **)apr_array_push(array) = sub;
   }
-  *(char **)apr_array_push(array) = "\n";
 } 	
 
 /* fonction simulant la commande svn cat */  

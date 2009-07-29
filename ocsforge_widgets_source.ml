@@ -72,8 +72,25 @@ let sources_page_content sp version ~kind menu_content main_content services =
    ] }}
 
 
-let error (message:string) = 
-  Lwt.return {{ [<div class="error_message"> {: message :}] }}
+let error sp (message:string) = 
+  Lwt.return {{ 
+              [<div class="error_message"> [
+                <span class="message_title"> [
+                  <img alt="Error" 
+		    src={:Eliom_duce.Xhtml.make_uri ~sp
+			   ~service:(Eliom_services.static_dir ~sp)
+			   ["message_error.png"] :}>[]]
+                <p> {: message :} ]] }}
+
+let warning sp (message:string) = 
+  Lwt.return {{ 
+              [<div class="warning_message"> [
+                <span class="message_title">  [
+                  <img alt="Error" 
+		    src={:Eliom_duce.Xhtml.make_uri ~sp
+			   ~service:(Eliom_services.static_dir ~sp)
+			   ["message_warning.png"] :}>[]]
+                <p> {: message :}]] }}
 
 
 let cut_string s size = 
@@ -281,9 +298,9 @@ let create_repository_table_content ~sp ~id ~version ~dir ~project_services =
                              :}
                     !b ]] }})
              (function 
-               | Vm.Node_not_found -> error "Error: node not found"
-               | Vm.Revision_not_found -> error "Error: revision not found"
-               | _ -> error "Version manager internal error")
+               | Vm.Node_not_found -> error sp "File or directory not found"
+               | Vm.Revision_not_found -> error sp "Revision not found"
+               | _ -> error sp "Version manager internal error")
     | _ -> failwith "Unable to retrieve repository informations"
     
 	  
@@ -302,18 +319,25 @@ let create_source_code_content ~sp ~id ~file ~version =
           Lwt.try_bind 
             (fun () -> cat_call)
             (fun s -> 
-	      Ocsforge_color.color (Lexing.from_string s) file >>= 
-	      fun (lines,content) ->
-	        Lwt.return 
-		  ({{ [ <div class="source_code_container"> [
-                    <div class="left_lines">[<pre class="left_lines"> {: lines :}]
-		        <div class="source_code">[<pre class="color"> {: content :}]
-		            <div class="right_lines">[<pre class="right_lines"> {: lines :}]
-                     ]]}} : {{ [Xhtmltypes_duce.block*] }}))
+              if (String.length s = 0) then
+                warning sp "Empty result"
+              else 
+                let formatted = 
+                  if s.[String.length s - 1] != '\n' then (s^"\n")
+                  else s
+                in                                        
+	        Ocsforge_color.color (Lexing.from_string formatted) file >>= 
+	        fun (lines,content) ->
+	          Lwt.return 
+		    ({{ [ <div class="source_code_container"> [
+                      <div class="left_lines">[<pre class="left_lines"> {: lines :}]
+		          <div class="source_code">[<pre class="color"> {: content :}]
+		              <div class="right_lines">[<pre class="right_lines"> {: lines :}]
+                    ]]}} : {{ [Xhtmltypes_duce.block*] }}))
             (function 
-               | Vm.Node_not_found -> error "Error: node not found"
-               | Vm.Revision_not_found -> error "Error: revision not found"
-               | _ -> error "Version manager internal error")
+              | Vm.Node_not_found -> error sp "File or directory not found"
+              | Vm.Revision_not_found -> error sp "Revision not found"
+              | _ -> error sp "Version manager internal error")
     | (_,_) -> failwith "Unable to retrieve repository informations"
 
 
@@ -548,9 +572,9 @@ let create_log_table_content ~sp ~id ~file ~range ~project_services =
                                   <table class="log_table">
 		                    [!log_table_header !b]] }})
             (function 
-              | Vm.Node_not_found -> error "Error: node not found"
-              | Vm.Revision_not_found -> error "Error: revision not found"
-              | _ -> error "Version manager internal error")
+              | Vm.Node_not_found -> error sp "File or directory not found"
+              | Vm.Revision_not_found -> error sp "Revision not found"
+              | _ -> error sp "Version manager internal error")
     | _ -> failwith "Unable to retrieve repository informations"
 
 
@@ -596,9 +620,9 @@ let create_diff_view_content ~sp ~id ~file ~diff1 ~diff2 =
 					        :}]
 			       ] }} : {{ [Xhtmltypes_duce.block*] }}))
              (function 
-               | Vm.Node_not_found -> error "Error: node not found"
-               | Vm.Revision_not_found -> error "Error: revision not found"
-               | _ -> error "Version manager internal error")
+               | Vm.Node_not_found -> error sp "File or directory not found"
+               | Vm.Revision_not_found -> error sp "Revision not found"
+               | _ -> error sp "Version manager internal error")
             
     | _ -> failwith "Unable to retrieve repository informations"
 	
@@ -792,12 +816,12 @@ let create_file_page ~sp ~id ~target ~version ~log_start ~project_services =
 			       {{ [ log_links <table class="log_table"> [!log_table_header !log]] }})
 			        : ({{ [Xhtmltypes_duce.tr*] }}*{{ Xhtmltypes_duce.flows }})))
                 (fun _ ->
-                  error "Error: file not found" >>= fun c -> Lwt.return ({{ [] }},c)))
+                  error sp "File not found" >>= fun c -> Lwt.return ({{ [] }},c)))
 	    (fun exn ->
               let error_content = match exn with
-              | Vm.Node_not_found -> error "Error: node not found"
-              | Vm.Revision_not_found -> error "Error: revision not found"
-              | _ -> error "Version manager internal error"
+              | Vm.Node_not_found -> error sp "File or directory not found"
+              | Vm.Revision_not_found -> error sp "Revision not found"
+              | _ -> error sp "Version manager internal error"
               in error_content >>= fun content -> Lwt.return ({{ [] }},content))
     | _ -> failwith "Unable to retrieve repository informations"
 	  
@@ -872,9 +896,9 @@ let create_annotate_page ~sp ~id ~target ~version ~project_services =
                               ]
                             ] }})
             (function 
-              | Vm.Node_not_found -> error "Error: node not found"
-              | Vm.Revision_not_found -> error "Error: revision not found"
-              | _ -> error "Version manager internal error")
+              | Vm.Node_not_found -> error sp "File or directory not found"
+              | Vm.Revision_not_found -> error sp "Revision not found"
+              | _ -> error sp "Version manager internal error")
     | _ -> failwith "Unable to retrieve repository informations"
 	 
 
