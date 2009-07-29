@@ -192,10 +192,10 @@ let make_rw_line t =
   let new_button = new AXOToolkit.inline_text_button "NEW" in
     new_button#add_click_action
       (fun () ->
-         new_task_pop_up t.id (Some (AXOStyle.Absolute, main#get_x, main#get_y))
+         new_task_pop_up t.id (Some (AXOWidgets.Absolute, main#get_x, main#get_y))
       ) ;
     main#add_common (new_button :> AXOWidgets.common);
-    main#obj >>> JSOO.get "style" >>> JSOO.set "listStyleType" (AXOJs.string "none") ; (*TODO: make a High level version of that *)
+    main#set_style_property "listStyleType" "none" ;
     main#add_common (t.msg :> AXOWidgets.common) ;
     main#set_margin_left 200 ;
     main
