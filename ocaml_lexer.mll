@@ -43,7 +43,7 @@ let delimiter = ("{" | "}" | "(" | ")" | "[" | "]" | "( " )
 
 let comment = ("(*" | "(**")
 
-let newline_char = ['\n' '\r']
+let newline_char = ("\n" | "\r" | "\n\r" | "\r\n")
 
 let alpha = ['a'-'z''A'-'Z''0'-'9''_']+
 
@@ -138,8 +138,10 @@ and string start buf = parse
       { "" }
 
 {
-Ocsforge_color.setLexer "ml" token;
-Ocsforge_color.setLexer "mli" token;
-Ocsforge_color.setLexer "mll" token;
-Ocsforge_color.setLexer "mly" token
+Ocsforge_color.register_ext "ml" token;
+Ocsforge_color.register_ext "mli" token;
+Ocsforge_color.register_ext "mll" token;
+Ocsforge_color.register_ext "mly" token;
+Ocsforge_color.register_lang "caml" token;
+Ocsforge_color.register_lang "ocaml" token
 }

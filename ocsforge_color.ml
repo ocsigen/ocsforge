@@ -9,26 +9,35 @@ open Ocsforge_color_tokens
 (** la liste d'association (extension reconnue,fonction de lexing associée)*)
 let extList = ref []
 
-let setLexer extName lexFun = 
+(** la liste d'association (nom de langage,fonction de lexing associée)*)
+let langList = ref []
+
+let setLexer extName lexFun assoc_list = 
   try 
-    let _ = List.assoc extName (!extList) in
+    let _ = List.assoc extName (!assoc_list) in
     ()
   with Not_found ->
-    extList := ((extName,lexFun)::(!extList))
+    assoc_list := ((extName,lexFun)::(!assoc_list))
 	
 (** permet de récuperer la bonne fonction de lexing en fonction 
 de l'extension du nom de fichier en argument *)
-let getLexer fileName = 
+let getLexer fileName assoc_list = 
   let splitName = split (regexp "\\.") fileName in
-  let ext =
+  let key =
     if ((List.length splitName) > 1) then 
       List.nth splitName 1 
     else
-      ""
+      fileName
   in
   try 
-    List.assoc ext (!extList)
+    List.assoc key (!assoc_list)
   with Not_found -> Ocsforge_default_lexer.token (* le Lexer par défaut *)
+
+let register_ext extName lexFun = setLexer extName lexFun extList
+let get_ext_lexer fileName = getLexer fileName extList  
+
+let register_lang extName lexFun = setLexer extName lexFun langList
+let get_lang_lexer langName = getLexer langName langList
 
 let rec generate_lines_num nblines total_nb = 
   if (nblines == 0) then 
@@ -205,4 +214,5 @@ let rec color2 lexbuf lexer = match (lexer lexbuf) with
     
 
 
-let color lexbuf fileName = color2 lexbuf (getLexer fileName)
+let color_by_ext lexbuf fileName = color2 lexbuf (get_ext_lexer fileName)  
+let color_by_lang lexbuf lang_name = color2 lexbuf (get_lang_lexer lang_name)            

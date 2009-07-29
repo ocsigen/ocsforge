@@ -81,15 +81,19 @@ let _ =
     ~wiki_content:false
     (fun _wp bi args c ->
        Wikicreole.Block (
+        let sp = bi.Wiki_widgets_interface.bi_sp in
+        let () =  send_css_up "ocsforge_sources.css" sp in 
          (match c with
            | None -> Lwt.return {{ [] }}
            | Some s -> 
-             let caml = try List.assoc "language" args = "ocaml" with _-> false in
-             let lexer =
-               if caml then Ocaml_lexer.token else Ocsforge_default_lexer.token in
+             let lang = 
+               try List.assoc "language" args
+               with _ -> "" 
+             in
+             print_endline lang;
              let lexbuf = Lexing.from_string s in
-             Ocsforge_color.color2 lexbuf lexer >>= fun (_, r) -> Lwt.return r
+             Ocsforge_color.color_by_lang lexbuf lang >>= fun (_, r) -> Lwt.return r
          ) >>= fun c ->
-         Lwt.return {{ [ <pre>{: c :} ] }})
+         Lwt.return {{ [ <pre class="color">{: c :} ] }})
     )
 

@@ -339,7 +339,7 @@ let create_source_code_content ~sp ~id ~file ~version =
                   if s.[String.length s - 1] != '\n' then (s^"\n")
                   else s
                 in                                        
-	        Ocsforge_color.color (Lexing.from_string formatted) file >>= 
+	        Ocsforge_color.color_by_ext (Lexing.from_string formatted) file >>= 
 	        fun (lines,content) ->
 	          Lwt.return 
 		    ({{ [ <div class="source_code_container"> [
