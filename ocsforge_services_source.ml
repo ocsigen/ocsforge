@@ -59,7 +59,7 @@ let source_service path = Eliom_predefmod.Any.register_new_service
 	      (Some("Ocsforge - File content"),
                Ocsforge_widgets_source.draw_source_code_view ~sp ~id ~target:l ~version)
 	| _ -> 
-            (None,Ocsforge_widgets_source.draw_source_code_view ~sp ~id ~target:[] ~version:None)
+            (Some("Ocsforge - wrong URL"),Ocsforge_widgets_source.draw_wrong_url_page ~sp ~id)
       in
       page_content >>= fun pc ->
       Ocsforge_data.get_area_for_page sp id >>= fun r_infos ->

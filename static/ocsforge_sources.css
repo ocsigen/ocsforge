@@ -185,14 +185,14 @@ body { font-family: arial, sans-serif; }
 /** Repository content informations */
 
 table.sources_table{
-    width: 90%;
+    width: 95%;
     heigth: 100%;
     border-collapse:collapse;
     text-align:left;
 }
 
 table.log_table {
-    width: 90%;
+    width: 95%;
     heigth: 100%;
     border-collapse:collapse;
     text-align:left;
@@ -414,7 +414,7 @@ span.annot:hover {
 
 table.log_links {
     font-size:small;
-    width: 90%;
+    width: 95%;
     text-align:center;
 }
 

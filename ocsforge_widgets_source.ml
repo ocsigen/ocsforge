@@ -955,7 +955,7 @@ let draw_repository_table ~sp ~id ~version ~dir =
       let (current_dir,current_dir_path) = build_path path in
       let a = (path_title ~sp ~path:current_dir_path ~version ~title:"" ~ps) in
       table >>= fun b ->
-        let menu_content = {{[] }}
+        let menu_content = {{ [] }}
 	in
         Lwt.return ({{  [<div class="path"> [ !a <span> {: current_dir :} 
                                                 <span> {: title :}]
@@ -1006,7 +1006,7 @@ let draw_source_code_view ~sp ~id ~target ~version =
                        <div class="path"> [ !a <span> {: current_dir :} 
                                                 <span> {: (" @ "^dir_version) :}]
                            <br> []
-		       	   {{ (sources_page_content sp version ~kind:(`Cat(version)) menu_content b ps) }}] }} 
+		       	   {{ (sources_page_content sp version ~kind:`Cat menu_content b ps) }}] }} 
 		      : {{ Xhtmltypes_duce.flows }})
           
 
@@ -1075,7 +1075,7 @@ let draw_diff_view ~sp ~id ~target ~diff1 ~diff2 =
         Lwt.return ({{ [   
                        <div class="path"> [ !a <span> {: current_dir :}]
                        <br> []
-		       {{ (sources_page_content sp None ~kind:(`Diff(diff1,diff2)) menu_content b ps) }} ]}} 
+		       {{ (sources_page_content sp None ~kind:`Diff menu_content b ps) }} ]}} 
                       : {{ Xhtmltypes_duce.flows }})
           
 
@@ -1094,7 +1094,7 @@ let draw_file_page ~sp ~id ~target ~version ~log_start =
         Lwt.return ({{ [ 
 		       <div class="path"> [ !a <span> {: (current_dir^" @ "^str_version) :}]
                            <br> []
-                           {{ (sources_page_content sp version ~kind:(`Options(version)) menu_content page_content ps) }}] }}
+                           {{ (sources_page_content sp version ~kind:`Options menu_content page_content ps) }}] }}
                       : {{ Xhtmltypes_duce.flows }})
           
 
@@ -1136,5 +1136,16 @@ let draw_annotate ~sp ~id ~target ~version =
         Lwt.return ({{ [
                        <div class="path"> [ !a <span> {: (current_dir^" @ "^file_version) :}]
                            <br> []
-                       	   {{ (sources_page_content sp version ~kind:(`Annot(file_version)) menu_content b ps) }}]}} 
+                       	   {{ (sources_page_content sp version ~kind:`Annot menu_content b ps) }}]}} 
+                      : {{ Xhtmltypes_duce.flows }})
+
+let draw_wrong_url_page ~sp ~id = match Sh.find_service id with
+  | None -> failwith "Project services not found"
+  | Some(ps) ->
+      let menu_content = {{ [] }} in
+      warning sp "Wrong URL parameters" >>= fun b ->
+        Lwt.return ({{ [
+                       <div class="path"> [<span> {:"Error - malformed URL":}]
+                           <br> []
+                       	   {{ (sources_page_content sp None ~kind:`Error menu_content b ps) }}]}} 
                       : {{ Xhtmltypes_duce.flows }})
