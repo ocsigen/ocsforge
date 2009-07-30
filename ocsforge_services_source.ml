@@ -40,35 +40,73 @@ let source_service path = Eliom_predefmod.Any.register_new_service
     (fun sp (file,(view,(v1,v2))) () -> 
       let () =  Ocsforge_wikiext_common.send_css_up "ocsforge_sources.css" sp in
       let id = path in 
-      let (title,page_content) = match (file,(view,(v1,v2))) with
+      (match (file,(view,(v1,v2))) with
         | (l,(None,(version,_))) ->
             begin match l with
             | [] | [""] ->
-                (Some("Ocsforge - Repository browser"),
-                 Ocsforge_widgets_source.draw_repository_table ~sp ~id ~version ~dir:None)
+                Ocsforge_widgets_source.draw_repository_table 
+                  ~sp 
+                  ~id 
+                  ~version 
+                  ~dir:None >>= fun r ->
+                  Lwt.return (Some("Ocsforge - Repository browser"),r)
             | _ ->
-                (Some("Ocsforge - Repository browser"),
-                 Ocsforge_widgets_source.draw_repository_table ~sp ~id ~version ~dir:(Some(l)))
+                Lwt.catch
+                  (fun () ->
+                    Ocsforge_widgets_source.draw_repository_table 
+                      ~sp 
+                      ~id 
+                      ~version 
+                      ~dir:(Some(l)) >>= fun r ->
+                      Lwt.return (Some("Ocsforge - Repository browser"), r))
+                  (function 
+                    | Vm.Wrong_node_kind -> 
+                        Ocsforge_widgets_source.draw_source_code_view 
+                          ~sp 
+                          ~id 
+                          ~target:l 
+                          ~version >>= fun r ->
+                          Lwt.return (Some("Ocsforge - File content"), r)
+                    | e -> Lwt.fail e)
             end
 	| (l,(Some(`Diff),(Some(diff1),Some(diff2)))) ->
-	    (Some("Ocsforge - File diff"),
-             Ocsforge_widgets_source.draw_diff_view ~sp ~id ~target:l ~diff1 ~diff2)
+	    Ocsforge_widgets_source.draw_diff_view 
+              ~sp 
+              ~id 
+              ~target:l 
+              ~diff1 
+              ~diff2 >>= fun r ->
+              Lwt.return (Some("Ocsforge - File diff"),r)
         | (l,(Some(`Options),(version,log_start))) -> 
-	    (Some("Ocsforge - File browser"),
-             Ocsforge_widgets_source.draw_file_page ~sp ~id ~target:l ~version ~log_start)
-	| (l,(Some(`Annot),(version,_))) ->
-            (Some("Ocsforge - File annotate"),
-             Ocsforge_widgets_source.draw_annotate ~sp ~id ~target:l ~version)
-	| (l,(Some(`Cat),(version,_))) ->
-	      (Some("Ocsforge - File content"),
-               Ocsforge_widgets_source.draw_source_code_view ~sp ~id ~target:l ~version)
-	| _ -> 
-            (Some("Ocsforge - wrong URL"),Ocsforge_widgets_source.draw_wrong_url_page ~sp ~id)
-      in
-      page_content >>= fun pc ->
+	    Ocsforge_widgets_source.draw_file_page 
+              ~sp 
+              ~id 
+              ~target:l 
+              ~version 
+              ~log_start >>= fun r ->
+              Lwt.return (Some("Ocsforge - File browser"),r)
+        | (l,(Some(`Annot),(version,_))) ->
+            Ocsforge_widgets_source.draw_annotate 
+              ~sp 
+              ~id 
+              ~target:l 
+              ~version >>= fun r ->
+              Lwt.return (Some("Ocsforge - File annotate"),r)
+        | (l,(Some(`Cat),(version,_))) ->
+	    Ocsforge_widgets_source.draw_source_code_view 
+              ~sp 
+              ~id 
+              ~target:l 
+              ~version >>= fun r ->
+            Lwt.return (Some("Ocsforge - File content"),r)
+        | _ -> 
+            Ocsforge_widgets_source.draw_wrong_url_page ~sp ~id >>= fun r ->
+            Lwt.return (Some("Ocsforge - wrong URL"),r)
+      ) >>= fun (title,page_content) ->
+      (*page_content >>= fun pc ->*)
       Ocsforge_data.get_area_for_page sp id >>= fun r_infos ->
       let gen_box _ = 
-            Lwt.return (None,pc,Wiki_widgets_interface.Page_displayable,title)
+            Lwt.return (None,page_content,Wiki_widgets_interface.Page_displayable,title)
       in
       Ocsisite.wikibox_widget#display_container 
             ~sp ~wiki:(r_infos.Ocsforge_types.r_wiki) ~menu_style:`Linear
@@ -90,7 +128,7 @@ let log_service path = Eliom_predefmod.Any.register_new_service
         | None -> (None,None)
         | Some(sr,er) -> (sr,er)
       in
-      Ocsforge_widgets_source.draw_log_table ~sp ~id ~file:None ~start_rev ~end_rev >>= fun pc ->
+      Ocsforge_widgets_source.draw_log_page ~sp ~id ~file:None ~start_rev ~end_rev >>= fun pc ->
         Ocsforge_data.get_area_for_page sp id >>= fun r_infos ->
           let gen_box _ = 
             Lwt.return

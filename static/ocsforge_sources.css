@@ -104,6 +104,11 @@ span.menu_form_title {
 
 /* Global styles */
 
+a.ocsforge_default_link {
+    font-size: small;
+    font-family: arial,sans-serif;
+}
+
 div.error_message {
     float: left;
     border: 2px solid red;
@@ -198,6 +203,7 @@ table.log_table {
     text-align:left;
 }
 
+
 table.log_table tr {
     height: 40px;
 }
@@ -238,6 +244,7 @@ th.sources_table {
     border:1px solid #BBBBBB;
     color: #53185B;
     background-color:#EEE;
+    text-align: center;
 }
 
 tr.folder {
@@ -417,6 +424,7 @@ table.log_links {
     width: 95%;
     text-align:center;
 }
+
 
 td.middle {
     color: white;
