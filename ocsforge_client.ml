@@ -20,18 +20,20 @@
 open AXOLang
 let (>>>) x f = f x
 
+
 (*poping up the new task form*)
 let new_task_pop_up id =
 
   (* Base bricks *)
   let form = new AXOToolkit.vbox in
   let popup = new AXOToolkit.popup form in
-  let details = new AXOToolkit.block_container in
+  let details = new AXOToolkit.block_widget_container in
   let more = new AXOToolkit.block_foldable
-    ( (new AXOToolkit.inline_text_button "More options")
-                           :> AXOWidgets.generic_button)
+    ( (new AXOToolkit.cyclic_inline_text_button
+         "More options" [ "Less options" ]
+      ) :> AXOWidgets.generic_button)
     (new AXOToolkit.inline_container)
-    details
+    (details :> AXOWidgets.generic_container)
   in
 
   (* "More options" fields *)
@@ -68,6 +70,9 @@ let new_task_pop_up id =
   let kind_select =
   in  *)
 
+  (* populating details and fixing some visual effects *)
+  more#set_margin_left 10 ;
+  details#set_style_property "border" "1px solid" ;
   details#add_common (AXOToolkit.text "importance : ") ;
   details#add_common (importance_select :> AXOWidgets.common) ;
   details#add_common (new AXOToolkit.br) ;
@@ -144,6 +149,19 @@ type task = (*As there's no Calendar lib aviable, length is in hours, deadline i
       milestone : string      ; kind : string                   ;
     }
 
+let editable_details_popup t =
+  let content = new AXOToolkit.block_container in
+  let fields_n_message = new AXOToolkit.block_widget_container in
+  let fields = new AXOToolkit.block_container in
+  let message = AXOToolkit.text "" in
+
+    content#add_common (t.msg :> AXOWidgets.common) ;
+    content#add_common (fields_n_message :> AXOWidgets.common) ;
+
+  let popup = new AXOToolkit.popup content in
+    popup#show
+
+
 let get_task_tree root_task (*TODO: limit depth and dynamicly load the remaining branches*)=
   let tree = (*TODO: catch error on 1xx, 3xx, 4xx, 5xx*)
     AXOCom.dynload_post "./" 
@@ -188,16 +206,33 @@ let get_task_tree root_task (*TODO: limit depth and dynamicly load the remaining
     tree
 
 let make_rw_line t =
+  (* The whole line container *)
   let main = new AXOToolkit.li_widget_container in
-  let new_button = new AXOToolkit.inline_text_button "NEW" in
-    new_button#add_click_action
-      (fun () ->
-         new_task_pop_up t.id (Some (AXOWidgets.Absolute, main#get_x, main#get_y))
-      ) ;
-    main#add_common (new_button :> AXOWidgets.common);
+  (* The other columns *)
+  let new_button = new AXOToolkit.inline_text_widget_button "NEW" in
+    new_button#add_click_action ( fun () -> new_task_pop_up t.id None ) ;
+    new_button#set_position AXOWidgets.Absolute ; (* Fixed ???*)
+    new_button#set_x 0 ;
+  let importance = new AXOToolkit.auto_update_select
+      (LOption.string_of_t_opt string_of_int)
+      (LOption.t_opt_of_string int_of_string)
+      t.importance
+      (LList.t_opt_list_of_t_list
+         (LList.int_interval_list ~bump:5 ~min:0 ~max:100 ()))
+      "importance" "./"
+      [
+        ("id", string_of_int t.id) ;
+        ("__eliom_na__name", "ocsforge_set_importance")
+      ]
+  in
+    importance#set_position AXOWidgets.Absolute ;
+    importance#set_x 50 ;
+
+  (* The mash up *)
     main#set_style_property "listStyleType" "none" ;
+    main#add_common (new_button :> AXOWidgets.common) ;
+    main#add_common (importance :> AXOWidgets.common) ;
     main#add_common (t.msg :> AXOWidgets.common) ;
-    main#set_margin_left 200 ;
     main
 
 let make_r_line t =
@@ -207,7 +242,6 @@ let make_r_line t =
 
 let main_tree root_task =
   let task_tree = get_task_tree root_task in
-  let dom_tree =
     AXOToolkit.foldable_tree ~depth:3 ~persistent_as_container:true task_tree
       (fun t l f ->
          ((if l = []
@@ -221,17 +255,33 @@ let main_tree root_task =
                ) :> AXOWidgets.generic_button )
           ),
           ((make_rw_line t) :> AXOWidgets.generic_container),
-          (new AXOToolkit.ul_container)
+          (let u = new AXOToolkit.ul_widget_container in
+             u#set_style_property "margin" "0px" ;
+             (u :> AXOWidgets.generic_container)
+          )
          )
       
       )
-      (new AXOToolkit.ul_container)
-  in
-(*  let container = new AXOWidgets.container_wrap
-       (AXOJs.Node.body >>> AXOJs.Node.get_element_by_id "ocsforge_task_tree")
-  in *)
-    AXOWidgets.body#add_common (dom_tree :> AXOWidgets.common)
-(*    container#add_common (dom_tree :> AXOWidgets.common) *)
+      (new AXOToolkit.block_container)
 
-let _ = Eliom_obrowser_client.register_closure 189 main_tree
+
+let show_window task =
+  let c = new AXOToolkit.vbox in
+
+    let t = new AXOToolkit.inline_widget_container in
+      t#set_margin_left 300 ;
+      t#add_common (let tt = new AXOToolkit.inline_text "importance" in
+                      tt#set_position AXOWidgets.Absolute ;
+                      tt#set_x 50 ;
+                      tt :> AXOWidgets.common ) ;
+      t#add_common (AXOToolkit.text "Tasks") ;
+    c#add_common ( t :> AXOWidgets.common) ;
+
+    let m = main_tree task in
+      m#set_margin_left 300 ;
+    c#add_common ( m :> AXOWidgets.common ) ;
+
+    AXOWidgets.body#add_common (c :> AXOWidgets.common)
+
+let _ = Eliom_obrowser_client.register_closure 189 show_window
 let _ = AXOJs.alert ".uue loaded !"

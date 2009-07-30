@@ -50,7 +50,7 @@ let string_of_t_opt string_of_t =
 let t_opt_of_string t_of_string =
   (function
      | "" -> None
-     | s  -> Some (t_of_string (Str.matched_group 1 s)))
+     | s  -> Some (t_of_string s))
 
 
 (*List functions*)

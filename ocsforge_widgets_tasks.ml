@@ -36,21 +36,7 @@ let run i arg = "caml_run_from_table (main_vm,"
               ^ (string_of_int i) ^ ","
               ^ (Eliom_obrowser.jsmarshal arg) ^ ")"
 
-let draw_message_title ~sp ~message
-      (inline_widget : Wiki_widgets_interface.frozen_wikibox) =
-  Forum_data.get_message ~sp ~message_id:message >>= fun minfo ->
-  match minfo.FTypes.m_subject with
-    | None -> failwith "FIXME: manage error better"
-    | Some s -> (*TODO: get rid of Wiki_sql uses *)
-        Wiki_sql.wikibox_wiki minfo.FTypes.m_wikibox  >>= fun wiki ->
-        Wiki_sql.get_wiki_info_by_id wiki      >>= fun winfo ->
-        let rights = Wiki_models.get_rights winfo.Wiki_types.wiki_model in
-        Wiki.default_bi ~sp ~wikibox:s ~rights >>= fun bi ->
-        inline_widget#display_frozen_wikibox ~bi ~classes:[] ~wikibox:s
-          >>= function (*TODO: don't use this exception prone match *)
-                | {{ <div class=_>[ <h1>[ <span>[ (x::_)* ]]] }} -> Lwt.return {{ <span>[ !x ] }}
-                | {{ a }}            -> (Ocamlduce.Print.print_xml print_endline a ; failwith "Not an h1 message title")
-
+let draw_message_title ~sp ~task = Data.find_subject ~sp ~task
 
 (** draw a select field for optional values.
 * If a list of alternative is provided, it makes it selectable.*)
@@ -223,9 +209,6 @@ object (self)
                :}
         ] ] ] }} : {{ [ Xhtmltypes_duce.thead ] }} )
 
-  method private task_snippet ~sp ~message inline_widget =
-    draw_message_title ~sp ~message inline_widget
-
   method private show_static_field ~field ~task:t =
     {{ <td>
         {: let f = Olang.string_of_t_opt in
@@ -247,16 +230,15 @@ object (self)
     }}
 
 
-  method private display_noscript ~sp ~root_task inline_widget =
+  method private display_noscript ~sp ~root_task =
     let fields =
       ["length" ; "importance" ; "deadline_version" ; "deadline_time" ; "kind" ]
     in
     Data.get_tree ~sp ~root:root_task () >>= fun tree ->
-      let show_line ~task:t =
-        self#task_snippet ~sp ~message:t.Types.t_message inline_widget
-                                                               >>= fun snip ->
-        Data.get_area ~sp ~area:t.Types.t_area >>= fun ainfo ->
-        Wiki_sql.get_wiki_info_by_id ainfo.Types.r_wiki >>= fun winfo ->
+      let show_line ~task = draw_message_title ~sp ~task:task.Types.t_id
+                                                          >>= fun snip ->
+        Data.get_area ~sp ~area:task.Types.t_area         >>= fun ainfo ->
+        Wiki_sql.get_wiki_info_by_id ainfo.Types.r_wiki   >>= fun winfo ->
           (match winfo.Wiki_types.wiki_pages with
           | None -> Lwt.return ({{ [ ] }} : {{ [Xhtmltypes_duce.a*] }})
           | Some(pages) ->
@@ -271,12 +253,12 @@ object (self)
                             :} ] }} ))
                                                          >>= fun repo_link ->
         Lwt_util.map_serial
-          (fun field -> Lwt.return ( self#show_static_field ~field ~task:t ) )
+          (fun field -> Lwt.return ( self#show_static_field ~field ~task ) )
           fields
                                                           >>= fun fields ->
         Lwt.return
             {{ <tr>[
-                 <th align="left">[ snip ]
+                 <th align="left">[ !{: to_utf8 snip :} ]
                  <td>[ !repo_link ]
                  !{: fields :}
             ] }}
@@ -305,13 +287,19 @@ object (self)
           Lwt.return
             ( ( {{ <table>[ !head !core ] }} ) : {{ Xhtmltypes_duce.table }})
 
-  method display ~sp ~root_task inline_widget =
-    ( self#display_noscript ~sp ~root_task inline_widget ) >>= fun ns ->
-      Ocsimore_page.add_obrowser_header sp ;
-(*      Ocsimore_page.add_onload_function sp (run 189 root_task) ; *)
-    Lwt.return
-      ({{ [ <div id="ocsforge_task_tree">[ <span onclick={: run 189 root_task :} >[ !{: to_utf8 "toto" :} ] <noscript>[ ns ] ] ] }}
-         : {{ Xhtmltypes_duce.flows }} )
+  method display ~sp ~root_task =
+    Lwt.catch
+      (fun () ->
+         (self#display_noscript ~sp ~root_task) >>= fun ns ->
+         Ocsimore_page.add_obrowser_header sp ;
+(*       Ocsimore_page.add_onload_function sp (run 189 root_task) ; *)(*FIXME*)
+         Lwt.return
+           ({{ [ <div id="ocsforge_task_tree">[ <span onclick={: run 189 root_task :} >[ !{: to_utf8 "toto" :} ] <noscript>[ ns ] ] ] }}
+            : {{ Xhtmltypes_duce.flows }} ))
+      (function
+         | Types.Tree.Empty_tree -> Lwt.return
+             {{ [ <div id="ocsforge_task_tree">[ 'No task in tree' ] ] }}
+         | exc -> Lwt.fail exc )
 
 end
 

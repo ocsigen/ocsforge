@@ -78,7 +78,7 @@ let new_project ~sp ~parent ~name
   !!(role.Roles.subarea_creator)                          >>= fun b ->
   if not b
   then
-    raise Ocsimore_common.Permission_denied
+    Lwt.fail Ocsimore_common.Permission_denied
   else
     Sql.full_transaction_block
       (fun db ->
@@ -231,7 +231,7 @@ let get_tree ~sp ~root ?with_deleted ?depth () = (*TODO: use depth for sql trans
     (Ocsforge_sql.get_tasks_in_tree ~root ?with_deleted ())
     >>= (filter_task_list_for_reading sp)
     >>= function
-      | []       -> raise Types.Tree.Empty_tree
+      | []       -> Lwt.fail Types.Tree.Empty_tree
       | hd :: tl ->
           let rec aux tree = function
             | []   -> Lwt.return tree
@@ -608,3 +608,13 @@ let swap_kinds ~sp ~area ~kinds =
     Sql.full_transaction_block
       (Ocsforge_sql.swap_kinds_for_area ~area_id:area ~kinds)
   else Lwt.fail Ocsimore_common.Permission_denied
+
+(** For digging up the subject of a task('s forum message) *)
+let find_subject ~sp ~task =
+  do_sql (Ocsforge_sql.get_area_for_task ~task_id:task)   >>= fun area ->
+  Roles.get_area_role ~sp area                            >>= fun role ->
+  !!(role.Roles.task_reader)                              >>= fun b ->
+    if b
+    then Ocsforge_sql.find_subject_content ~task
+    else Lwt.fail Ocsimore_common.Permission_denied
+  

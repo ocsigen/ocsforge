@@ -213,10 +213,11 @@ val swap_kinds :
   area:Ocsforge_types.right_area ->
   kinds:(string * string) list -> unit Lwt.t
 
-
-
-
-
+(** Getting a task's forum message content. *)
+val find_subject :
+  sp:Eliom_sessions.server_params ->
+  task:Ocsforge_types.task ->
+  string Lwt.t
 
 
 

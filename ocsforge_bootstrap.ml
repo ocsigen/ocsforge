@@ -100,24 +100,20 @@ let _ =
   let tree_widget = new Ocsforge_widgets_tasks.tree_widget in
 (*let new_task_widget = new Ocsforge_widgets.new_task_widget in*)
   let error_box = new Widget.widget_with_error_box in
-  let inline_widget = new Wiki_widgets.frozen_wikibox error_box in
   begin
 
     Printf.printf "registering ocsforge services\n%!" ;
     let _ = Lwt_unix.run
               (Ocsforge_services_source.register_repository_services ())
     and _ = Lwt_unix.run
-              (Ocsforge_services_tasks.register_xml_dump_services
-                 inline_widget
-                 tree_widget)
+              (Ocsforge_services_tasks.register_xml_dump_services tree_widget)
     in
     Printf.printf "done registering ocsforge services\n%!" ;
 
     Printf.printf "registering ocsforge wiki extensions\n%!" ;
     Ocsforge_wikiext_tasks.register_wikiext
       Wiki_syntax.wikicreole_parser
-      tree_widget
-      inline_widget ;
+      tree_widget ;
     Ocsforge_wikiext_source.register_wikiext 
       Wiki_syntax.wikicreole_parser ;
     Printf.printf "done registering ocsforge wikiextensions\n%!" ;

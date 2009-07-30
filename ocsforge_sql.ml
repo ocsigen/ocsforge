@@ -594,6 +594,25 @@ let adapt_to_project_spawn ~spawning ~new_area ~old_area =
 
 
 (**/**)
+
+let find_subject_content ~task =
+  let task = Types.sql_of_task task in
+  Sql.full_transaction_block
+    (fun db ->
+       PGSQL(db)
+         "SELECT content
+          FROM wikiboxescontent
+          WHERE wikibox = (SELECT subject
+                           FROM forums_messages
+                           WHERE id = (SELECT message
+                                       FROM ocsforge_tasks
+                                       WHERE id = $task))"
+    >>= Ocsforge_lang.apply_on_uniq_or_fail
+          "Ocsforge_sql.find_subject_content"
+          Lwt.return
+    >>= fun s -> Lwt.return (Ocsforge_lang.unopt ~default:"" s)
+    )
+
 let bootstrap_task ~area ~message =
   Sql.full_transaction_block
     (fun db ->
@@ -614,6 +633,10 @@ let bootstrap_task ~area ~message =
            kind, area, tree_min, tree_max, area_root)
          VALUES ($id, $id, $message, $author, $now, $version, \
                  $kind, $area, $tmin, $tmax, $root)" >>= fun _ ->
+       PGSQL(db)
+         "UPDATE ocsforge_right_areas \
+          SET root_task = $id \
+          WHERE id = $area" >>= fun _ ->
        Lwt.return id)
 
 let get_task_count () =

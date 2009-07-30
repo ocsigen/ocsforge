@@ -254,6 +254,9 @@ val get_projects_path_list :
 
 
 (**/**)
+val find_subject_content :
+  task:Ocsforge_types.task ->
+  string Lwt.t
 val bootstrap_task :
   area:Ocsforge_types.right_area ->
   message:Forum_types.message ->
