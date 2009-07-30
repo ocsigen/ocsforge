@@ -5,6 +5,8 @@
 #include "svn_pools.h"
 #include "svn_string.h"
 #include "svn_fs.h"
+#include "svn_error.h"
+#include "apr_errno.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include "swig_svn.h"

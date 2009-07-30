@@ -30,17 +30,18 @@ let source_service path = Eliom_predefmod.Any.register_new_service
     ~get_params:
     (Params.suffix_prod
        (Params.all_suffix "file")
-       (Params.user_type
+       (Params.opt (
+          Params.user_type
           Sh.string_to_kind 
           Sh.kind_to_string
-          "view" **
+          "view") **
           (Params.opt (Params.string "version") **
              (Params.opt (Params.string "to")))))
     (fun sp (file,(view,(v1,v2))) () -> 
       let () =  Ocsforge_wikiext_common.send_css_up "ocsforge_sources.css" sp in
       let id = path in 
       let (title,page_content) = match (file,(view,(v1,v2))) with
-        | (l,(`Browse,(version,_))) ->
+        | (l,(None,(version,_))) ->
             begin match l with
             | [] | [""] ->
                 (Some("Ocsforge - Repository browser"),
@@ -49,16 +50,16 @@ let source_service path = Eliom_predefmod.Any.register_new_service
                 (Some("Ocsforge - Repository browser"),
                  Ocsforge_widgets_source.draw_repository_table ~sp ~id ~version ~dir:(Some(l)))
             end
-	| (l,(`Diff,(Some(diff1),Some(diff2)))) ->
+	| (l,(Some(`Diff),(Some(diff1),Some(diff2)))) ->
 	    (Some("Ocsforge - File diff"),
              Ocsforge_widgets_source.draw_diff_view ~sp ~id ~target:l ~diff1 ~diff2)
-        | (l,(`Options,(version,log_start))) -> 
+        | (l,(Some(`Options),(version,log_start))) -> 
 	    (Some("Ocsforge - File browser"),
              Ocsforge_widgets_source.draw_file_page ~sp ~id ~target:l ~version ~log_start)
-	| (l,(`Annot,(version,_))) ->
+	| (l,(Some(`Annot),(version,_))) ->
             (Some("Ocsforge - File annotate"),
              Ocsforge_widgets_source.draw_annotate ~sp ~id ~target:l ~version)
-	| (l,(`Cat,(version,_))) ->
+	| (l,(Some(`Cat),(version,_))) ->
 	      (Some("Ocsforge - File content"),
                Ocsforge_widgets_source.draw_source_code_view ~sp ~id ~target:l ~version)
 	| _ -> 
@@ -126,14 +127,14 @@ let register_xml_tree_service () =
           let tr_list = 
             match dir_path with
             | [] -> 
-                Ocsforge_widgets_source.create_repository_table_content 
+                Ocsforge_widgets_source.xml_table_content
                   ~sp 
                   ~id:path 
                   ~version 
                   ~dir:None
                   ~project_services:ps
             | l ->
-                Ocsforge_widgets_source.create_repository_table_content 
+                Ocsforge_widgets_source.xml_table_content
                   ~sp 
                   ~id:path 
                   ~version 

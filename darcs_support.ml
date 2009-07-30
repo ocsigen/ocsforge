@@ -515,7 +515,10 @@ let darcs_wc_list ?dir repos_path =
             let (target,name) = format_name d ~eatblanks:false in
             let res = get_node name target tree in match res with
               | None -> Lwt.fail Vm.Node_not_found
-              | Some(t) -> Lwt.return t
+              | Some(t) -> 
+                  match t with
+                  | Dir(_) -> Lwt.return t
+                  | _ -> Lwt.fail Vm.Wrong_node_kind
 
 
 (** Recuperes l'arbre associé au patch précisé *)
@@ -545,7 +548,10 @@ let darcs_list ?id ?dir repos_path =
                 let (target,name) = format_name d ~eatblanks:false in
                 let res = get_node name target tree in match res with
                   | None -> Lwt.fail Vm.Node_not_found
-                  | Some(t) -> Lwt.return t
+                  | Some(t) -> 
+                      match t with
+                      | Dir(_) -> Lwt.return t
+                      | _ -> Lwt.fail Vm.Wrong_node_kind
         end
             
             

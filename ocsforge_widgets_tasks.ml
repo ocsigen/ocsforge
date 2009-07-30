@@ -249,7 +249,7 @@ object (self)
                             ~service:s.Services_ht.sources_service
                             ~sp
                         {{ [ 'repository' ] }}
-                            ([],(`Browse,(None,None)))
+                            ([],(None,(None,None)))
                             :} ] }} ))
                                                          >>= fun repo_link ->
         Lwt_util.map_serial

@@ -80,8 +80,7 @@ let rec create_tree list_res tree name author step = match list_res with
     n'est précisée, renvoie la version la plus récente) *)
 let svn_list ?id ?dir repository =
   svn_repo_format repository >>= fun rep ->
-  try 
-    let list_call () = match (id,dir) with
+  let list_call () = match (id,dir) with
     | (None,None) ->
         Swig_svn._svn_support_list (Swig.C_list[
 				    Swig.C_string(rep);
@@ -102,7 +101,9 @@ let svn_list ?id ?dir repository =
 				    Swig.C_int(r)])
           
     in
-    Lwt_preemptive.detach list_call () >>= fun l ->
+    Lwt.catch
+    (fun () ->
+      Lwt_preemptive.detach list_call () >>= fun l ->
       let svn_result = (extract_list l) in 
       let list_res = 
         List.map (fun s -> 
@@ -110,8 +111,12 @@ let svn_list ?id ?dir repository =
           | Swig.C_string(s) -> s
           | _ -> "") (svn_result) 
       in
-      create_tree list_res  (Dir("",[])) "" "" 0
-  with _ -> Lwt.fail Vm.Manager_command_error
+      create_tree list_res  (Dir("",[])) "" "" 0)
+    (function
+      | Failure _ -> 
+          Lwt.fail Vm.Wrong_node_kind
+      | e -> Lwt.fail e)
+  
       
 (** Crée la liste des patchs à partir du resultat de svn_log  *)
 let rec create_patch_list log_res patch_list step = match log_res with

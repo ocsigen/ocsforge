@@ -21,6 +21,7 @@ exception Manager_not_supported
 exception Manager_command_error
 exception Revision_not_found
 exception Node_not_found
+exception Wrong_node_kind
 
 (* List of supported version management systems *)
 let fun_list:((string * Ocsforge_source_types.fun_pack) list ref) = ref []

@@ -50,7 +50,7 @@ let string_to_kind s =
 
 type project_services = 
     { sources_service:
-	(string list * (src_page_kind * (string option * string option))
+	(string list * (src_page_kind option * (string option * string option))
            , unit,
          [ `Attached of
            Eliom_services.get_attached_service_kind Eliom_services.a_s ],

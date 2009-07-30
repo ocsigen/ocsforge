@@ -5,6 +5,8 @@
 #include "svn_fs.h"
 #include "svn_utf.h"
 #include "svn_props.h"
+#include "svn_error.h"
+#include "apr_errno.h"
 #include "caml/signals.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -13,6 +15,7 @@
 
 static apr_pool_t *pool;
 svn_client_ctx_t *ctx;
+
 
 /* fonction déterminant le comportement en cas d'annulation 
    de l'opération courante */
@@ -99,7 +102,12 @@ svn_error_t *list_callback(void *baton,
 			   const char *abs_path,
 			   apr_pool_t *subpool)
 {  
-  if (strcmp(path,"") == 0) return SVN_NO_ERROR;
+  if (strcmp(path,"") == 0) {
+    svn_error_t *err = svn_error_create(1,NULL,"Wrong node kind");
+    if (dirent->kind != svn_node_dir) 
+      return err;
+    return SVN_NO_ERROR;
+  }
   svn_stringbuf_t *temp = NULL; 
   if (dirent->kind == svn_node_dir){
     const svn_stringbuf_t *slash = svn_stringbuf_create("/",subpool);
