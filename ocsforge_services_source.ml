@@ -21,18 +21,21 @@ let ( ** ) = Eliom_parameters.prod
 let ( >>= ) = Lwt.bind
 module Sh = Ocsforge_services_hashtable
 module Vm = Ocsforge_version_managers
+module Params = Eliom_parameters
+
+type file_tree = {{ <file_tree> [Xhtmltypes_duce.tr*]  }}
 
 let source_service path = Eliom_predefmod.Any.register_new_service
     ~path:[path; "sources"; ""]
     ~get_params:
-    (Eliom_parameters.suffix_prod
-       (Eliom_parameters.all_suffix "file")
-       (Eliom_parameters.user_type
+    (Params.suffix_prod
+       (Params.all_suffix "file")
+       (Params.user_type
           Sh.string_to_kind 
           Sh.kind_to_string
           "view" **
-          (Eliom_parameters.opt (Eliom_parameters.string "version") **
-             (Eliom_parameters.opt (Eliom_parameters.string "to")))))
+          (Params.opt (Params.string "version") **
+             (Params.opt (Params.string "to")))))
     (fun sp (file,(view,(v1,v2))) () -> 
       let () =  Ocsforge_wikiext_common.send_css_up "ocsforge_sources.css" sp in
       let id = path in 
@@ -76,7 +79,7 @@ let source_service path = Eliom_predefmod.Any.register_new_service
 
 let log_service path = Eliom_predefmod.Any.register_new_service
     ~path: [path; "log"]
-    ~get_params: (Eliom_parameters.opt (Eliom_parameters.user_type  
+    ~get_params: (Params.opt (Params.user_type  
                                           Vm.string_to_range 
 				          Vm.range_to_string "range"))
     (fun sp range () ->
@@ -103,6 +106,44 @@ let log_service path = Eliom_predefmod.Any.register_new_service
               Eliom_duce.Xhtml.send ~sp ~code html)
  
 
+let register_xml_tree_service () = 
+  let _ = 
+    Eliom_duce.Xml.register_new_post_coservice'
+    ~name:"ocsforge_repository_tree"
+    ~post_params: (
+          Params.opt (Params.string "dir") ** 
+          Params.opt (Params.string "version"))
+    (fun sp () (dir,version) ->
+      let (path,dir_path) = match dir with 
+      | None -> ("",[])
+      | Some(p) -> 
+          let list = Neturl.split_path p in 
+          (List.hd list,List.tl list)
+      in
+      match Ocsforge_services_hashtable.find_service path with
+      | None -> failwith "Project services not found"
+      | Some(ps) ->
+          let tr_list = 
+            match dir_path with
+            | [] -> 
+                Ocsforge_widgets_source.create_repository_table_content 
+                  ~sp 
+                  ~id:path 
+                  ~version 
+                  ~dir:None
+                  ~project_services:ps
+            | l ->
+                Ocsforge_widgets_source.create_repository_table_content 
+                  ~sp 
+                  ~id:path 
+                  ~version 
+                  ~dir:(Some(l))
+                  ~project_services:ps
+          in
+          tr_list >>= fun tr ->
+          Lwt.return ({{ <file_tree> tr }} : {{ Ocamlduce.Load.anyxml }})
+    ) in Lwt.return ()
+
 
 let register_repository_services () = 
   Ocsforge_sql.get_projects_path_list () >>= fun l ->
@@ -117,3 +158,5 @@ let register_repository_services () =
       )
       l
 
+
+  
