@@ -252,15 +252,16 @@ let create_repository_table_content ~sp ~id ~version ~dir ~project_services =
                 let a =
 		  if (String.length (d) > 0) && (depth>0) then
 		    {{ [<tr class="folder">[
-                      <td> [{: Eliom_duce.Xhtml.a
-                               ~a: {{ {class="sources_img_link"} }}
-			       ~service:ps.Sh.sources_service
-			       ~sp 
-                               {{ [<img alt="folder" 
-		                      src={:Eliom_duce.Xhtml.make_uri ~sp
-			                     ~service:(Eliom_services.static_dir ~sp)
-			                     ["source_folder.png"] :}>[] !{: (" "^(d)) :}]}}
-                               (dir_path,(`Browse,(version,None)))
+                      <td> [<img alt="folder" 
+		               src={:Eliom_duce.Xhtml.make_uri ~sp
+			              ~service:(Eliom_services.static_dir ~sp)
+			              ["source_folder.png"] :}>[] 
+                               {: Eliom_duce.Xhtml.a
+                                  ~a: {{ {class="sources_img_link"} }}
+			          ~service:ps.Sh.sources_service
+			          ~sp 
+                                  {{ {: (" "^(d)) :} }}
+                                  (dir_path,(`Browse,(version,None)))
 			       :}]
 		        <td> []
 		        <td> []]] }}
@@ -673,7 +674,7 @@ let create_file_log_links ~sp ~project_services ~target ~version ~log_start ~log
         <tr> [
         {{ match log_start with
         | None -> {{ <td class="no_previous_entries"> {: "First page" :} }}
-        | Some(ls) -> 
+        | Some(_) -> 
             {{ <td class="previous_entries_link"> 
               [{: Eliom_duce.Xhtml.a 
 		  ~a: {{ {class="log_link"} }}
