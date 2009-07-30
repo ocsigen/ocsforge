@@ -660,8 +660,10 @@ let create_file_log_links ~sp ~project_services ~target ~version ~log_start ~log
   let range_end = 
     if (List.length log_result >= _PAGE_SIZE) then
       List.nth log_result (_PAGE_SIZE-1)
-    else
-      List.hd (List.rev (List.tl log_result)) in
+    else 
+      if (List.length log_result = 1) then range_start
+      else List.hd (List.rev (List.tl log_result)) 
+  in
   let range = ((snd (range_start)^
                " - "^
                (snd (range_end)))) in
@@ -835,8 +837,13 @@ let create_file_page ~sp ~id ~target ~version ~log_start ~project_services =
 				                    ~sp  
 				                             file_diff_form :} 
 				                        ]]] }} :} ] }}, 
-			           {{ [ log_links <table class="log_table"> [!log_table_header !log]] }})
-			            : ({{ [Xhtmltypes_duce.tr*] }}*{{ Xhtmltypes_duce.flows }})))
+			           {{ [ <h3 style="border:none"> 
+                                          {: "Previous versions history" :}
+                                        log_links 
+                                        <table class="log_table"> 
+                                          [!log_table_header !log] ] }})
+			            : (  {{ [ Xhtmltypes_duce.tr* ] }} *
+                                         {{ Xhtmltypes_duce.flows }})))
                     (fun _ ->
                       error sp "File not found" >>= fun c -> Lwt.return ({{ [] }},c)))
 	      (fun exn ->

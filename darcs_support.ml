@@ -9,6 +9,10 @@ module Vm = Ocsforge_version_managers
 (** Expression régulière utilisée pour darcs diff *)
 let index_regexp = regexp "Index: "
 
+(** Expression régulière utilisée pour darcs changes *)
+let ignore_this = regexp "(Ignore-this: )[a-z 0-9]+"
+
+
 (** Stocke le contenu d'un input channel dans une string list *)
 let rec read_input_channel buf res chan =
   Lwt_chan.input chan buf 0 4096 >>= fun n ->
@@ -193,7 +197,15 @@ let rec handle_comment res content = match content with
   | [] -> res
   | h::t -> 
       match h with
-        | Simplexmlparser.PCData(comment) -> handle_comment (res^comment) t
+        | Simplexmlparser.PCData(comment) -> 
+            let parsed_comment = split ignore_this comment
+            in
+            let c = 
+              if (List.length parsed_comment > 0) then
+                List.hd parsed_comment 
+              else ""
+            in
+            handle_comment (res^c) t
 	| _ -> handle_comment res t
 
 let rec handle_name res content = match content with
@@ -394,7 +406,7 @@ let darcs_log ?file ?range ?limit rep =
   | (Some(Some(end_rev),None),Some(l)) ->
       get_patch_index end_rev rep >>= fun num ->
           Lwt.return ("-n 1-"^(string_of_int (num+l)))
-  | (Some(None,Some(start_rev)),Some(l)) ->
+  | (Some(None,Some(start_rev)),_) ->
       Lwt.return ("--to-match 'hash "^start_rev^"'")
   | (Some(Some(start_rev),Some(end_rev)),Some(l)) ->
       get_patch_index start_rev rep >>= fun start ->
