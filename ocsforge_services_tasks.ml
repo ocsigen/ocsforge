@@ -244,8 +244,8 @@ let register_xml_dump_services t_widget =
        | Xml ->
            begin
              let root = Types.task_of_sql root in
-             Ocsforge_data.get_tree
-               ~sp ~root ~with_deleted ?depth () >>= fun t ->
+             Ocsforge_data.get_tree ~sp ~root ~with_deleted ?depth ()
+                                                      >>= fun t ->
              Ocsforge_xml_tree_dump.xml_of_tree ~sp t >>= fun t ->
              Lwt.return (t : {{ Ocamlduce.Load.anyxml }})
            end
