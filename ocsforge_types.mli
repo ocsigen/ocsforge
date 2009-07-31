@@ -44,7 +44,7 @@ type right_area_info = {
   r_root_task            : task option ;
   r_wiki_container       : Wiki_types.wikibox option ;
   r_wiki                 : Wiki_types.wiki ;
-  r_wikibox              : Wiki_types.wikibox ;
+  r_sources_container    : Wiki_types.wikibox ;
 }
 
 (** {5 Conversion} *)

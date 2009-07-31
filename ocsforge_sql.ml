@@ -103,7 +103,7 @@ let new_area ?id ~forum ?(version = "0.0") ?repository_kind ?repository_path
                  "INSERT INTO ocsforge_right_areas \
                          ( id,  forum_id, version, \
                           repository_kind, repository_path, \
-                          wiki_container, wiki, wikibox) \
+                          wiki_container, wiki, sources_container) \
                   VALUES ($id, $forum,    $version, \
                           $?repository_kind, $?repository_path, \
                           $?wiki_container, $wiki, $wikibox)"
@@ -115,7 +115,7 @@ let new_area ?id ~forum ?(version = "0.0") ?repository_kind ?repository_path
              "INSERT INTO ocsforge_right_areas \
                      ( id,  forum_id, version, \
                       repository_kind, repository_path, \
-                      wiki_container, wiki, wikibox) \
+                      wiki_container, wiki, sources_container) \
               VALUES ($id, $forum,    $version, \
                       $?repository_kind, $?repository_path, \
                       $?wiki_container, $wiki, $wikibox)"
@@ -291,7 +291,7 @@ let get_area_info_for_task ~task_id =
     (fun db ->
        PGSQL(db)
          "SELECT id, forum_id, version, repository_kind, repository_path, root_task,
-                 wiki_container, wiki, wikibox
+                 wiki_container, wiki, sources_container
           FROM ocsforge_right_areas
           WHERE id = (SELECT area
                       FROM ocsforge_tasks
@@ -305,7 +305,7 @@ let get_area_info_for_page ~page_id =
   (fun db ->
     PGSQL(db)
       "SELECT id, forum_id, version, repository_kind, repository_path, root_task,
-      wiki_container, wiki, wikibox
+      wiki_container, wiki, sources_container
       FROM ocsforge_right_areas
       WHERE wiki = (SELECT id
                     FROM wikis
@@ -321,7 +321,7 @@ let get_area_by_id ~area_id =
     (fun db ->
        PGSQL(db)
          "SELECT id, forum_id, version, \
-                 repository_kind, repository_path, root_task, wiki_container, wiki, wikibox
+                 repository_kind, repository_path, root_task, wiki_container, wiki, sources_container
           FROM ocsforge_right_areas
           WHERE id = $area"
      >>= function

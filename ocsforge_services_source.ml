@@ -109,7 +109,7 @@ let source_service path =
       Ocsforge_data.get_area_for_page sp id >>= fun r_infos ->
       Wiki.default_bi 
           ~sp 
-          ~wikibox:r_infos.Ocsforge_types.r_wikibox 
+          ~wikibox:r_infos.Ocsforge_types.r_sources_container 
           ~rights:(Wiki_models.get_rights Ocsisite.wikicreole_model) 
           >>= fun bi ->
       let gen_box1 _ =
@@ -123,7 +123,7 @@ let source_service path =
       let gen_box _ = 
         Ocsisite.wikibox_widget#display_interactive_wikibox 
           ~bi 
-          r_infos.Ocsforge_types.r_wikibox
+          r_infos.Ocsforge_types.r_sources_container
           >>= fun page_content ->
           Lwt.return (None,{{ [page_content] }},Wiki_widgets_interface.Page_displayable,title)
       in
@@ -158,7 +158,7 @@ let log_service path =
         Ocsforge_data.get_area_for_page sp id >>= fun r_infos ->
           Wiki.default_bi 
           ~sp 
-          ~wikibox:r_infos.Ocsforge_types.r_wikibox 
+          ~wikibox:r_infos.Ocsforge_types.r_sources_container 
           ~rights:(Wiki_models.get_rights Ocsisite.wikicreole_model) 
           >>= fun bi ->
           let gen_box1 _ =
@@ -172,7 +172,7 @@ let log_service path =
           let gen_box _ = 
             Ocsisite.wikibox_widget#display_interactive_wikibox 
               ~bi 
-              r_infos.Ocsforge_types.r_wikibox
+              r_infos.Ocsforge_types.r_sources_container
               >>= fun page_content ->
                 Lwt.return (None,{{ [page_content] }},
                             Wiki_widgets_interface.Page_displayable,
