@@ -65,7 +65,7 @@ STATICFILES := static/ocsimore_client.uue \
 	       static/magnifier.png\
 	       static/ocsforge_tree_complete.css\
 	       static/preview.png\
-	       static/sources_menu_item.png
+	       static/sources_menu_item.png static/source_file2.png		
 
 all: $(MYOCAMLFIND) ocsforge static/vm.js static/ocsimore_client.uue
 

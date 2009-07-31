@@ -24,13 +24,13 @@ div.sources_menu_div {
 
 div.sources_content_div {
     padding: 0px;
-    float: right;
+    /*float: right;*/
     /*width: 590px;*/
     width: 80%;
-    min-width: 300px;
     min-height: 100px;
     margin-top: 10px;
     margin-bottom: 10px;
+    margin-left: 220px;
 }
 
 /* Menu */
