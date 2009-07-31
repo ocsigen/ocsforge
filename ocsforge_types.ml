@@ -41,6 +41,7 @@ type right_area_info = {
   r_root_task            : task option ; 
   r_wiki_container       : Wiki_types.wikibox option ;
   r_wiki                 : Wiki_types.wiki ;
+  r_wikibox              : Wiki_types.wikibox ;
 }
 
 let right_area_of_sql (u : int32) = (Opaque.int32_t u : right_area)
@@ -58,9 +59,9 @@ let right_area_of_string s = (Opaque.int32_t (Int32.of_string s) : right_area)
 
 type raw_right_area_info =
     (int32 * int32 * string *
-     string option * string option * int32 option * int32 option * int32)
+     string option * string option * int32 option * int32 option * int32 * int32)
 
-let get_right_area_info (id, forum_id, ver, kind, path, task, cont, wik) =
+let get_right_area_info (id, forum_id, ver, kind, path, task, cont, wik, wikibox) =
   {
     r_id                   = right_area_of_sql id ;
     r_forum                = Forum_types.forum_of_sql forum_id ;
@@ -72,7 +73,8 @@ let get_right_area_info (id, forum_id, ver, kind, path, task, cont, wik) =
     r_wiki_container       = Ocsforge_lang.apply_on_opted
                                Wiki_types.wikibox_of_sql cont ;
     r_wiki                 = Wiki_types.wiki_of_sql wik ;
-  }
+    r_wikibox              = Wiki_types.wikibox_of_sql wikibox;
+ }
 
 
 (** {3 For tasks} *)

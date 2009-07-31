@@ -47,12 +47,23 @@ let first_task () = (*TODO: create forum manually instead of rellying on ocsicre
       Wiki_sql.new_wiki
         ~title:"ocsforge_task_wiki" ~descr:"" ~pages:(Some "ocsforge")
         ~boxrights:false ~staticdir:None ~author:User.admin
+        ~container_text:Wiki.default_container_page
         ~model:Ocsisite.wikicreole_model ()
                                                           >>= fun (wiki,_) ->
       Wiki_sql.get_wiki_info_by_id wiki                   >>= fun wi ->
+      Wiki_sql.new_wikibox 
+          ~wiki 
+          ~author:User.admin 
+          ~comment:("ocsforge first task wikibox")
+          ~content:"<<content>>" 
+          ~content_type:
+          (Wiki_models.get_default_content_type Ocsisite.wikicreole_model)
+          ()     
+          >>= fun wikibox ->
       Ocsforge_sql.new_area
         ~forum:(fi.Forum_types.f_id)
         ~wiki:(wi.Wiki_types.wiki_id)
+        ~wikibox
         ()
                                                           >>= fun area ->
       add_message ~forum:(fi.Forum_types.f_id) ()     >>= fun message ->

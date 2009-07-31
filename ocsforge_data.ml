@@ -118,10 +118,24 @@ let new_project ~sp ~parent ~name
              ~model:Ocsisite.wikicreole_model (*TODO : give the real model *)
              ()
                                                            >>= fun wiki ->
-
+                                                             
+          (* TODO : give the real model *)   
+                                                          
+          Wiki_data.new_wikitextbox 
+             
+             ~rights:(Wiki_models.get_rights Ocsisite.wikicreole_model) ~sp
+             ~content_type:
+               (Wiki_models.get_default_content_type Ocsisite.wikicreole_model)
+             ~wiki:wiki
+             ~author
+             ~comment:("ocsforge subcontainer for "^name)
+             ~content:"<<content>>"
+             () 
+             >>= fun wikibox ->
+             
           (* create area *)
             Ocsforge_sql.new_area
-              ~id:c ~forum ~wiki ?repository_kind ?repository_path ()
+              ~id:c ~forum ~wiki ~wikibox ?repository_kind ?repository_path () 
           >>= fun _ -> (* the result can't be anything but [c] *)
 
 (* link rights on area and rights on forum... Needs modifications on forum.ml
@@ -473,10 +487,23 @@ let make_project ~sp ~task ?repository_kind ?repository_path () =
              ~model:Ocsisite.wikicreole_model (*TODO : give the real model *)
              ()
                                                            >>= fun wiki ->
-
+               (* TODO : give the real model *)   
+                                                          
+          Wiki_data.new_wikitextbox 
+             
+             ~rights:(Wiki_models.get_rights Ocsisite.wikicreole_model) ~sp
+             ~content_type:
+               (Wiki_models.get_default_content_type Ocsisite.wikicreole_model)
+             ~wiki:wiki
+             ~author
+             ~comment:("ocsforge subcontainer for "^name)
+             ~content:"<<content>>"
+             () 
+             >>= fun wikibox ->
+                                                             
           (* create area *)
             Ocsforge_sql.new_area
-              ~id:c ~forum ~wiki ?repository_kind ?repository_path ()
+              ~id:c ~forum ~wiki ~wikibox ?repository_kind ?repository_path ()
           >>= fun _ -> (* the result can't be anything but [c] *)
 
 (* link rights on area and rights on forum... Needs modifications on forum.ml

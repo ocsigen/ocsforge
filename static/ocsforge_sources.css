@@ -10,6 +10,11 @@ div.sources_main_div {
     margin: 0 auto;
     overflow: auto;
     background: #EBEAD2 url(./sources_background.png) repeat-y left top;
+    border-radius: 0px 0px 10px 10px;
+    -o-border-radius: 0px 0px 10px 10px;
+    -khtml-border-radius: 0px 0px 10px 10px;
+    -moz-border-radius: 0px 0px 10px 10px;
+    -webkit-border-radius: 0px 0px 10px 10px;
 }
 
 div.sources_menu_div {
@@ -178,12 +183,19 @@ h3 {
 /* Current file/directory path */
 
 div.path {
-    background-color: white;
+    background: #EBEAD2 url(./ocsforge_title_background.png) repeat left top;
+    border: 1px solid #BBBBBB;
+    width: 90%;
+    padding: 0 0px;
+    margin: 0 auto;
     text-align: center;
     font-size: 1.17em;
-    border-top: 1px solid;
-    border-bottom: 1px solid;
     font-family: arial,sans-serif;
+    border-radius: 10px;
+    -o-border-radius: 10px 10px 0px 0px;
+    -khtml-border-radius: 10px 10px 0px 0px;
+    -moz-border-radius: 10px 10px 0px 0px;
+    -webkit-border-radius: 10px 10px 0px 0px;
 }
 
 span.path_delimiter {

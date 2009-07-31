@@ -355,6 +355,8 @@ let new_project_service =
            ->
        Data.new_project ~sp ~parent ~name
          ?length ?importance ?deadline ?kind
-         ?repository_kind ?repository_path () >>= fun _ -> Lwt.return ()
+         ?repository_kind ?repository_path 
+               ~wiki_container:Wiki.default_container_page
+               () >>= fun _ -> Lwt.return ()
     )
 

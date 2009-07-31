@@ -18,7 +18,7 @@
   SWIG_CAMLlocal1(res_list);
   res_list = Val_unit;
   SWIG_contract_assert(($1 != NULL),caml_val_string("svn error"));
-  for(i=0; i<$1->nelts; i++) {
+  for(i=0; i<($1->nelts); i++) {
     s = ((const char**)$1->elts)[i];
     res_list = caml_list_append(res_list,caml_val_string(s));
   }

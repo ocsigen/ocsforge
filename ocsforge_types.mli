@@ -44,6 +44,7 @@ type right_area_info = {
   r_root_task            : task option ;
   r_wiki_container       : Wiki_types.wikibox option ;
   r_wiki                 : Wiki_types.wiki ;
+  r_wikibox              : Wiki_types.wikibox ;
 }
 
 (** {5 Conversion} *)
@@ -56,7 +57,7 @@ val right_area_of_string : string -> right_area
 
 (* NOT TO BE USED BUT IN ocsforge_sql *)
 type raw_right_area_info = int32 * int32 * string * string option *
-                           string option * int32 option * int32 option * int32
+                           string option * int32 option * int32 option * int32 * int32
 val get_right_area_info : raw_right_area_info -> right_area_info
 
 

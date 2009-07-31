@@ -49,6 +49,7 @@ val new_area :
   ?repository_path:string ->
   ?wiki_container:Wiki_types.wikibox ->
   wiki:Wiki_types.wiki ->
+  wikibox:Wiki_types.wikibox ->
   unit -> Ocsforge_types.right_area Lwt.t
 
 val get_path_for_area :

@@ -78,13 +78,14 @@ let new_task
 (** {5 make area} *)
 
 let new_area ?id ~forum ?(version = "0.0") ?repository_kind ?repository_path
-             ?wiki_container ~wiki () =
+             ?wiki_container ~wiki ~wikibox () =
   let forum = Forum_types.sql_of_forum forum in
   let wiki_container = Olang.apply_on_opted
                          Wiki_types.sql_of_wikibox wiki_container
   in
   let wiki = Wiki_types.sql_of_wiki wiki in
-   Sql.full_transaction_block
+  let wikibox = Wiki_types.sql_of_wikibox wikibox in 
+  Sql.full_transaction_block
     (fun db ->
       (match id with
         | None ->
@@ -102,10 +103,10 @@ let new_area ?id ~forum ?(version = "0.0") ?repository_kind ?repository_path
                  "INSERT INTO ocsforge_right_areas \
                          ( id,  forum_id, version, \
                           repository_kind, repository_path, \
-                          wiki_container, wiki) \
+                          wiki_container, wiki, wikibox) \
                   VALUES ($id, $forum,    $version, \
                           $?repository_kind, $?repository_path, \
-                          $?wiki_container, $wiki)"
+                          $?wiki_container, $wiki, $wikibox)"
             >>= fun () -> Lwt.return id
            end
         | Some id ->
@@ -114,10 +115,10 @@ let new_area ?id ~forum ?(version = "0.0") ?repository_kind ?repository_path
              "INSERT INTO ocsforge_right_areas \
                      ( id,  forum_id, version, \
                       repository_kind, repository_path, \
-                      wiki_container, wiki) \
+                      wiki_container, wiki, wikibox) \
               VALUES ($id, $forum,    $version, \
                       $?repository_kind, $?repository_path, \
-                      $?wiki_container, $wiki)"
+                      $?wiki_container, $wiki, $wikibox)"
            >>= fun () -> Lwt.return id
       )
     >>= fun i -> Lwt.return (Types.right_area_of_sql i))
@@ -290,7 +291,7 @@ let get_area_info_for_task ~task_id =
     (fun db ->
        PGSQL(db)
          "SELECT id, forum_id, version, repository_kind, repository_path, root_task,
-                 wiki_container, wiki
+                 wiki_container, wiki, wikibox
           FROM ocsforge_right_areas
           WHERE id = (SELECT area
                       FROM ocsforge_tasks
@@ -304,7 +305,7 @@ let get_area_info_for_page ~page_id =
   (fun db ->
     PGSQL(db)
       "SELECT id, forum_id, version, repository_kind, repository_path, root_task,
-      wiki_container, wiki
+      wiki_container, wiki, wikibox
       FROM ocsforge_right_areas
       WHERE wiki = (SELECT id
                     FROM wikis
@@ -320,7 +321,7 @@ let get_area_by_id ~area_id =
     (fun db ->
        PGSQL(db)
          "SELECT id, forum_id, version, \
-                 repository_kind, repository_path, root_task, wiki_container, wiki
+                 repository_kind, repository_path, root_task, wiki_container, wiki, wikibox
           FROM ocsforge_right_areas
           WHERE id = $area"
      >>= function

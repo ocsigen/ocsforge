@@ -17,6 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 
+
 let ( ** ) = Eliom_parameters.prod
 let ( >>= ) = Lwt.bind
 module Sh = Ocsforge_services_hashtable
@@ -25,8 +26,10 @@ module Params = Eliom_parameters
 
 type file_tree = {{ <file_tree> [Xhtmltypes_duce.tr*]  }}
 
-let source_service path = Eliom_predefmod.Any.register_new_service
-    ~path:[path; "sources"; ""]
+let source_service path = 
+  let service_path = ((Neturl.split_path path)@["sources"; ""]) in
+  Eliom_predefmod.Any.register_new_service
+    ~path:service_path
     ~get_params:
     (Params.suffix_prod
        (Params.all_suffix "file")
@@ -103,10 +106,26 @@ let source_service path = Eliom_predefmod.Any.register_new_service
             Ocsforge_widgets_source.draw_wrong_url_page ~sp ~id >>= fun r ->
             Lwt.return (Some("Ocsforge - wrong URL"),r)
       ) >>= fun (title,page_content) ->
-      (*page_content >>= fun pc ->*)
       Ocsforge_data.get_area_for_page sp id >>= fun r_infos ->
+      Wiki.default_bi 
+          ~sp 
+          ~wikibox:r_infos.Ocsforge_types.r_wikibox 
+          ~rights:(Wiki_models.get_rights Ocsisite.wikicreole_model) 
+          >>= fun bi ->
+      let gen_box1 _ =
+        Lwt.return (Some(None,page_content))
+      in
+      let bi = { bi with 
+                 Wiki_widgets_interface.bi_subbox = gen_box1;
+                 (*Wiki_types.bi_page = fst bi.Wiki_types.bi_page, ?? *)
+               }
+      in      
       let gen_box _ = 
-            Lwt.return (None,page_content,Wiki_widgets_interface.Page_displayable,title)
+        Ocsisite.wikibox_widget#display_interactive_wikibox 
+          ~bi 
+          r_infos.Ocsforge_types.r_wikibox
+          >>= fun page_content ->
+          Lwt.return (None,{{ [page_content] }},Wiki_widgets_interface.Page_displayable,title)
       in
       Ocsisite.wikibox_widget#display_container 
             ~sp ~wiki:(r_infos.Ocsforge_types.r_wiki) ~menu_style:`Linear
@@ -116,8 +135,10 @@ let source_service path = Eliom_predefmod.Any.register_new_service
       Eliom_duce.Xhtml.send ~sp ~code html)
 
 
-let log_service path = Eliom_predefmod.Any.register_new_service
-    ~path: [path; "log"]
+let log_service path = 
+  let service_path = (Neturl.split_path path)@["log";""] in
+  Eliom_predefmod.Any.register_new_service
+    ~path:service_path
     ~get_params: (Params.opt (Params.user_type  
                                           Vm.string_to_range 
 				          Vm.range_to_string "range"))
@@ -128,14 +149,34 @@ let log_service path = Eliom_predefmod.Any.register_new_service
         | None -> (None,None)
         | Some(sr,er) -> (sr,er)
       in
-      Ocsforge_widgets_source.draw_log_page ~sp ~id ~file:None ~start_rev ~end_rev >>= fun pc ->
+      Ocsforge_widgets_source.draw_log_page 
+        ~sp 
+        ~id 
+        ~file:None 
+        ~start_rev 
+        ~end_rev >>= fun page_content ->
         Ocsforge_data.get_area_for_page sp id >>= fun r_infos ->
+          Wiki.default_bi 
+          ~sp 
+          ~wikibox:r_infos.Ocsforge_types.r_wikibox 
+          ~rights:(Wiki_models.get_rights Ocsisite.wikicreole_model) 
+          >>= fun bi ->
+          let gen_box1 _ =
+            Lwt.return (Some(None,page_content))
+          in
+          let bi = { bi with 
+                     Wiki_widgets_interface.bi_subbox = gen_box1;
+                     (*Wiki_types.bi_page = fst bi.Wiki_types.bi_page, ?? *)
+                   }
+          in      
           let gen_box _ = 
-            Lwt.return
-              (None,
-               pc,
-               Wiki_widgets_interface.Page_displayable,
-               Some("Ocsforge - Repository history"))
+            Ocsisite.wikibox_widget#display_interactive_wikibox 
+              ~bi 
+              r_infos.Ocsforge_types.r_wikibox
+              >>= fun page_content ->
+                Lwt.return (None,{{ [page_content] }},
+                            Wiki_widgets_interface.Page_displayable,
+                            Some("Ocsforge - Repository history"))
           in
           Ocsisite.wikibox_widget#display_container 
             ~sp ~wiki:(r_infos.Ocsforge_types.r_wiki) ~menu_style:`Linear

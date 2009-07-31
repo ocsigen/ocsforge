@@ -65,14 +65,23 @@ let generate_menu sp version page_kind content services =
         !content] }} 
         
 
-let sources_page_content sp version ~kind menu_content main_content services = 
-  {{<div class="sources_main_div">
+let sources_page_content 
+    sp 
+    version 
+    ~kind 
+    title_content 
+    menu_content 
+    main_content 
+    services = 
+  {{
+   [ title_content 
+    <div class="sources_main_div">
     [
      <div class="sources_menu_div">
        [ <span class="menu_title"> ['Menu']
          {{generate_menu sp version kind menu_content services }} ]
      <div class="sources_content_div"> main_content
-   ] }}
+   ]] }}
 
 
 let error sp (message:string) = 
@@ -1053,22 +1062,26 @@ let draw_repository_table ~sp ~id ~version ~dir =
       let (current_dir,current_dir_path) = build_path path in
       let a = (path_title ~sp ~path:current_dir_path ~version ~title:"" ~ps) in
       table >>= fun b ->
-      let menu_content = {{ [] }}
+      let menu_content = {{ [] }} in
+      let title_content = 
+        {{  
+         <div class="path"> [ 
+           !a 
+           <span> {: current_dir :} 
+           <span> {: title :}
+         ] }}
       in
-      Lwt.return ({{  [
-                      <div class="path"> [ 
-                        !a <span> {: current_dir :} 
-                          <span> {: title :}]
-                      <br>[]
+      Lwt.return ({{  
                       {{ 
                        (sources_page_content 
                           sp 
                           version 
                           ~kind:None 
+                          title_content
                           menu_content 
                           b 
                           ps) }}
-		    ] }} 
+		     }} 
 		    : {{ Xhtmltypes_duce.flows }})
           
               
@@ -1109,14 +1122,17 @@ let draw_source_code_view ~sp ~id ~target ~version =
          ] 
        }}
       in
-      Lwt.return ({{ [  
-                     <div class="path"> [ !a <span> {: current_dir :} 
-                                            <span> {: (dir_version) :}]
-                     <br> []
-		         {{ (sources_page_content 
+      let title_content =
+         {{ 
+          <div class="path"> [ !a <span> {: current_dir :} 
+                                 <span> {: (dir_version) :}] }}
+      in
+      Lwt.return ({{   
+                     {{ (sources_page_content 
                                sp 
                                version 
-                               ~kind:(Some(`Cat)) menu_content b ps) }}] 
+                               ~kind:(Some(`Cat)) 
+                               title_content menu_content b ps) }}
                          }} : {{ Xhtmltypes_duce.flows }})
           
 
@@ -1133,15 +1149,15 @@ let draw_log_page ~sp ~id ~file ~start_rev ~end_rev =
       fun b ->
         let menu_content = {{ [] }}
         in
-        Lwt.return ({{ [
-		       <div class="path"> ['Repository history']
-		       <br> []
-                       {{ (sources_page_content 
+        let title_content = {{ <div class="path"> ['Repository history'] }}
+        in
+        Lwt.return ({{ 
+		       {{ (sources_page_content 
                              sp 
                              None 
                              ~kind:(Some(`Log)) 
-                             menu_content b ps) }}
-                     ]}} : {{ Xhtmltypes_duce.flows }})
+                             title_content menu_content b ps) }}
+                     }} : {{ Xhtmltypes_duce.flows }})
           
 
 let draw_diff_view ~sp ~id ~target ~diff1 ~diff2 =
@@ -1193,16 +1209,18 @@ let draw_diff_view ~sp ~id ~target ~diff1 ~diff2 =
           ] 
           }}
         in
-        Lwt.return ({{ [   
-                       <div class="path"> [ !a <span> {: current_dir :}]
-                       <br> []
-		       {{ (sources_page_content 
+        let title_content = 
+          {{ <div class="path"> [ !a <span> {: current_dir :}] }}
+        in
+        Lwt.return ({{    
+          	       {{ (sources_page_content 
                              sp 
                              None 
                              ~kind:(Some(`Diff)) 
+                             title_content
                              menu_content 
                              b 
-                             ps) }} ]}} 
+                             ps) }} }} 
                       : {{ Xhtmltypes_duce.flows }})
           
 
@@ -1230,17 +1248,19 @@ let draw_file_page ~sp ~id ~target ~version ~log_start =
         ~version 
         ~log_start 
         ~project_services:ps >>= fun (menu_content,page_content) ->
-        Lwt.return ({{ [ 
-		       <div class="path"> 
-                         [ !a <span> {: (current_dir^" @ "^str_version) :}]
-                       <br> []
-                       {{ (sources_page_content 
+        let title_content = 
+          {{ <div class="path"> 
+                         [ !a <span> {: (current_dir^" @ "^str_version) :}] }}
+        in
+        Lwt.return ({{ 
+		       {{ (sources_page_content 
                              sp 
                              version 
                              ~kind:(Some(`Options)) 
+                             title_content
                              menu_content 
                              page_content 
-                             ps) }}] }}
+                             ps) }} }}
                       : {{ Xhtmltypes_duce.flows }})
           
 
@@ -1291,17 +1311,19 @@ let draw_annotate ~sp ~id ~target ~version =
             <td class="sources_menu_current"> {: "Annotate" :}]
           ] }}
         in
-        Lwt.return ({{ [
-                       <div class="path"> 
-                         [ !a <span> {: (current_dir^" @ "^file_version) :}]
-                       <br> []
-                       	   {{ (sources_page_content 
-                                 sp 
-                                 version 
-                                 ~kind:(Some(`Annot)) 
-                                 menu_content 
-                                 b 
-                                 ps) }}]}} 
+        let title_content = 
+          {{ <div class="path"> 
+                         [ !a <span> {: (current_dir^" @ "^file_version) :}] }}
+        in
+        Lwt.return ({{ 
+                       {{ (sources_page_content 
+                             sp 
+                             version 
+                             ~kind:(Some(`Annot)) 
+                             title_content
+                             menu_content 
+                             b 
+                             ps) }} }} 
                       : {{ Xhtmltypes_duce.flows }})
 
 
@@ -1309,15 +1331,17 @@ let draw_wrong_url_page ~sp ~id = match Sh.find_service id with
   | None -> failwith "Project services not found"
   | Some(ps) ->
       let menu_content = {{ [] }} in
+      let title_content = 
+        {{ <div class="path"> [<span> {:"Error - malformed URL":}] }}
+      in
       warning sp "Wrong URL parameters" >>= fun b ->
-      Lwt.return ({{ [
-                     <div class="path"> [<span> {:"Error - malformed URL":}]
-                     <br> []
+      Lwt.return ({{ 
                      {{ (sources_page_content 
                            sp 
                            None 
                            ~kind:(Some(`Error)) 
+                           title_content
                            menu_content 
-                           b 
-                           ps) }}]}} 
+                           b
+                           ps) }} }} 
                     : {{ Xhtmltypes_duce.flows }})
