@@ -64,6 +64,9 @@ td.sources_menu_item {
     border-top: 1px solid white;
     border-bottom: 1px solid white;
     border-right: 1px solid white;
+    border-radius: 10px 10px 10px 10px;
+    -o-border-radius: 10px 10px 10px 10px;
+    -khtml-border-radius: 10px 10px 10px 10px;
     -moz-border-radius: 10px 10px 10px 10px;
     -webkit-border-radius: 10px 10px 10px 10px;
 }
@@ -75,6 +78,9 @@ td.sources_menu_current {
     border-top: 1px solid white;
     border-bottom: 1px solid white;
     border-right: 1px solid white;
+    border-radius: 10px 10px 10px 10px;
+    -o-border-radius: 10px 10px 10px 10px;
+    -khtml-border-radius: 10px 10px 10px 10px;
     -moz-border-radius: 10px 10px 10px 10px;
     -webkit-border-radius: 10px 10px 10px 10px;
 }
@@ -88,6 +94,9 @@ a.sources_menu_link {
     color: #3D3A3E;
     height: 100%;
     display: block;
+    border-radius: 10px 10px 10px 10px;
+    -o-border-radius: 10px 10px 10px 10px;
+    -khtml-border-radius: 10px 10px 10px 10px;
     -moz-border-radius: 10px 10px 10px 10px;
     -webkit-border-radius: 10px 10px 10px 10px;
 }
@@ -121,6 +130,9 @@ div.error_message {
     margin: auto 5px;
     text-align: center;
     font-weight: bold;
+    border-radius: 10px 10px 10px 10px;
+    -o-border-radius: 10px 10px 10px 10px;
+    -khtml-border-radius: 10px 10px 10px 10px;
     -moz-border-radius: 10px 10px 10px 10px;
     -webkit-border-radius: 10px 10px 10px 10px;
 }
@@ -137,6 +149,9 @@ div.warning_message {
     margin: auto 5px;
     text-align: center;
     font-weight: bold;
+    border-radius: 10px 10px 10px 10px;
+    -o-border-radius: 10px 10px 10px 10px;
+    -khtml-border-radius: 10px 10px 10px 10px;
     -moz-border-radius: 10px 10px 10px 10px;
     -webkit-border-radius: 10px 10px 10px 10px;
 }
@@ -269,6 +284,9 @@ pre.left_lines {
     padding: 2px;
     background-color: #E8E8E8;
     margin: 0px;
+    border-radius: 10px 0px 0px 10px;
+    -o-border-radius: 10px 0px 0px 10px;
+    -khtml-border-radius: 10px 0px 0px 10px;
     -moz-border-radius: 10px 0px 0px 10px;
     -webkit-border-radius: 10px 0px 0px 10px;
 }
@@ -278,6 +296,9 @@ pre.right_lines {
     padding: 2px;
     background-color: #E8E8E8;
     margin: 0px;
+    border-radius: 0px 10px 10px 0px;
+    -o-border-radius: 0px 10px 10px 0px;
+    -khtml-border-radius: 0px 10px 10px 0px;
     -moz-border-radius: 0px 10px 10px 0px;
     -webkit-border-radius: 0px 10px 10px 0px;
 }
@@ -287,6 +308,9 @@ div.left_lines {
     float:  left;
     width: 6%;
     background-color: #E8E8E8;
+    border-radius: 10px 0px 0px 10px;
+    -o-border-radius: 10px 0px 0px 10px;
+    -khtml-border-radius: 10px 0px 0px 10px;
     -moz-border-radius: 10px 0px 0px 10px;
     -webkit-border-radius: 10px 0px 0px 10px;
 }
@@ -296,6 +320,9 @@ div.right_lines {
     float:  left;
     width: 6%;
     background-color: #E8E8E8;
+    border-radius: 0px 10px 10px 0px;
+    -o-border-radius: 0px 10px 10px 0px;
+    -khtml-border-radius: 0px 10px 10px 0px;
     -moz-border-radius: 0px 10px 10px 0px;
     -webkit-border-radius: 0px 10px 10px 0px;
 }
@@ -323,6 +350,9 @@ div.sources_div {
     background-color: #EEE;
     text-align:center;
     padding: 3px;
+    border-radius: 10px;
+    -o-border-radius: 10px;
+    -khtml-border-radius: 10px;
     -moz-border-radius: 10px;
     -webkit-border-radius: 10px;
 }
@@ -343,6 +373,9 @@ div.file_version_select{
     width: 40%;
     height: 50px;
     background-color: #C8D6D6;
+    border-radius: 10px;
+    -o-border-radius: 10px;
+    -khtml-border-radius: 10px;
     -moz-border-radius: 10px;
     -webkit-border-radius: 10px;
 }
@@ -366,6 +399,9 @@ div.diff {
     font-size:normal;
     float:left;
     margin-right: 2px;
+    border-radius: 10px;
+    -o-border-radius: 10px;
+    -khtml-border-radius: 10px;
     -moz-border-radius: 10px;
     -webkit-border-radius: 10px;
 }
@@ -396,6 +432,9 @@ div.annot_author {
     float:left;
     padding: 2px;
     width: 20%;
+    border-radius: 10px 0px 0px 10px;
+    -o-border-radius: 10px 0px 0px 10px;
+    -khtml-border-radius: 10px 0px 0px 10px;
     -moz-border-radius: 10px 0px 0px 10px;
     -webkit-border-radius: 10px 0px 0px 10px;
 }
@@ -407,6 +446,9 @@ div.annot_content {
     padding: 2px;
     width: 78%;
     overflow: hidden;
+    border-radius: 0px 10px 10px 0px;
+    -o-border-radius: 0px 10px 10px 0px;
+    -khtml-border-radius: 0px 10px 10px 0px;
     -moz-border-radius: 0px 10px 10px 0px;
     -webkit-border-radius: 0px 10px 10px 0px;
 }
@@ -436,6 +478,9 @@ td.previous_entries_link {
     color: white;
     background-color: #648BD8;
     width: 10%;
+    border-radius: 10px 0px 0px 0px;
+    -o-border-radius: 10px 0px 0px 0px;
+    -khtml-border-radius: 10px 0px 0px 0px;
     -moz-border-radius: 10px 0px 0px 0px;
     -webkit-border-radius: 10px 0px 0px 0px;
 }
@@ -448,6 +493,9 @@ td.no_previous_entries {
     color: white;
     background-color: #A49A9A;
     width: 10%;
+    border-radius: 10px 0px 0px 0px;
+    -o-border-radius: 10px 0px 0px 0px;
+    -khtml-border-radius: 10px 0px 0px 0px;
     -moz-border-radius: 10px 0px 0px 0px;
     -webkit-border-radius: 10px 0px 0px 0px;
 }
@@ -468,6 +516,9 @@ td.no_next_entries {
     color: white;
     background-color: #A49A9A;
     width: 10%;
+    border-radius: 0px 10px 0px 0px;
+    -o-border-radius: 0px 10px 0px 0px;
+    -khtml-border-radius: 0px 10px 0px 0px;
     -moz-border-radius: 0px 10px 0px 0px;
     -webkit-border-radius: 0px 10px 0px 0px;
 }
