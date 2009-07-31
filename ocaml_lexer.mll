@@ -26,7 +26,7 @@ let keyword = (
   | "new" | "object" | "of" | "open" | "or" | "private"
   | "rec" | "sig" | "struct" | "to" | "true"
   | "try" | "with" | "type" | "val" | "virtual" | "when" | "while" 
-  | "!="  | "#"  | "&&" | "'" |  ","
+  | "!="  | "#"  | "&&" | ","
   | "-."  | "->" | ".." | "::" | ":=" | ":>" | ";" | ";;"
   | "<-"  | ">]" | ">}" | "?" | "??" | "[<" | "[>"
   | "`" | "{<" | "|]" |  "~"
@@ -50,6 +50,8 @@ let alpha = ['a'-'z''A'-'Z''0'-'9''_']+
 let spaces = [' ']+
 
 let default = [^' ' '\n' '\r']
+
+let char = [''']("\\\'" | [^'''])*[''']
 
 rule token = parse
   | spaces as sp 
@@ -79,7 +81,9 @@ rule token = parse
       { Operator o }
   | eof                      
       { Eof(lexbuf.lex_curr_p.pos_lnum) }
-  | '\"'
+  | char as c
+      { Char c }
+  | '"'
       { let string_start = lexeme_start_p lexbuf in
         let s = (string string_start (Buffer.create 10) lexbuf) in
         lexbuf.lex_start_p <- string_start;

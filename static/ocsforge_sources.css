@@ -546,6 +546,8 @@ span.color_test { color: #66CDAA; }
 
 span.color_string { color: #FF0033; }
 
+span.color_char { color: #FF4BF6; }
+
 span.color_ucid { color: #DAA520; }
 
 span.color_hex { color: brown; }

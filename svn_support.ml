@@ -395,6 +395,7 @@ let svn_cat ?id repository file =
         | Swig.C_string(s) -> s
         | _ -> "") cat_res
       in
+      print_endline ("(((((((("^(String.concat "\n" map)^")))))))))");
       Lwt.return (String.concat "\n" map)
   with _ -> Lwt.fail Vm.Manager_command_error
 

@@ -12,6 +12,7 @@ type lexemes =
   | Operator of string
   | Delimiter of string
   | Id of string
+  | Char of string
   | String of string
   | UpperCaseID of string
   | Eof of int

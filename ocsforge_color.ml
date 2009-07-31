@@ -151,7 +151,21 @@ let rec color2 lexbuf lexer = match (lexer lexbuf) with
       Lwt.return 
         ((a,{{ [<span> {: i :} !b] }})
            : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }}))
-    (*(XHTML.M.pcdata i)::(color2 lexbuf lexer)*)
+        (*(XHTML.M.pcdata i)::(color2 lexbuf lexer)*)
+ | Char(c) ->
+     color2 lexbuf lexer >>= fun (a,b) ->
+       let char = ("\'"^c^"\'") in
+       Lwt.try_bind
+         (fun () -> Lwt.return (Ocamlduce.Utf8.make c))
+         (fun utf8 ->
+           (*print_endline utf8;*)
+           Lwt.return
+             ((a, {{ [<span class="color_char"> {: utf8 :} !b] }})
+                : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }})))
+         (function _ ->
+            Lwt.return
+             ((a, {{ [<span class="color_char"> {: char :} !b] }})
+                : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }})))
  | String(s) -> 
     color2 lexbuf lexer  >>= fun (a,b) ->
       let str = ("\""^s^"\"") in 
