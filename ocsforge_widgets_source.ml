@@ -89,9 +89,11 @@ let error sp (message:string) =
               [<div class="error_message"> [
                 <span class="message_title"> [
                   <img alt="Error" 
-		    src={:Eliom_duce.Xhtml.make_uri ~sp
-			   ~service:(Eliom_services.static_dir ~sp)
-			   ["message_error.png"] :}>[]]
+		    src={:
+                           Ocsimore_page.static_file_uri 
+                           ~sp 
+                           ~path:["message_error.png"]
+                           :}>[]]
                 <p> {: message :} ]] }}
 
 
@@ -100,9 +102,11 @@ let warning sp (message:string) =
               [<div class="warning_message"> [
                 <span class="message_title">  [
                   <img alt="Error" 
-		    src={:Eliom_duce.Xhtml.make_uri ~sp
-			   ~service:(Eliom_services.static_dir ~sp)
-			   ["message_warning.png"] :}>[]]
+		    src={: 
+                           Ocsimore_page.static_file_uri 
+                           ~sp 
+                           ~path:["message_warning.png"] 
+                           :}>[]]
                 <p> {: message :}]] }}
 
 
@@ -216,9 +220,11 @@ let rec build_content sp dir_l ps cpt version tree depth = match tree with
 		~a: {{ {title="File options page" class="sources_img_link"} }}
 		~service:ps.Sh.sources_service
 		~sp {{  [<img alt="file" 
-			    src={:Eliom_duce.Xhtml.make_uri ~sp
-				   ~service:(Eliom_services.static_dir ~sp)
-				   ["source_file.png"] :}>[]] }}
+                            src={:
+                                   Ocsimore_page.static_file_uri
+                                   ~sp
+                                   ~path:["source_file.png"]
+			    :}>[]] }}
                 (file_path,(Some(`Options),(version,None)))
 		:}
                ' '
@@ -258,9 +264,9 @@ let rec build_content sp dir_l ps cpt version tree depth = match tree with
 	if (String.length (d) > 0) && (depth>0) then
 	  {{ [<tr class="folder">[
             <td> [<img alt="folder" 
-		     src={:Eliom_duce.Xhtml.make_uri ~sp
-			    ~service:(Eliom_services.static_dir ~sp)
-			    ["source_folder.png"] :}>[] 
+		     src={: Ocsimore_page.static_file_uri
+                            ~sp
+                            ~path:["source_folder.png"] :}>[] 
                      {: Eliom_duce.Xhtml.a
                         ~a: {{ {title="Browse directory" class="sources_img_link"} }}
 			~service:ps.Sh.sources_service
@@ -348,9 +354,9 @@ let rec create_repository_table_content ~sp ~id ~version ~dir ~project_services=
                          ~sp
                          {{ [<img alt="parent_directory" 
 		              src={:
-                                     Eliom_duce.Xhtml.make_uri ~sp
-			             ~service:(Eliom_services.static_dir ~sp)
-			              ["parent_directory.png"] :}>
+                                     Ocsimore_page.static_file_uri
+                                     ~sp
+                                     ~path:["parent_directory.png"] :}>
                               [] ' ../'] }} 
                            (List.rev 
                               (List.tl 
@@ -578,11 +584,9 @@ let log_table_content ~sp ~kind ~path ~log ~ps ~start_rev ~end_rev =
                                   ~sp 
                                   {{ [<img alt="file" 
 			                 src={:
-                                                Eliom_duce.Xhtml.make_uri 
+                                                Ocsimore_page.static_file_uri
                                                 ~sp
-				                ~service:
-                                                (Eliom_services.static_dir ~sp)
-				                ["source_file2.png"] :}>[]] }}
+                                                ~path:["source_file2.png"] :}>[]] }}
                                    (path,
                                     (Some(`Cat),
                                      (Some(!(p.STypes.id)),None))) :}] }} 
