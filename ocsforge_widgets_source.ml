@@ -217,7 +217,7 @@ let rec build_content sp dir_l ps cpt version tree depth = match tree with
 			    :}>
 	  [ <td class="sources_table"> 
 	    [{: Eliom_duce.Xhtml.a 
-		~a: {{ {title="File options page" class="sources_img_link"} }}
+		~a: {{ {title="File history" class="sources_img_link"} }}
 		~service:ps.Sh.sources_service
 		~sp {{  [<img alt="file" 
                             src={:
@@ -904,7 +904,7 @@ let create_file_page ~sp ~id ~target ~version ~log_start ~project_services =
                 Lwt.return (({{ [ 
                                 <tr class="sources_menu"> [
                                   <td class="sources_menu_current">
-                                    ['File options page']]
+                                    ['File history']]
                                   <tr class="sources_menu"> [
                                     <td class="sources_menu_item">
 			              [ {: Eliom_duce.Xhtml.get_form
@@ -1024,10 +1024,10 @@ let create_annotate_page ~sp ~id ~target ~version ~project_services =
                 extract_annotate_result annot_result >>= fun (a,b) ->
                   Lwt.return {{ [
                                 <div class="annot_author"> [
-                                  <pre> [!a]
+                                  <pre class="annot"> [!a]
                                 ] 
                                     <div class="annot_content"> [
-                                      <pre> [<code>[!b]] 
+                                      <pre class="annot"> [<code>[!b]] 
                                     ]
                               ] }})
               (function 
@@ -1109,7 +1109,7 @@ let draw_source_code_view ~sp ~id ~target ~version =
 		  Eliom_duce.Xhtml.a 
 		  ~service:ps.Sh.sources_service
                   ~a: {{ {class="sources_menu_link"} }}
-		  ~sp {{ {: "File options page" :}  }}
+		  ~sp {{ {: "File history" :}  }}
 		  (target,(Some(`Options),(None,None))) :}]
            ]
            <tr class="sources_menu"> [
@@ -1187,7 +1187,7 @@ let draw_diff_view ~sp ~id ~target ~diff1 ~diff2 =
 		  Eliom_duce.Xhtml.a 
                   ~a: {{ {class="sources_menu_link"} }}
 		  ~service:ps.Sh.sources_service
-		  ~sp {{ {: "File options page" :}  }}
+		  ~sp {{ {: "File history" :}  }}
 		  (target,(Some(`Options),(None,None))):}]
           ]
           <tr class="sources_menu"> [
@@ -1299,7 +1299,7 @@ let draw_annotate ~sp ~id ~target ~version =
 		  Eliom_duce.Xhtml.a 
                   ~a: {{ {class="sources_menu_link"} }}
 		  ~service:ps.Sh.sources_service
-		   ~sp {{ {: "File options page" :}  }}
+		   ~sp {{ {: "File history" :}  }}
 		  (target,(Some(`Options),(None,None))) :}]
           ]
           <tr class="sources_menu"> [

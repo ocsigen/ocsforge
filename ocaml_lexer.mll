@@ -51,7 +51,7 @@ let spaces = [' ']+
 
 let default = [^' ' '\n' '\r']
 
-let char = [''']("\\\'" | [^'''])*[''']
+let char = ['''](_ | '\\'_)?[''']
 
 rule token = parse
   | spaces as sp 

@@ -5,7 +5,7 @@ div.sources_main_div {
     border: 1px solid #BBBBBB;
     min-height: 100%;
     /*width: 800px;*/
-    width: 90%;
+    width: 95%;
     padding: 0 0px;
     margin: 0 auto;
     overflow: auto;
@@ -185,7 +185,7 @@ h3 {
 div.path {
     background: #EBEAD2 url(./ocsforge_title_background.png) repeat left top;
     border: 1px solid #BBBBBB;
-    width: 90%;
+    width: 95%;
     padding: 0 0px;
     margin: 0 auto;
     text-align: center;
@@ -465,6 +465,10 @@ div.annot_content {
     -webkit-border-radius: 0px 10px 10px 0px;
 }
 
+pre.annot {
+    background-attachement:fixed;
+    overflow: hidden;
+}
 
 span.annot:hover {
     font-weight:bold;
