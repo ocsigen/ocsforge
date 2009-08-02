@@ -99,11 +99,11 @@ _build/ocsforge_svn.cma:
 	mv *.o *.a *.so _build
 	mv *.cm* _build
 
-ocsforge_client.cmo: 
+ocsforge_client.cmo:
 	CAMLLIB=$(OBROWSERDIR) ocamlc -c -I $(ELIOMOBROWSERDIR) $(AXODIR)/AXO.cma ocsforge_client.ml
 	mv ocsforge_client.cm[io] _build/
 
-static/ocsimore_client.uue:
+static/ocsimore_client.uue: ./_build/ocsforge_client.cmo
 	CAMLLIB=$(OBROWSERDIR) ocamlc -o ocsimore_client $(ELIOMOBROWSERDIR)/eliom_obrowser_client.cmo $(OBROWSERDIR)/AXO.cma $(OCSIMOREOBROWSERDIR)/wiki_client.cmo $(OCSIMOREOBROWSERDIR)/forum_client.cmo ./_build/ocsforge_client.cmo
 	uuencode ocsimore_client stdout > static/ocsimore_client.uue
 

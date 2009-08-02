@@ -26,6 +26,17 @@ module Sh = Ocsforge_services_hashtable
     
 let _PAGE_SIZE = 100
 
+let sources_css_header =
+  Ocsimore_page.Header.create_header
+    (fun sp ->
+       {{ [ {: Eliom_duce.Xhtml.css_link
+               (Ocsimore_page.static_file_uri sp ["ocsforge_sources.css"]) () :}
+          ] }})
+
+let add_sources_css_header sp =
+  Ocsimore_page.Header.require_header sources_css_header ~sp;
+
+
 let generate_css_style id css_class =
   if (!id mod 2 == 0) then
     (css_class^"_odd")
@@ -72,7 +83,8 @@ let sources_page_content
     title_content 
     menu_content 
     main_content 
-    services = 
+    services =
+  add_sources_css_header sp; 
   {{
    [ title_content 
     <div class="sources_main_div">

@@ -49,7 +49,7 @@ let register_wikiext wp =
 		 None
 	       else Some(v)
 	     in
-	     let () =  send_css_up "ocsforge_sources.css" sp in 
+             Ocsforge_wikiext_source.add_sources_css_header sp;
 	     match file with
 	       | None ->
 		   Ocsforge_widgets_source.draw_repository_table ~sp ~id
