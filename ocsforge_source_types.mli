@@ -36,6 +36,10 @@ type file_diff = {fileName: string;
 (* Type représentant le résultat d'un diff *)
 type diff_result = file_diff Lwt.t
 
+(* Type représentant le résultat d'un diff entre 2 patchs *)
+(* Le résultat doit être transmis non traité *)
+type patchdiff_result = string Lwt.t
+
 (* Type représentant le résultat d'un annotate *)
 (* (Nom auteur * ligne) *)
 type annot_result = (string * string) list Lwt.t
@@ -45,5 +49,6 @@ type fun_pack = {vm_list: (?id:string -> ?dir:string -> string -> list_result);
 		 vm_cat: (?id:string -> string -> string -> cat_result);
 		 vm_log: (?file:string -> ?range:(string option * string option) -> ?limit:int -> string -> log_result);
 		 vm_diff: (string -> string -> string -> string -> diff_result);
+                 vm_patchdiff: (string -> string -> string -> patchdiff_result);
                  vm_annot: (?id:string -> string -> string -> annot_result)}
   

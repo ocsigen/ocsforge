@@ -22,6 +22,7 @@ type src_page_kind = [
   | `Cat
   | `Annot
   | `Diff
+  | `PatchDiff
   | `Options 
   | `Error ]
 
@@ -34,6 +35,7 @@ type page_kind = [ src_page_kind | log_page_kind ]
 let kind_to_string kind = match kind with
   | `Browse -> "browse"
   | `Diff -> "diff"
+  | `PatchDiff -> "patchdiff"
   | `Cat -> "content"
   | `Annot -> "annot"
   | `Options -> "options"
@@ -42,6 +44,7 @@ let kind_to_string kind = match kind with
 let string_to_kind s = 
   if (s = "browse") then `Browse
   else if (s = "diff") then `Diff
+  else if (s = "patchdiff") then `PatchDiff
   else if (s = "content") then `Cat
   else if (s = "annot") then `Annot
   else if (s = "options") then `Options

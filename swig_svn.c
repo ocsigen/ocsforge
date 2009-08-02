@@ -17,6 +17,26 @@ static apr_pool_t *pool;
 svn_client_ctx_t *ctx;
 
 
+void svn_cstring_split_endline_append (apr_array_header_t *array,
+				       const char *input,
+				       apr_pool_t *pool) {
+  int start = 0, end;
+  int len = strlen(input);
+  for (end = 0; end < len; end++){
+    if (input[end] == '\n') {
+      char *sub = apr_pstrndup(pool,(input+start),(end-start));
+      *(char **)apr_array_push(array) = sub;
+      start = end+1;
+    }
+  }
+  if (start < end) {
+    char *sub = apr_pstrndup(pool,(input+start),(len-start));
+    *(char **)apr_array_push(array) = sub;
+  }
+} 	
+
+
+
 /* fonction déterminant le comportement en cas d'annulation 
    de l'opération courante */
 svn_error_t *cancel(void *cancel_baton)
@@ -449,7 +469,7 @@ apr_array_header_t *svn_support_diff_call(char *rep_path,
 			   path->data,
 			   &rev2,
 			   NULL,
-			   svn_depth_empty,
+			   svn_depth_infinity,
 			   TRUE,// ignore_ancestry
 			   TRUE,// no_diff_deleted
 			   FALSE, // ignore_content_type
@@ -482,7 +502,7 @@ apr_array_header_t *svn_support_diff_call(char *rep_path,
     //*(char **)apr_array_push(list_result) = buf;
   }
 
-  svn_cstring_split_append(list_result,res->data,"\n",FALSE,subpool);
+  svn_cstring_split_endline_append(list_result,res->data,subpool);
   svn_pool_destroy(subpool);
   return list_result;
 }
@@ -501,25 +521,6 @@ apr_array_header_t *svn_support_diff(char *rep_path,
   caml_leave_blocking_section ();
   return res;
 }
-
-
-void svn_cstring_split_endline_append (apr_array_header_t *array,
-				       const char *input,
-				       apr_pool_t *pool) {
-  int start = 0, end;
-  int len = strlen(input);
-  for (end = 0; end < len; end++){
-    if (input[end] == '\n') {
-      char *sub = apr_pstrndup(pool,(input+start),(end-start));
-      *(char **)apr_array_push(array) = sub;
-      start = end+1;
-    }
-  }
-  if (start < end) {
-    char *sub = apr_pstrndup(pool,(input+start),(len-start));
-    *(char **)apr_array_push(array) = sub;
-  }
-} 	
 
 /* fonction simulant la commande svn cat */  
 apr_array_header_t *svn_support_cat_call(char *file_path, 

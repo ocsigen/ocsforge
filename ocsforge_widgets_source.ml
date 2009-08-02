@@ -44,36 +44,43 @@ let generate_css_style id css_class =
 
 
 let generate_menu sp version page_kind content services = 
-  {{ <table class="sources_menu"> 
-    [ <tr class="sources_menu"> [
-      {{ match (page_kind,version) with
-         | (None,None) -> 
-             {{ <td class="sources_menu_current"> 
-                   {: "Latest repository version ":} }}
-         | _ ->
-             {{ <td class="sources_menu_item"> 
-	       [{: 
+  {{ <table class="sources_menu"> [
+      <tr> [
+        <td> [
+          <table class="sources_submenu"> [
+            <tr> [
+              <th class="submenu_title"> 
+                [ 'Repository menu' ]
+            ]
+         <tr>[
+           {{ match (page_kind,version) with
+           | (None,None) -> 
+               {{ <td class="sources_menu_current"> 
+                 {: "Latest repository version ":} }}
+           | _ ->
+               {{ <td class="sources_menu_item"> 
+	         [{: 
 	           Eliom_duce.Xhtml.a
                    ~a: {{ {title="Browse the repository" 
                            class="sources_menu_link"} }}
 	           ~service:services.Sh.sources_service
 	           ~sp {{ {:"Latest repository version":} }}
 	           ([],(None,(None,None))) :}] }} }}]
-        <tr class="sources_menu"> [
-          {{ match page_kind with
-          | Some(`Log) -> 
+         <tr> [
+           {{ match page_kind with
+           | Some(`Log) -> 
               {{ <td class="sources_menu_current"> 
                   {: "Repository history":} }}
-          | _ ->
-          {{ <td class="sources_menu_item"> 
-            [{: 
+           | _ ->
+              {{ <td class="sources_menu_item"> 
+                [{: 
 		Eliom_duce.Xhtml.a 
                 ~a: {{ {title="View log" 
                         class="sources_menu_link"} }}
 		~service:services.Sh.log_service
 		~sp {{ {: "Repository history" :} }}
 		(None) :}] }} }}]
-        !content] }} 
+          ]]] !content] }}
         
 
 let sources_page_content 
@@ -90,8 +97,7 @@ let sources_page_content
     <div class="sources_main_div">
     [
      <div class="sources_menu_div">
-       [ <span class="menu_title"> ['Menu']
-         {{generate_menu sp version kind menu_content services }} ]
+       [ {{generate_menu sp version kind menu_content services }} ]
      <div class="sources_content_div"> main_content
    ]] }}
 
@@ -209,6 +215,15 @@ let log_table_header =
 	<th class="sources_table"> ['Comment'] ] 
       ]  }} : {{ [Xhtmltypes_duce.tr] }})
     
+
+let rec string_soption_list_of_list l =
+  List.map 
+    (fun h -> 
+      (Eliom_duce.Xhtml.Option ({{ {} }},
+                                fst h,
+			        Some(Ocamlduce.Utf8.make (snd h)),
+                                false))) l
+    
    
 let rec build_content sp dir_l ps cpt version tree depth = match tree with
   | STypes.File(f,aut,(rev_name,rev_id)) ->
@@ -229,20 +244,20 @@ let rec build_content sp dir_l ps cpt version tree depth = match tree with
 			    :}>
 	  [ <td class="sources_table"> 
 	    [{: Eliom_duce.Xhtml.a 
-		~a: {{ {title="File history" class="sources_img_link"} }}
+		~a: {{ {title="File history"} }}
 		~service:ps.Sh.sources_service
 		~sp {{  [<img alt="file" 
                             src={:
                                    Ocsimore_page.static_file_uri
                                    ~sp
-                                   ~path:["source_file.png"]
+                                   ~path:["file_history.png"]
 			    :}>[]] }}
                 (file_path,(Some(`Options),(version,None)))
 		:}
                ' '
                {: 
                   Eliom_duce.Xhtml.a 
-                  ~a: {{ {title="View content" class="sources_img_link"} }}
+                  ~a: {{ {title="View content" } }}
 		  ~service:ps.Sh.sources_service 
 		  ~sp {{ {: f :} }}
 		  (file_path,(Some(`Cat),(version,None)))
@@ -280,7 +295,7 @@ let rec build_content sp dir_l ps cpt version tree depth = match tree with
                             ~sp
                             ~path:["source_folder.png"] :}>[] 
                      {: Eliom_duce.Xhtml.a
-                        ~a: {{ {title="Browse directory" class="sources_img_link"} }}
+                        ~a: {{ {title="Browse directory" } }}
 			~service:ps.Sh.sources_service
 			~sp 
                         {{ {: (" "^(d)) :} }}
@@ -361,8 +376,7 @@ let rec create_repository_table_content ~sp ~id ~version ~dir ~project_services=
                          <td> 
                        [{:
                          Eliom_duce.Xhtml.a 
-			 ~a: {{ {class="sources_img_link"} }}
-			 ~service:ps.Sh.sources_service
+			   ~service:ps.Sh.sources_service
                          ~sp
                          {{ [<img alt="parent_directory" 
 		              src={:
@@ -447,6 +461,13 @@ let rec list_after l n = match l with
      else list_after t (n-1)
 
 
+let rec list_before l n = match l with
+ | [] -> []
+ | h::t ->
+     if (n = 0) then [h]
+     else h::(list_before t (n-1))
+
+
 let rec extract_version_assoc_list log =
   List.map 
     (fun p -> 
@@ -458,20 +479,22 @@ let rec extract_version_assoc_list log =
 let find_name list id = List.assoc id list
 
            
-let rec get_pos id cpt l = match l with
-| [] -> -1
-| h::t -> 
-    if ((fst h) = id) then cpt
-    else get_pos id (cpt+1) t
+let get_pos id l = 
+  let rec aux cpt l = match l with
+  | [] -> -1
+  | h::t -> 
+      if ((fst h) = id) then cpt
+      else aux (cpt+1) t
+  in aux 0 l 
 
 
 let split_log_list ~log_select ~start_rev ~end_rev = 
   let last_elt = (List.length log_select - 1) in
   let (log_from,log_to) = match (start_rev,end_rev) with
   | (None,None) -> (0,(min last_elt (_PAGE_SIZE-1)))
-  | (None,Some(e)) -> (0,(get_pos e 0 log_select))
-  | (Some(s),None) -> ((get_pos s 0 log_select),(min last_elt (_PAGE_SIZE-1)))
-  | (Some(s),Some(e)) -> ((get_pos s 0 log_select),(get_pos e 0 log_select))
+  | (None,Some(e)) -> (0,(get_pos e log_select))
+  | (Some(s),None) -> ((get_pos s log_select),(min last_elt (_PAGE_SIZE-1)))
+  | (Some(s),Some(e)) -> ((get_pos s log_select),(get_pos e log_select))
   in
   let range = (fst (List.nth log_select log_to),
                fst (List.nth log_select log_from)) 
@@ -557,18 +580,14 @@ let create_log_links ~sp ~log_service ~log_select ~start_rev ~end_rev =
 
 let log_table_content ~sp ~kind ~path ~log ~ps ~start_rev ~end_rev = 
   let cpt = ref 0 in
-  let rec extract_result log_result sr er started limit = match log_result with
+  let rec extract_result log_result limit = match log_result with
     | [] -> Lwt.return {{ [] }} 
     | p::t ->
         let next_content = 
-          if (started = false) then
-            if (!(p.STypes.id) = sr) then 
-              extract_result t sr er true (limit-1)
-            else extract_result t sr er false limit
-          else if (!(p.STypes.id) = er || limit = 1) then 
+          if (limit = 1) then
             Lwt.return {{ [] }}
           else
-            extract_result t sr er started (limit-1)
+            extract_result t (limit-1)
         in next_content >>= fun b ->
             (utf8_td (cut_string !(p.STypes.comment) 70) "small_ifont") >>= 
               fun comment_td ->
@@ -591,18 +610,34 @@ let log_table_content ~sp ~kind ~path ~log ~ps ~start_rev ~end_rev =
                             {{ <span>
                                [{:
                                   Eliom_duce.Xhtml.a
-                                  ~a: {{ {title="View this version" class="sources_img_link"} }}
+                                  ~a: {{ {title="View this version" } }}
                                   ~service: ps.Sh.sources_service
                                   ~sp 
-                                  {{ [<img alt="file" 
-			                 src={:
-                                                Ocsimore_page.static_file_uri
-                                                ~sp
-                                                ~path:["source_file2.png"] :}>[]] }}
+                                  {{ [<img alt="file content" 
+			               src={:
+                                            Ocsimore_page.static_file_uri
+                                            ~sp
+                                            ~path:["source_file.png"] :}>[]] }}
                                    (path,
                                     (Some(`Cat),
                                      (Some(!(p.STypes.id)),None))) :}] }} 
-                          else {{ <span>[] }}
+                          else match t with
+                           | [] -> {{ <span> [] }}
+                           | previous::_ ->
+                               {{ <span>[{:
+                                  Eliom_duce.Xhtml.a
+                                  ~a: {{ {title="Diff to previous" } }}
+                                  ~service: ps.Sh.sources_service
+                                  ~sp 
+                                  {{ [<img alt="diff" 
+			                src={:
+                                        Ocsimore_page.static_file_uri
+                                        ~sp
+                                        ~path:["diff_to_previous.png"] :}>[]] }}
+                                   ([],
+                                    (Some(`PatchDiff),
+                                     (Some(!(previous.STypes.id)),
+                                      Some(!(p.STypes.id))))) :}] }}
                          :}
                          ' '
                          {: Eliom_duce.Xhtml.a
@@ -618,15 +653,22 @@ let log_table_content ~sp ~kind ~path ~log ~ps ~start_rev ~end_rev =
                         {: !(p.STypes.date) :}
                           !comment_td] !b]}} :{{ [Xhtmltypes_duce.tr*] }})
   in
-  match (start_rev,end_rev) with
-  | (None,None) ->
-      extract_result log "" "" true _PAGE_SIZE
-  | (None,Some(er)) ->
-      extract_result log "" er false _PAGE_SIZE
-  | (Some(sr),None) ->
-      extract_result log sr "" true _PAGE_SIZE
-  | (Some(sr),Some(er)) ->  
-      extract_result log sr er false _PAGE_SIZE
+  let vl = extract_version_assoc_list log in
+  let log = 
+    match (start_rev,end_rev) with
+    | (None,None) -> log
+    | (None,Some(er)) ->
+        let end_pos = get_pos er vl in
+        list_before log end_pos
+    | (Some(sr),None) ->
+        let start_pos = get_pos sr vl in
+        list_after log start_pos
+    | (Some(sr),Some(er)) ->  
+        let end_pos = get_pos er vl in
+        let tmp = list_before vl end_pos in
+        let start_pos = get_pos sr tmp in
+        list_after (list_before log end_pos) start_pos
+  in extract_result log _PAGE_SIZE
 
 
 let create_log_page_content ~sp ~id ~file ~range ~project_services = 
@@ -655,6 +697,52 @@ let create_log_page_content ~sp ~id ~file ~range ~project_services =
 	  (fun () -> log)
           (fun log_result ->  
             let assoc_list = extract_version_assoc_list log_result in
+            let select_list = string_soption_list_of_list assoc_list in
+            let commit_diff_form 
+                ((file,(kind,(diff1,diff2))) : 
+                   ([`One of string list] Eliom_parameters.param_name *
+	              ([ `One of Sh.src_page_kind ] Eliom_parameters.param_name *
+                         ([ `One of string ] Eliom_parameters.param_name *
+                            ([ `One of string ] Eliom_parameters.param_name))))) =
+              
+              {{[<p class="menu_form"> [
+                <span class="menu_form_title"> ['Commit diff'] 
+                    {:
+		       Eliom_duce.Xhtml.user_type_input
+		       (Ocsigen_extensions.string_of_url_path 
+                          ~encode:false)
+		       ~input_type: {: "hidden" :}
+		       ~name: file
+		       ~value: []
+		       ()
+		       :}
+                    <br>[]
+	            'From'<br>[]
+	            {: 
+	               Eliom_duce.Xhtml.string_select
+	               ~a: {{ {class="version_select"} }}
+	               ~name: diff1
+	               (List.hd select_list)
+                       (List.tl select_list)
+                       :}
+	            <br> []
+	            'To' <br> []
+	            {: 
+	               Eliom_duce.Xhtml.string_select
+	               ~a: {{ {class="version_select"} }}
+	               ~name: diff2
+	               (List.hd select_list)
+                       (List.tl select_list)
+                       :}
+                    <br>[]
+	            {: Eliom_duce.Xhtml.user_type_button
+                       Sh.kind_to_string
+                       ~name: kind
+	               ~value: `PatchDiff
+	               {{ "Execute diff" }}
+	               :} 
+              ]] }}
+            in
             log_table_content ~sp ~kind:"log" ~path:[] ~log:log_result ~ps ~start_rev ~end_rev >>= 
             fun b ->
             create_log_links 
@@ -663,15 +751,37 @@ let create_log_page_content ~sp ~id ~file ~range ~project_services =
                 ~log_select:assoc_list 
                 ~start_rev
                 ~end_rev >>= fun (linktable) ->
-                  Lwt.return {{ [ 
-                                linktable
-                                  <table class="log_table">
-		                    [!log_table_header !b]] }})
-            (function 
-              | Vm.Node_not_found -> error sp "File or directory not found"
-              | Vm.Revision_not_found -> error sp "Revision not found"
-              | _ -> error sp "Version manager internal error"))
-          (function _ -> error sp "Manager not supported")
+                  Lwt.return 
+                    ({{ [ <tr> [
+                                 <td> [
+                                  <table class="sources_submenu"> [
+                                   <tr> [
+                                    <th class="submenu_title"> 
+                                    [ 'Log menu' ]
+                                   ]
+                                  <tr> [
+                                    <td class="sources_menu_item">
+			              [ {: Eliom_duce.Xhtml.get_form
+                                           ~a: {{ {class="version_select"} }}
+				           ~service: ps.Sh.sources_service
+				           ~sp  
+				           (commit_diff_form) :} 
+			              ]
+                                  ]]]]] }},
+                     {{ [ 
+                        linktable
+                          <table class="log_table">
+		            [!log_table_header !b]] }}))
+            (fun exn ->
+                let error_content = match exn with
+                | Vm.Node_not_found -> error sp "File or directory not found"
+                | Vm.Revision_not_found -> error sp "Revision not found"
+                | _ -> error sp "Version manager internal error"
+                in error_content >>= fun content -> 
+                  Lwt.return ({{ [] }},content)))
+        (function _ -> 
+          error sp "Manager not supported" >>= fun e ->
+            Lwt.return ({{ [] }},e))
     | _ -> failwith "Unable to retrieve repository informations"
 
 
@@ -685,7 +795,7 @@ let create_diff_view_content ~sp ~id ~file ~diff1 ~diff2 =
 	  extract_diff_result span_class t >>= fun b ->
 	    let span = begin match rt with 
 	    | STypes.Common ->
-                utf8_span None (s^"\n")
+                utf8_span (Some("common")) (s^"\n")
 	    | STypes.Diff ->
                 utf8_span (Some(span_class)) (s^"\n")
 	    | STypes.Blank ->
@@ -723,21 +833,72 @@ let create_diff_view_content ~sp ~id ~file ~diff1 ~diff2 =
             (function 
               | Vm.Node_not_found -> error sp "File or directory not found"
               | Vm.Revision_not_found -> error sp "Revision not found"
-              | _ -> error sp "Version manager internal error"))
-        (function _ -> error sp "Manager not supported")
+              | Vm.Manager_command_error -> 
+                  error sp "Version manager internal error"
+              | e -> Lwt.fail e))
+        (function 
+          | Vm.Manager_not_supported -> error sp "Manager not supported"
+          | e -> Lwt.fail e)
   | _ -> failwith "Unable to retrieve repository informations"
 	
 
+let create_patchdiff ~sp ~id ~diff1 ~diff2 = 
+  let rec extract_patchdiff l = match l with
+    | [] -> Lwt.return {{ [] }}
+    | h::t ->
+        extract_patchdiff t >>= fun b ->
+          let span =
+            if (String.length h > 0) then
+              if (h.[0] = '-') then
+                utf8_span (Some("old")) (h^"\n")
+              else if (h.[0] = '+') then
+                utf8_span (Some("new")) (h^"\n")
+              else {{ <span class="common"> {:(h^"\n"):} }}
+            else {{ <span class="common"> {:(h^"\n"):} }}
+          in 
+          Lwt.return ({{ [ span !b ]  }} : 
+                        {{ [Xhtmltypes_duce.special_pre*] }})
+  in
+  Data.get_area_for_page sp id >>= fun r_infos -> 
+  match (r_infos.Types.r_repository_kind,r_infos.Types.r_repository_path) with
+  | (Some(kind),Some(path)) ->
+      Lwt.try_bind 
+        (fun () -> Ocsforge_version_managers.get_fun_pack kind)
+	(fun fun_pack ->
+          Lwt.try_bind
+            (fun () -> fun_pack.STypes.vm_patchdiff path diff1 diff2)
+            (fun diff_content ->
+                let l = 
+                  Netstring_pcre.split (Netstring_pcre.regexp "\n") diff_content
+                in
+                if (diff_content != "" 
+                   && List.length l > 0
+                   && List.nth l 0 != "") then
+                extract_patchdiff l >>= fun extracted_content ->
+                  Lwt.return 
+                    ({{ [
+                        <div class="patchdiff"> [
+                          <pre class="diff"> extracted_content
+                        ] ] }} : {{ [Xhtmltypes_duce.block* ] }})
+              else
+                Lwt.return ({{ [<div class="patchdiff"> [
+                                 <pre class="diff"> 
+                                   {: "Empty diff output \n\t- Ocsforge -" :}
+                               ]] }} : {{ [Xhtmltypes_duce.block* ] }})
+            )
+            (function
+              | Vm.Revision_not_found -> 
+                  error sp "Revision not found"
+              | Vm.Manager_command_error -> 
+                  error sp "Version manager internal error"
+              | e -> Lwt.fail e))
+        (function 
+          | Vm.Manager_not_supported -> error sp "Manager not supported"
+          | e -> Lwt.fail e)
+  | _ -> failwith "Unable to retrieve repository informations"
 
 
-let rec string_soption_list_of_list l =
-  List.map 
-    (fun h -> 
-      (Eliom_duce.Xhtml.Option ({{ {} }},
-                                fst h,
-			        Some(Ocamlduce.Utf8.make (snd h)),
-                                false))) l
-    
+
 
 let create_file_log_links 
     ~sp 
@@ -868,7 +1029,7 @@ let create_file_page ~sp ~id ~target ~version ~log_start ~project_services =
                   ([ `One of string ] Eliom_parameters.param_name *
                   ([ `One of string ] Eliom_parameters.param_name))))) =
                     {{[<p class="menu_form"> [
-                        <span class="menu_form_title"> ['Diff viewing'] 
+                        <span class="menu_form_title"> ['Content diff'] 
                         <br>[]
 		        {:
 		           Eliom_duce.Xhtml.user_type_input
@@ -878,7 +1039,7 @@ let create_file_page ~sp ~id ~target ~version ~log_start ~project_services =
 		           ~value: target 
 		           ()
 		        :}
-		        'Version 1 '
+		        'From'<br>[]
 		        {: 
 		           Eliom_duce.Xhtml.string_select
 		           ~a: {{ {class="version_select"} }}
@@ -887,7 +1048,7 @@ let create_file_page ~sp ~id ~target ~version ~log_start ~project_services =
                            (List.tl select_list)
                         :}
 		        <br> []
-		        'Version 2 '
+		        'To' <br> []
 		        {: 
 		           Eliom_duce.Xhtml.string_select
 		           ~a: {{ {class="version_select"} }}
@@ -895,6 +1056,7 @@ let create_file_page ~sp ~id ~target ~version ~log_start ~project_services =
 		           (List.hd select_list)
                            (List.tl select_list)
                            :}
+                        <br>[]
 		        {: Eliom_duce.Xhtml.user_type_button
                            Sh.kind_to_string
                            ~name: kind
@@ -913,36 +1075,43 @@ let create_file_page ~sp ~id ~target ~version ~log_start ~project_services =
                   ~log_start 
                   ~log_result:v_list)
               (fun log_links ->
-                Lwt.return (({{ [ 
-                                <tr class="sources_menu"> [
-                                  <td class="sources_menu_current">
-                                    ['File history']]
-                                  <tr class="sources_menu"> [
-                                    <td class="sources_menu_item">
+                Lwt.return (({{ [
+                                <tr> [
+                                 <td> [
+                                  <table class="sources_submenu"> [
+                                   <tr> [
+                                    <th class="submenu_title"> 
+                                    [ 'File menu' ]
+                                   ]
+                                   <tr> [
+                                     <td class="sources_menu_current">
+                                      ['File history']]
+                                    <tr> [
+                                      <td class="sources_menu_item">
 			              [ {: Eliom_duce.Xhtml.get_form
                                            ~a: {{ {class="version_select"} }}
 				           ~service: ps.Sh.sources_service
 				           ~sp  
 				           (file_version_select_form) :} 
 			              ]
-                                  ]
-                                  !{:
-                                    match select_list with
-                                    | [] -> {{ [] }}
-                                    | _ -> 
-                                        {{ [<tr class="sources_menu"> [
-                                          <td class="sources_menu_item">
-				            [{: 
+                                    ]
+                                    !{:
+                                     match select_list with
+                                     | [] -> {{ [] }}
+                                     | _ -> 
+                                         {{ [<tr class="sources_menu"> [
+                                           <td class="sources_menu_item">
+				             [{: 
                                               Eliom_duce.Xhtml.get_form
                                               ~a: {{ {class="version_select"} }}
 				              ~service: ps.Sh.sources_service
 				              ~sp  
 				               file_diff_form :}] 
 				            ]] }} :} 
-                              ] }}, {{ 
+                              ]]]] }}, {{ 
                                      [ 
                                        <h3 style="border:none"> 
-                                       {: "Previous versions history" :}
+                                       {: "Previous versions" :}
                                          log_links 
                                          <table class="log_table"> 
                                            [!log_table_header !log] ] }})
@@ -1115,27 +1284,36 @@ let draw_source_code_view ~sp ~id ~target ~version =
       create_source_code_content ~sp ~id ~file ~version >>= fun b ->
       let menu_content = 
         {{
-         [<tr class="sources_menu"> [
-            <td class="sources_menu_item">
-	      [{:
+         [<tr> [
+           <td> [
+            <table class="sources_submenu"> [
+             <tr> [
+              <th class="submenu_title"> 
+                [ 'File menu' ]
+             ]
+             <tr>[
+              <td class="sources_menu_item">
+	        [{:
 		  Eliom_duce.Xhtml.a 
 		  ~service:ps.Sh.sources_service
                   ~a: {{ {class="sources_menu_link"} }}
 		  ~sp {{ {: "File history" :}  }}
 		  (target,(Some(`Options),(None,None))) :}]
-           ]
-           <tr class="sources_menu"> [
-             <td class="sources_menu_current"> {: "View content" :}]
-           <tr class="sources_menu"> [
-             <td class="sources_menu_item">
-               [{:
-                   Eliom_duce.Xhtml.a 
-                   ~a: {{ {class="sources_menu_link"} }}
-		   ~service:ps.Sh.sources_service
-		   ~sp {{ {: "Annotate" :}  }}
+              ]
+            <tr> [
+              <td class="sources_menu_current"> {: "View content" :}]
+            <tr> [
+              <td class="sources_menu_item">
+                [{:
+                    Eliom_duce.Xhtml.a 
+                    ~a: {{ {class="sources_menu_link"} }}
+		    ~service:ps.Sh.sources_service
+		    ~sp {{ {: "Annotate" :}  }}
 		   (target,(Some(`Annot),(version,None))) :}]
+            ]
            ]
-         ] 
+          ]
+         ]]
        }}
       in
       let title_content =
@@ -1162,9 +1340,7 @@ let draw_log_page ~sp ~id ~file ~start_rev ~end_rev =
         ~file 
         ~range:(Some(start_rev,end_rev))
         ~project_services:ps >>= 
-      fun b ->
-        let menu_content = {{ [] }}
-        in
+      fun (menu_content,page_content) ->
         let title_content = {{ <div class="path"> ['Repository history'] }}
         in
         Lwt.return ({{ 
@@ -1172,7 +1348,7 @@ let draw_log_page ~sp ~id ~file ~start_rev ~end_rev =
                              sp 
                              None 
                              ~kind:(Some(`Log)) 
-                             title_content menu_content b ps) }}
+                             title_content menu_content page_content ps) }}
                      }} : {{ Xhtmltypes_duce.flows }})
           
 
@@ -1193,36 +1369,45 @@ let draw_diff_view ~sp ~id ~target ~diff1 ~diff2 =
       create_diff_view_content ~sp ~id ~file ~diff1 ~diff2 >>= fun b ->
         let menu_content = 
           {{
-          [<tr class="sources_menu"> [
-            <td class="sources_menu_item">
+          [<tr> [
+           <td> [
+            <table class="sources_submenu"> [
+             <tr> [
+              <th class="submenu_title"> 
+                [ 'File menu' ]
+             ]
+            <tr> [
+              <td class="sources_menu_item">
               [{:
 		  Eliom_duce.Xhtml.a 
                   ~a: {{ {class="sources_menu_link"} }}
 		  ~service:ps.Sh.sources_service
 		  ~sp {{ {: "File history" :}  }}
 		  (target,(Some(`Options),(None,None))):}]
-          ]
-          <tr class="sources_menu"> [
-            <td class="sources_menu_item">
+              ]
+            <tr> [
+              <td class="sources_menu_item">
               [{:
 		  Eliom_duce.Xhtml.a 
                   ~a: {{ {class="sources_menu_link"} }}
 		  ~service:ps.Sh.sources_service
 		  ~sp {{ {: "View content" :}  }}
 		  (target,(Some(`Cat),(None,None))):}]
-          ]
-          <tr class="sources_menu"> [
-            <td class="sources_menu_item">
+            ]
+            <tr> [
+              <td class="sources_menu_item">
               [{:
 		  Eliom_duce.Xhtml.a 
                   ~a: {{ {class="sources_menu_link"} }}
 		  ~service:ps.Sh.sources_service
 		  ~sp {{ {: "Annotate" :}  }}
 		  (target,(Some(`Annot),(None,None))):}]
-          ]
-          <tr class="sources_menu"> [
-            <td class="sources_menu_current"> {: "File diff" :}]
-          ] 
+            ]
+            <tr> [
+              <td class="sources_menu_current"> {: "File diff" :}]
+            ]
+           ]
+          ]]
           }}
         in
         let title_content = 
@@ -1239,6 +1424,42 @@ let draw_diff_view ~sp ~id ~target ~diff1 ~diff2 =
                              ps) }} }} 
                       : {{ Xhtmltypes_duce.flows }})
           
+
+let draw_patchdiff ~sp ~id ~diff1 ~diff2 = match Sh.find_service id with
+  | None -> failwith "Project services not found"
+  | Some(ps) -> 
+        let menu_content = 
+          {{ [
+             <tr> [
+             <td> [
+               <table class="sources_submenu"> [
+                 <tr> [
+                   <th class="submenu_title"> 
+                     [ 'Log menu' ]
+                 ]
+                 <tr> [
+                   <td class="sources_menu_current"> {: "Commit diff" :}
+                 ]
+               ]
+             ]
+           ]] 
+           }}
+        in
+        let title_content = 
+          {{ <div class="path"> 
+            {: ("Commit diff "^diff1^" - "^diff2) :} }} 
+        in
+        create_patchdiff ~sp ~id ~diff1 ~diff2 >>= fun page_content ->
+          Lwt.return ({{
+                       {{ sources_page_content
+                            sp
+                            None
+                            ~kind:(Some(`PatchDiff))
+                            title_content
+                            menu_content
+                            page_content
+                            ps }} }} : {{ Xhtmltypes_duce.flows }})
+      
 
 (* TODO ¿ cas ou target est un répertoire ? *)
 let draw_file_page ~sp ~id ~target ~version ~log_start =
@@ -1305,7 +1526,14 @@ let draw_annotate ~sp ~id ~target ~version =
         ~project_services:ps >>= fun b ->
         let menu_content = 
           {{
-          [<tr class="sources_menu"> [
+          [<tr> [
+           <td> [
+            <table class="sources_submenu"> [
+             <tr> [
+              <th class="submenu_title"> 
+                [ 'File menu' ]
+             ]
+           <tr> [
             <td class="sources_menu_item">
               [{:
 		  Eliom_duce.Xhtml.a 
@@ -1313,19 +1541,19 @@ let draw_annotate ~sp ~id ~target ~version =
 		  ~service:ps.Sh.sources_service
 		   ~sp {{ {: "File history" :}  }}
 		  (target,(Some(`Options),(None,None))) :}]
-          ]
-          <tr class="sources_menu"> [
-            <td class="sources_menu_item">
+            ]
+           <tr> [
+              <td class="sources_menu_item">
               [{:
                  Eliom_duce.Xhtml.a 
                   ~a: {{ {class="sources_menu_link"} }}
 		  ~service:ps.Sh.sources_service
 		   ~sp {{ {: "View content" :}  }}
 		  (target,(Some(`Cat),(version,None))) :}]
-          ]
-          <tr class="sources_menu"> [
-            <td class="sources_menu_current"> {: "Annotate" :}]
-          ] }}
+           ]
+           <tr> [
+              <td class="sources_menu_current"> {: "Annotate" :}]
+          ]]]] }}
         in
         let title_content = 
           {{ <div class="path"> 

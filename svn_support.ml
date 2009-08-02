@@ -373,6 +373,29 @@ let svn_diff file repository id1 id2 =
       parse_diff map [{fileName = file; oldContent = []; newContent = []}] false
   with _ -> Lwt.fail Vm.Manager_command_error
 
+(** Stocke le résultat du diff entre id1 et id2 dans une chaine *)
+let svn_patchdiff repository id1 id2 = 
+  svn_repo_format repository >>= fun rep ->
+  try
+    let rev1 = int_of_string id1 in
+    let rev2 = int_of_string id2 in
+    let diff_call () = 
+      Swig_svn._svn_support_diff(Swig.C_list[Swig.C_string(rep); 
+					     Swig.C_string("");
+					     Swig.C_int(rev1);
+					     Swig.C_int(rev2)])
+    in
+    Lwt_preemptive.detach diff_call () >>= fun l ->
+      let diff_res = extract_list l in
+      let map = 
+        List.map (fun s -> 
+          match s with
+          | Swig.C_string(s) -> s
+          | _ -> "") diff_res
+      in
+      Lwt.return (String.concat "\n" map)
+  with _ -> Lwt.fail Vm.Manager_command_error
+
 (** Récupère le contenu d'un fichier à la révision demandée (si aucune
     révision n'est précisée, renvoie la version la plus récente) *)
 let svn_cat ?id repository file =
@@ -441,6 +464,7 @@ let _ =
      vm_cat = svn_cat;
      vm_log = svn_log;
      vm_diff = svn_diff;
+     vm_patchdiff = svn_patchdiff;
      vm_annot = svn_annot} in
   Ocsforge_version_managers.set_fun_pack "SVN" svn_fun_pack
       

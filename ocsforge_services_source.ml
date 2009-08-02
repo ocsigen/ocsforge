@@ -80,6 +80,13 @@ let source_service path =
               ~diff1 
               ~diff2 >>= fun r ->
               Lwt.return (Some("Ocsforge - File diff"),r)
+        | (_,(Some(`PatchDiff),(Some(diff1),Some(diff2)))) ->
+            Ocsforge_widgets_source.draw_patchdiff
+              ~sp 
+              ~id
+              ~diff1
+              ~diff2 >>= fun r ->
+              Lwt.return (Some("Ocsforge - Commit diff"),r)
         | (l,(Some(`Options),(version,log_start))) -> 
 	    Ocsforge_widgets_source.draw_file_page 
               ~sp 

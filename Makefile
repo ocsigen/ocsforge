@@ -46,7 +46,6 @@ STATICFILES := static/ocsimore_client.uue \
 	       static/message_error.png\
 	       static/ocsforge_tree.css\
 	       static/open_repository.png\
-	       static/source_file.png\
 	       static/up.png\
 	       static/add.png\
 	       static/down.png\
@@ -66,8 +65,11 @@ STATICFILES := static/ocsimore_client.uue \
 	       static/ocsforge_tree_complete.css\
 	       static/preview.png\
 	       static/sources_menu_item.png\
-               static/source_file2.png\
-               static/ocsforge_title_background.png		
+	       static/sources_menu_item_hover.png\
+               static/ocsforge_title_background.png\
+               static/file_history.png\
+	       static/source_file.png\
+	       static/diff_to_previous.png		
 
 all: $(MYOCAMLFIND) ocsforge static/vm.js static/ocsimore_client.uue
 

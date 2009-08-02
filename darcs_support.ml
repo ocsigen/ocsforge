@@ -714,6 +714,17 @@ let darcs_diff file rep from_patch to_patch =
     parse_diff res [{fileName=file; oldContent=[]; newContent=[]}] false
 	
 
+(** Execute la commande darcs diff sur 2 patches *)
+let darcs_patchdiff rep from_patch to_patch = 
+  let error_message = "Error while getting patchdiff result (signal received)" 
+  in
+  let command = ("darcs diff --from-match 'hash "^from_patch^
+		 "' --to-match 'hash "^to_patch^
+		 "' -u --repodir "^rep) in
+  exec_command command error_message
+
+
+
 let rec print_tree path tree = match tree with
   | File(f,a,(v,_)) -> 
       print_endline (path^f^"  aut:"^a^"   v:"^v)
@@ -745,22 +756,7 @@ let _ =
       vm_cat = darcs_cat;
       vm_log = darcs_log;
       vm_diff = darcs_diff;
+      vm_patchdiff = darcs_patchdiff;
       vm_annot = darcs_annot} in
   Ocsforge_version_managers.set_fun_pack "Darcs" darcs_fun_pack
-
-(** TEST **)
-(*
-let _ = 
-  let path = "/home/jh/ocsigen.dev" in 
-  print_endline "AVANT APPEL DARCS";
-  (*darcs_diff "Makefile" path "20080524180748-0445d-376c7e08ca4606283fd4e1d9768137d40f804138.gz" "20080525110836-0445d-13dc6bca37acfd22c32f3b543d5b01616c7e007d.gz"*)
-  (*darcs_cat ~patch:"0050804154654-e63a0-801e45ef2e1a81a413c975d8f507ee6613b11edf.gz" path "README"  *)
-  darcs_list path >>= fun res ->(*
-    List.iter (fun (_,p) -> print_endline p) res.oldContent;
-    print_endline "********************************";
-    List.iter (fun (_,p) -> print_endline p) res.newContent;*)
-    print_endline "avant print_tree";
-      print_tree "" res;
-    Lwt.return (print_endline "FIN APPEL DARCS")
-  *)   
 
