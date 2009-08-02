@@ -853,8 +853,10 @@ let create_patchdiff ~sp ~id ~diff1 ~diff2 =
                 utf8_span (Some("old")) (h^"\n")
               else if (h.[0] = '+') then
                 utf8_span (Some("new")) (h^"\n")
-              else {{ <span class="common"> {:(h^"\n"):} }}
-            else {{ <span class="common"> {:(h^"\n"):} }}
+              else 
+                utf8_span (Some("common")) (h^"\n")
+            else 
+              utf8_span (Some("common")) (h^"\n")
           in 
           Lwt.return ({{ [ span !b ]  }} : 
                         {{ [Xhtmltypes_duce.special_pre*] }})
