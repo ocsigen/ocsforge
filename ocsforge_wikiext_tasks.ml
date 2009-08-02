@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 
-open Ocsforge_wikiext_common
+let (>>=) = Lwt.bind
 
 let tree_css_header =
   Ocsimore_page.Header.create_header
@@ -27,7 +27,7 @@ let tree_css_header =
           ] }})
 
 let add_tree_css_header sp =
-  Ocsimore_page.Header.require_header tree_css_header ~sp;
+  Ocsimore_page.Header.require_header tree_css_header ~sp
 
 
 

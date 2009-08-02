@@ -34,7 +34,7 @@ let sources_css_header =
           ] }})
 
 let add_sources_css_header sp =
-  Ocsimore_page.Header.require_header sources_css_header ~sp;
+  Ocsimore_page.Header.require_header sources_css_header ~sp
 
 
 let generate_css_style id css_class =

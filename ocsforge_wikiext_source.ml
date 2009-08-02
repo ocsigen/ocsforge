@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 
-open Ocsforge_wikiext_common
+let (>>=) = Lwt.bind
 
 let wikicreole_parser = Wiki_syntax.wikicreole_parser
 let reduced_wikicreole_parser0 = Wiki_syntax.reduced_wikicreole_parser0
@@ -49,7 +49,7 @@ let register_wikiext wp =
 		 None
 	       else Some(v)
 	     in
-             Ocsforge_wikiext_source.add_sources_css_header sp;
+             Ocsforge_widgets_source.add_sources_css_header sp;
 	     match file with
 	       | None ->
 		   Ocsforge_widgets_source.draw_repository_table ~sp ~id
