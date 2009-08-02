@@ -82,7 +82,7 @@ let _ =
     (fun _wp bi args c ->
        Wikicreole.Block (
         let sp = bi.Wiki_widgets_interface.bi_sp in
-        let () =  send_css_up "ocsforge_sources.css" sp in 
+        Ocsforge_widgets_source.add_sources_css_header sp;
          (match c with
            | None -> Lwt.return {{ [] }}
            | Some s -> 

@@ -41,7 +41,7 @@ let source_service path =
           (Params.opt (Params.string "version") **
              (Params.opt (Params.string "to")))))
     (fun sp (file,(view,(v1,v2))) () -> 
-      let () =  Ocsforge_wikiext_common.send_css_up "ocsforge_sources.css" sp in
+      Ocsforge_widgets_source.add_sources_css_header sp;
       let id = path in 
       (match (file,(view,(v1,v2))) with
         | (l,(None,(version,_))) ->
@@ -132,7 +132,9 @@ let source_service path =
           ~bi 
           r_infos.Ocsforge_types.r_sources_container
           >>= fun page_content ->
-          Lwt.return (None,{{ [page_content] }},Wiki_widgets_interface.Page_displayable,title)
+          Lwt.return (None,
+                      {{ [page_content] }},
+                      Wiki_widgets_interface.Page_displayable,title)
       in
       Ocsisite.wikibox_widget#display_container 
             ~sp ~wiki:(r_infos.Ocsforge_types.r_wiki) ~menu_style:`Linear
@@ -150,7 +152,7 @@ let log_service path =
                                           Vm.string_to_range 
 				          Vm.range_to_string "range"))
     (fun sp range () ->
-      let () =  Ocsforge_wikiext_common.send_css_up "ocsforge_sources.css" sp in
+      Ocsforge_widgets_source.add_sources_css_header sp;
       let id = path in
       let (start_rev,end_rev) = match range with
         | None -> (None,None)

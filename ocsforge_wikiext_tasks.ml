@@ -19,6 +19,18 @@
 
 open Ocsforge_wikiext_common
 
+let tree_css_header =
+  Ocsimore_page.Header.create_header
+    (fun sp ->
+       {{ [ {: Eliom_duce.Xhtml.css_link
+               (Ocsimore_page.static_file_uri sp ["ocsforge_tree.css"]) () :}
+          ] }})
+
+let add_tree_css_header sp =
+  Ocsimore_page.Header.require_header tree_css_header ~sp;
+
+
+
 let register_wikiext wp
       (tree_widget : Ocsforge_widgets_tasks.tree_widget)
       inline_widget
@@ -39,8 +51,7 @@ let register_wikiext wp
                 then ["importance"]
                 else f
             in
-            let () =  send_css_up "ocsforge_tree.css" sp
-            in
+            add_tree_css_header sp;
             tree_widget#display ~sp ~root_task:id
               >>= fun b ->
             Lwt.return ({{  b }} : {{ Xhtmltypes_duce.flows }})
