@@ -106,7 +106,7 @@ ocsforge_client.cmo:
 	mv ocsforge_client.cm[io] _build/
 
 static/ocsimore_client.uue: ./_build/ocsforge_client.cmo
-	CAMLLIB=$(OBROWSERDIR) ocamlc -o ocsimore_client $(ELIOMOBROWSERDIR)/eliom_obrowser_client.cmo $(OBROWSERDIR)/AXO.cma $(OCSIMOREOBROWSERDIR)/wiki_client_prologue.cmo $(OCSIMOREOBROWSERDIR)/wiki_client.cmo $(OCSIMOREOBROWSERDIR)/forum_client.cmo ./_build/ocsforge_client.cmo
+	CAMLLIB=$(OBROWSERDIR) ocamlc -o ocsimore_client $(ELIOMOBROWSERDIR)/eliom_obrowser_client.cmo $(OBROWSERDIR)/AXO.cma $(OCSIMOREOBROWSERDIR)/wiki_client.cmo $(OCSIMOREOBROWSERDIR)/forum_client.cmo ./_build/ocsforge_client.cmo
 	uuencode ocsimore_client stdout > static/ocsimore_client.uue
 
 
