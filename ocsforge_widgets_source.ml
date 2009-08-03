@@ -1129,9 +1129,7 @@ let create_file_page ~sp ~id ~target ~version ~log_start ~project_services =
 				               file_diff_form :}] 
 				         ]] }} :} 
                                      ]]]] }}, {{ 
-                                     [ <h3 style="border:none"> 
-                                       {: (file_path^" : previous versions") :}
-                                         log_links 
+                                     [   log_links 
                                          <table class="log_table"> 
                                            [!log_table_header !log] ] }})
 			      : (  {{ [ Xhtmltypes_duce.tr* ] }} *
@@ -1485,10 +1483,7 @@ let draw_patchdiff ~sp ~id ~diff1 ~diff2 = match Sh.find_service id with
 
 (* TODO ¿ cas ou target est un répertoire ? *)
 let draw_file_page ~sp ~id ~target ~version ~log_start =
-  let str_version = match version with
-    | None  -> " – latest version"
-    | Some(s) -> (" – version "^s)
-  in
+  let str_version = " – version history" in
   let (current_dir,current_dir_path) = build_path target in
   match Sh.find_service id with
   | None -> failwith "Project services not found"
@@ -1497,7 +1492,7 @@ let draw_file_page ~sp ~id ~target ~version ~log_start =
         path_title ~sp 
           ~path:current_dir_path 
           ~version 
-          ~title:"Browse file - " 
+          ~title:"" 
           ~ps 
       in
       create_file_page 
