@@ -21,12 +21,14 @@ module Vm = Ocsforge_version_managers
 let index_regexp = regexp "Index: "
 
 let svn_repo_format rep = 
+  let l = split (regexp "/") rep in
+  Lwt.return (String.concat "/" l) (*
   try
     if (rep.[String.length rep - 1] = '/') then
       Lwt.return (String.sub rep 0 (String.length rep - 1))
     else Lwt.return rep
   with _ ->
-    Lwt.fail Vm.Manager_command_error
+    Lwt.fail Vm.Manager_command_error*)
 
 (** Extrait la liste Caml depuis une C_list *)
 let extract_list res = match res with

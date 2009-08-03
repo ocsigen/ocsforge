@@ -50,7 +50,7 @@ let generate_menu sp version page_kind content services =
           <table class="sources_submenu"> [
             <tr> [
               <th class="submenu_title"> 
-                [ 'Repository menu' ]
+                [ 'Repository' ]
             ]
          <tr>[
            {{ match (page_kind,version) with
@@ -519,63 +519,47 @@ let split_log_list ~log_select ~start_rev ~end_rev =
          range,
          (fst (List.nth log_select (e+1)),fst (List.nth log_select last_pos)))
   end
-  
-      
+   
       
    
 let create_log_links ~sp ~log_service ~log_select ~start_rev ~end_rev =
   let (a,b,c) = split_log_list ~log_select ~start_rev ~end_rev in
   let end_name = find_name log_select (snd b) in
   let start_name = find_name log_select (fst b) in
-  (utf8_td (end_name^" - "^start_name) "middle") >>= fun middle ->
-  match start_rev with
-    | None -> 
-        Lwt.return ({{ 
-                     <table class="log_links"> [
-                       <tr> [
-                       <td class="no_previous_entries"> ['< previous']
-                           !middle
-                           {{ match c with
-                           | ("",_) ->
-                               {{ <td class="no_next_entries"> [' next >'] }}
-                           | _ ->
-                               {{ <td class="next_entries_link">  
-                                   [{:Eliom_duce.Xhtml.a
-                                        ~a: {{ {class="log_link"} }}
-		                        ~service:log_service
-		                        ~sp 
-                                        {{ ['next >'] }}
-                                        (Some(Some(fst c),Some(snd c))) :}] 
-                                  }} }} ]] }})
-    | Some(_) ->
-        Lwt.return 
-        ({{ 
-          <table class="log_links"> [
-            <tr class="log_links"> [
-            {{
-               match a with
-               | ("",_) -> {{ <td class="no_previous_entries"> ['< previous'] }}
-               | _ -> 
-                   {{ <td class="previous_entries_link"> 
-                     [{:Eliom_duce.Xhtml.a
+  (utf8_td ("Entries range: "^end_name^"  -  "^start_name) "middle") >>= fun middle ->
+  Lwt.return ({{
+               <table class="log_links">[
+                 <tr> [
+                  {{ 
+                   match a with
+                   | ("",_) -> 
+                      {{ <td class="no_previous_entries"> 
+                        ['(no previous entries)'] }}
+                   | _ -> 
+                       {{ <td class="previous_entries_link"> 
+                         [{:Eliom_duce.Xhtml.a
                          ~a: {{ {class="log_link"} }}
 		         ~service:log_service
 		         ~sp 
                          {{ ['< previous'] }}
-                         (Some(Some(fst a),Some(snd a))) :}]
-                                            }} }}
-                !middle
-                {{ 
-                 match c with
-                 | ("",_) -> {{ <td class="no_next_entries">  ['next >'] }}
-                 | _ -> 
-                     {{ <td class="next_entries_link"> [{:Eliom_duce.Xhtml.a
-                            ~a: {{ {class="log_link"} }}
-		            ~service:log_service
-		            ~sp 
-                            {{ ['next >'] }}
-                            (Some(Some(fst c),Some(snd c))) :}]
-                      }} }}]] }})
+                         (Some(Some(fst a),Some(snd a))) :}] }}
+                 }}
+                 !middle
+                 {{ 
+                   match c with
+                   | ("",_) -> 
+                       {{ <td class="no_next_entries"> ['(no next entries)'] }}
+                   | _ -> 
+                       {{ <td class="next_entries_link"> 
+                         [{:Eliom_duce.Xhtml.a
+                         ~a: {{ {class="log_link"} }}
+		         ~service:log_service
+		         ~sp 
+                         {{ ['next >'] }}
+                         (Some(Some(fst c),Some(snd c))) :}] }}
+                 }}
+               ]] }})        
+            
 
 
 let log_table_content ~sp ~kind ~path ~log ~ps ~start_rev ~end_rev = 
@@ -757,7 +741,7 @@ let create_log_page_content ~sp ~id ~file ~range ~project_services =
                                   <table class="sources_submenu"> [
                                    <tr> [
                                     <th class="submenu_title"> 
-                                    [ 'Log menu' ]
+                                    [ 'Log' ]
                                    ]
                                   <tr> [
                                     <td class="sources_menu_item">
@@ -918,15 +902,17 @@ let create_file_log_links
       if (List.length log_result = 1) then range_start
       else List.hd (List.rev (List.tl log_result)) 
   in
-  let range = ((snd (range_start)^
-               " - "^
+  let range = ("Entries range: "^(snd (range_start)^
+               "  -  "^
                (snd (range_end)))) in
   (utf8_td range "middle") >>= fun middle ->
    Lwt.return 
       {{ <table class="log_links"> [
           <tr> [
           {{ match log_start with
-          | None -> {{ <td class="no_previous_entries"> {: "First page" :} }}
+          | None -> 
+              {{ <td class="no_previous_entries"> 
+                {: "(no previous entries)" :} }}
           | Some(_) -> 
               {{ <td class="previous_entries_link"> 
                 [{: Eliom_duce.Xhtml.a 
@@ -944,7 +930,8 @@ let create_file_log_links
                   (target,(Some(`Options),(version,Some((fst(range_end)))))) :}]
                }}
           else 
-            {{ <td class="no_next_entries"> {: "Next log entries" :} }}
+            {{ <td class="no_next_entries"> 
+              {: "(no next entries)" :} }}
         }}
       ]] }}
   
@@ -1083,24 +1070,52 @@ let create_file_page ~sp ~id ~target ~version ~log_start ~project_services =
                                   <table class="sources_submenu"> [
                                    <tr> [
                                     <th class="submenu_title"> 
-                                    [ 'File menu' ]
+                                    {: "File" :}
                                    ]
+                                   <tr> [
+                                     <td class="sources_menu_item">
+                                      [ {: Eliom_duce.Xhtml.a 
+                                           ~a: {{ 
+                                                {class="sources_menu_link" 
+                                                 title="Latest content"} }}
+		                           ~service:ps.Sh.sources_service 
+		                           ~sp {{ {: "View content" :} }}
+		                           (target,(Some(`Cat),(None,None)))
+                                      :} ]]
                                    <tr> [
                                      <td class="sources_menu_current">
                                       ['File history']]
-                                    <tr> [
-                                      <td class="sources_menu_item">
-			              [ {: Eliom_duce.Xhtml.get_form
+                                   <tr> [
+                                     <td class="sources_menu_item">
+                                       [ {: Eliom_duce.Xhtml.a 
+                                           ~a: {{ 
+                                                {class="sources_menu_link" 
+                                                 title="Latest content"} }}
+		                           ~service:ps.Sh.sources_service 
+		                           ~sp {{ {: "Annotate" :} }}
+		                           (target,(Some(`Annot),(None,None)))
+                                       :} ]]
+                                   ]]]
+                                   <tr> [
+                                    <td> [
+                                     <table class="sources_submenu"> [
+                                      <tr> [
+                                       <th class="submenu_title">
+                                         {: "History browsing" :}
+                                      ]
+                                      <tr> [
+                                        <td class="sources_menu_item">
+			                  [ {: Eliom_duce.Xhtml.get_form
                                            ~a: {{ {class="version_select"} }}
 				           ~service: ps.Sh.sources_service
 				           ~sp  
 				           (file_version_select_form) :} 
-			              ]
-                                    ]
-                                    !{:
-                                     match select_list with
-                                     | [] -> {{ [] }}
-                                     | _ -> 
+			                  ]
+                                       ]
+                                      !{:
+                                        match select_list with
+                                        | [] -> {{ [] }}
+                                        | _ -> 
                                          {{ [<tr class="sources_menu"> [
                                            <td class="sources_menu_item">
 				             [{: 
@@ -1109,11 +1124,10 @@ let create_file_page ~sp ~id ~target ~version ~log_start ~project_services =
 				              ~service: ps.Sh.sources_service
 				              ~sp  
 				               file_diff_form :}] 
-				            ]] }} :} 
-                              ]]]] }}, {{ 
-                                     [ 
-                                       <h3 style="border:none"> 
-                                       {: "Previous versions" :}
+				         ]] }} :} 
+                                     ]]]] }}, {{ 
+                                     [ <h3 style="border:none"> 
+                                       {: (file_path^" : previous versions") :}
                                          log_links 
                                          <table class="log_table"> 
                                            [!log_table_header !log] ] }})
@@ -1291,8 +1305,10 @@ let draw_source_code_view ~sp ~id ~target ~version =
             <table class="sources_submenu"> [
              <tr> [
               <th class="submenu_title"> 
-                [ 'File menu' ]
+                {: "File" :}
              ]
+             <tr> [
+              <td class="sources_menu_current"> {: "View content" :}]
              <tr>[
               <td class="sources_menu_item">
 	        [{:
@@ -1302,9 +1318,7 @@ let draw_source_code_view ~sp ~id ~target ~version =
 		  ~sp {{ {: "File history" :}  }}
 		  (target,(Some(`Options),(None,None))) :}]
               ]
-            <tr> [
-              <td class="sources_menu_current"> {: "View content" :}]
-            <tr> [
+             <tr> [
               <td class="sources_menu_item">
                 [{:
                     Eliom_duce.Xhtml.a 
@@ -1376,17 +1390,8 @@ let draw_diff_view ~sp ~id ~target ~diff1 ~diff2 =
             <table class="sources_submenu"> [
              <tr> [
               <th class="submenu_title"> 
-                [ 'File menu' ]
+                {: "File" :}
              ]
-            <tr> [
-              <td class="sources_menu_item">
-              [{:
-		  Eliom_duce.Xhtml.a 
-                  ~a: {{ {class="sources_menu_link"} }}
-		  ~service:ps.Sh.sources_service
-		  ~sp {{ {: "File history" :}  }}
-		  (target,(Some(`Options),(None,None))):}]
-              ]
             <tr> [
               <td class="sources_menu_item">
               [{:
@@ -1402,11 +1407,20 @@ let draw_diff_view ~sp ~id ~target ~diff1 ~diff2 =
 		  Eliom_duce.Xhtml.a 
                   ~a: {{ {class="sources_menu_link"} }}
 		  ~service:ps.Sh.sources_service
+		  ~sp {{ {: "File history" :}  }}
+		  (target,(Some(`Options),(None,None))):}]
+              ]
+            <tr> [
+              <td class="sources_menu_item">
+              [{:
+		  Eliom_duce.Xhtml.a 
+                  ~a: {{ {class="sources_menu_link"} }}
+		  ~service:ps.Sh.sources_service
 		  ~sp {{ {: "Annotate" :}  }}
 		  (target,(Some(`Annot),(None,None))):}]
-            ]
+            ](*
             <tr> [
-              <td class="sources_menu_current"> {: "File diff" :}]
+              <td class="sources_menu_current"> {: "File diff" :}]*)
             ]
            ]
           ]]
@@ -1437,7 +1451,7 @@ let draw_patchdiff ~sp ~id ~diff1 ~diff2 = match Sh.find_service id with
                <table class="sources_submenu"> [
                  <tr> [
                    <th class="submenu_title"> 
-                     [ 'Log menu' ]
+                     [ 'Log' ]
                  ]
                  <tr> [
                    <td class="sources_menu_current"> {: "Commit diff" :}
@@ -1533,17 +1547,8 @@ let draw_annotate ~sp ~id ~target ~version =
             <table class="sources_submenu"> [
              <tr> [
               <th class="submenu_title"> 
-                [ 'File menu' ]
+                {: "File" :}
              ]
-           <tr> [
-            <td class="sources_menu_item">
-              [{:
-		  Eliom_duce.Xhtml.a 
-                  ~a: {{ {class="sources_menu_link"} }}
-		  ~service:ps.Sh.sources_service
-		   ~sp {{ {: "File history" :}  }}
-		  (target,(Some(`Options),(None,None))) :}]
-            ]
            <tr> [
               <td class="sources_menu_item">
               [{:
@@ -1553,6 +1558,15 @@ let draw_annotate ~sp ~id ~target ~version =
 		   ~sp {{ {: "View content" :}  }}
 		  (target,(Some(`Cat),(version,None))) :}]
            ]
+           <tr> [
+            <td class="sources_menu_item">
+              [{:
+		  Eliom_duce.Xhtml.a 
+                  ~a: {{ {class="sources_menu_link"} }}
+		  ~service:ps.Sh.sources_service
+		   ~sp {{ {: "File history" :}  }}
+		  (target,(Some(`Options),(None,None))) :}]
+            ]
            <tr> [
               <td class="sources_menu_current"> {: "Annotate" :}]
           ]]]] }}

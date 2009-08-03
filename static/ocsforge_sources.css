@@ -86,10 +86,14 @@ table.sources_submenu {
 }
 
 th.submenu_title {
-    font-size: normal;
+    font-size: 13pt;
+    /*font-style: italic;*/
     font-weight: bold;
     text-align: center;
     display: block;
+    padding: 5px;
+    margin-bottom: 5px;
+    border-bottom: 1px solid;
 }
 
  
@@ -99,6 +103,12 @@ table.sources_menu tbody {
 
 table.sources_menu tr {
     display: block;
+    border: 2px solid white;
+    border-radius: 10px;
+    -o-border-radius: 10px;
+    -khtml-border-radius: 10px;
+    -moz-border-radius: 10px;
+    -webkit-border-radius: 10px;
 }
 
 table.sources_menu td {
@@ -111,15 +121,18 @@ table.sources_submenu tbody {
 
 table.sources_submenu tr {
     display: block;
+    border: none;
 }
 
 
 td.sources_menu_item {
     display: block;
-    background: #EBDF92 url(./sources_menu_item.png) repeat-y left top;
-    border-top: 1px solid white;
-    border-bottom: 1px solid white;
-    border-right: 1px solid white;
+    /*background: #EBDF92 url(./sources_menu_item.png) repeat-y left top;*/
+    background-color: transparent;
+    /*border-top: 2px solid white;
+    border-bottom: 2px solid white;
+    border-right: 2px solid white;*/
+    border: 1px solid transparent;
     border-radius: 10px;
     -o-border-radius: 10px;
     -khtml-border-radius: 10px;
@@ -131,9 +144,10 @@ td.sources_menu_current {
     display: block;
     color:white;
     background-color: #3D3A3E;
-    border-top: 1px solid white;
-    border-bottom: 1px solid white;
-    border-right: 1px solid white;
+    /*border-top: 2px solid white;
+    border-bottom: 2px solid white;
+    border-right: 2px solid white;*/
+    border: 1px solid transparent;
     border-radius: 10px;
     -o-border-radius: 10px;
     -khtml-border-radius: 10px;
@@ -143,6 +157,7 @@ td.sources_menu_current {
 
 td.sources_menu_item:hover {
     background: white url(./sources_menu_item_hover.png) repeat-y left top;
+    border: 1px solid black;
 }
 
 a.sources_menu_link {
@@ -168,7 +183,7 @@ p.menu_form {
 
 span.menu_form_title {
     display:block;
-    border-bottom: 1px solid;
+    font-style: italic;
 }
 
 
@@ -248,6 +263,7 @@ span.path_delimiter {
 a.path {
     font-weight: bold;
     text-decoration: none;
+    color: #6D0CA9;
 }
 
 a.path:hover {
@@ -403,21 +419,9 @@ div.source_code{
 div.source_code_container {
     width: 90%;
     overflow: auto;
+    padding-bottom: 10px;
 }
 
-div.sources_div {
-    width:25%;
-    float:left;
-    border:1px solid #BBBBBB;
-    background-color: #EEE;
-    text-align:center;
-    padding: 3px;
-    border-radius: 10px;
-    -o-border-radius: 10px;
-    -khtml-border-radius: 10px;
-    -moz-border-radius: 10px;
-    -webkit-border-radius: 10px;
-}
 
 /** File options page */
 
@@ -461,6 +465,7 @@ div.diff {
     font-size:normal;
     float:left;
     margin-right: 2px;
+    margin-bottom: 10px;
     border-radius: 10px;
     -o-border-radius: 10px;
     -khtml-border-radius: 10px;
@@ -512,6 +517,7 @@ div.annot_author {
     font-size:normal;
     float:left;
     padding: 2px;
+    margin-bottom: 10px;
     width: 20%;
     border-radius: 10px 0px 0px 10px;
     -o-border-radius: 10px 0px 0px 10px;
@@ -525,6 +531,7 @@ div.annot_content {
     font-size:normal;
     float:left;
     padding: 2px;
+    margin-bottom: 10px;
     width: 78%;
     overflow: hidden;
     border-radius: 0px 10px 10px 0px;
@@ -552,6 +559,13 @@ table.log_links {
     text-align:center;
 }
 
+table.log_links td {
+    border-radius: 10px 10px 0px 0px;
+    -o-border-radius: 10px 10px 0px 0px;
+    -khtml-border-radius: 10px 10px 0px 0px;
+    -moz-border-radius: 10px 10px 0px 0px;
+    -webkit-border-radius: 10px 10px 0px 0px;
+}
 
 td.middle {
     color: white;

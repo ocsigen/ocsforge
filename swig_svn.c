@@ -486,10 +486,9 @@ apr_array_header_t *svn_support_diff_call(char *rep_path,
     }
     exit(0);
   }
-  wait(NULL);
   //apr_file_close(write_end);
   close(tube[1]);
-  int buf_size = 512;
+  int buf_size = 4096;
   char buf[buf_size];
   int rc;
   const svn_stringbuf_t *tmp;
@@ -501,7 +500,7 @@ apr_array_header_t *svn_support_diff_call(char *rep_path,
     svn_stringbuf_appendstr(res,tmp);
     //*(char **)apr_array_push(list_result) = buf;
   }
-
+  wait(NULL);
   svn_cstring_split_endline_append(list_result,res->data,subpool);
   svn_pool_destroy(subpool);
   return list_result;
