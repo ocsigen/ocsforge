@@ -260,8 +260,20 @@ span.path_delimiter {
     padding: 2px;
 }
 
-a.path {
+span.path_element {
+    font-family: Lucida Console, Monospace;
+    font-size:large;
     font-weight: bold;
+}
+
+span.last_path_element {
+    font-family: Lucida Console, Monospace;
+    font-size:large;
+    font-weight: bold;
+    color: #DF0043;
+}
+
+a.path {
     text-decoration: none;
     color: #6D0CA9;
 }

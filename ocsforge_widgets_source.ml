@@ -182,20 +182,23 @@ let build_path path = match path with
 let rec path_title ~sp ~path ~version ~title ~ps = match path with 
     | [] ->
         {{ [<span> {: (title) :}
-               <span> [{:  Eliom_duce.Xhtml.a
-                          ~a: {{ {class="path"} }}
-                          ~service:ps.Sh.sources_service
-                          ~sp {{ {:"root":} }}
-                          ([],(None,(version,None)))
-                          :}] <span class="path_delimiter"> ['/']] }} 
+            <span class="path_element"> 
+              [{:  Eliom_duce.Xhtml.a
+                  ~a: {{ {class="path"} }}
+                  ~service:ps.Sh.sources_service
+                  ~sp {{ {:"root":} }}
+                  ([],(None,(version,None)))
+                  :}] 
+             <span class="path_delimiter"> ['/']] }} 
     | h::t -> 
         let b = path_title ~sp ~path:t ~version ~title ~ps in 
-        ({{ [!b <span> [{: Eliom_duce.Xhtml.a
-                           ~a: {{ {class="path"} }}
-		           ~service:ps.Sh.sources_service
-		           ~sp {{ {: h :} }}
-		           ((List.rev path),(None,(version,None)))
-                           :}] <span class="path_delimiter"> ['/']] }} 
+        ({{ [!b <span class="path_element"> 
+          [{: Eliom_duce.Xhtml.a
+              ~a: {{ {class="path"} }}
+	      ~service:ps.Sh.sources_service
+	      ~sp {{ {: h :} }}
+	      ((List.rev path),(None,(version,None)))
+              :}] <span class="path_delimiter"> ['/']] }} 
            : {{ Xhtmltypes_duce.flows }})
           
  
@@ -1242,20 +1245,20 @@ let draw_repository_table ~sp ~id ~version ~dir =
   | Some(ps) ->
       let (title,path,table) = match (version,dir) with
       | (None,None) -> 
-          (" : latest version",[],
+          (" – latest version",[],
            create_repository_table_content ~sp ~id ~version ~dir:None
              ~project_services:ps) 
       | (None,Some(rep)) -> 
-          (" : latest version",rep,
+          (" – latest version",rep,
            (create_repository_table_content 
               ~sp ~id ~version 
               ~dir ~project_services:ps))
-      | (Some(v),None) -> ((" : version "^v),[],
+      | (Some(v),None) -> ((" – version "^v),[],
                            create_repository_table_content ~sp ~id ~version 
                              ~dir:None
                              ~project_services:ps)
       | (Some(v),Some(rep)) -> 
-          ((" : version "^v),rep,
+          ((" – version "^v),rep,
            create_repository_table_content ~sp ~id ~version 
              ~dir ~project_services:ps)
       
@@ -1268,8 +1271,8 @@ let draw_repository_table ~sp ~id ~version ~dir =
         {{  
          <div class="path"> [ 
            !a 
-           <span> {: current_dir :} 
-           <span> {: title :}
+           <span class="last_path_element"> {: current_dir :} 
+           {{ utf8_span None title }}
          ] }}
       in
       Lwt.return ({{  
@@ -1290,8 +1293,8 @@ let draw_source_code_view ~sp ~id ~target ~version =
   let file = Ocsigen_extensions.string_of_url_path ~encode:false target in
   let (current_dir,current_dir_path) = build_path target in
   let dir_version = match version with
-    | None -> " : latest version"
-    | Some(v) -> (" : version "^v)
+    | None -> " – latest version"
+    | Some(v) -> (" – version "^v)
   in
   match Sh.find_service id with
   | None -> failwith "Project services not found"
@@ -1334,8 +1337,9 @@ let draw_source_code_view ~sp ~id ~target ~version =
       in
       let title_content =
          {{ 
-          <div class="path"> [ !a <span> {: current_dir :} 
-                                 <span> {: (dir_version) :}] }}
+          <div class="path"> [ !a 
+                                 <span class="last_path_element"> {: current_dir :} 
+                                 {{ utf8_span None dir_version }}] }}
       in
       Lwt.return ({{   
                      {{ (sources_page_content 
@@ -1427,7 +1431,9 @@ let draw_diff_view ~sp ~id ~target ~diff1 ~diff2 =
           }}
         in
         let title_content = 
-          {{ <div class="path"> [ !a <span> {: current_dir :}] }}
+          {{ <div class="path"> [ !a 
+                                  <span class="last_path_element"> 
+                                  {: current_dir :}] }}
         in
         Lwt.return ({{    
           	       {{ (sources_page_content 
@@ -1480,8 +1486,8 @@ let draw_patchdiff ~sp ~id ~diff1 ~diff2 = match Sh.find_service id with
 (* TODO ¿ cas ou target est un répertoire ? *)
 let draw_file_page ~sp ~id ~target ~version ~log_start =
   let str_version = match version with
-    | None  -> " head"
-    | Some(s) -> s
+    | None  -> " – latest version"
+    | Some(s) -> (" – version "^s)
   in
   let (current_dir,current_dir_path) = build_path target in
   match Sh.find_service id with
@@ -1503,7 +1509,9 @@ let draw_file_page ~sp ~id ~target ~version ~log_start =
         ~project_services:ps >>= fun (menu_content,page_content) ->
         let title_content = 
           {{ <div class="path"> 
-                         [ !a <span> {: (current_dir^" @ "^str_version) :}] }}
+                         [ !a <span class="last_path_element"> 
+                           {: current_dir :}
+                           {{ utf8_span None str_version }}]}}
         in
         Lwt.return ({{ 
 		       {{ (sources_page_content 
@@ -1519,8 +1527,8 @@ let draw_file_page ~sp ~id ~target ~version ~log_start =
 
 let draw_annotate ~sp ~id ~target ~version =
   let file_version = match version with
-    | None -> "head"
-    | Some(v) -> v
+    | None -> " – latest version"
+    | Some(v) -> (" – version "^v)
   in
   let (current_dir,current_dir_path) = build_path target in
   match Sh.find_service id with
@@ -1573,7 +1581,9 @@ let draw_annotate ~sp ~id ~target ~version =
         in
         let title_content = 
           {{ <div class="path"> 
-                         [ !a <span> {: (current_dir^" @ "^file_version) :}] }}
+                         [ !a <span class="last_path_element"> 
+                           {: current_dir :}
+                           {{ utf8_span None file_version }}]}}
         in
         Lwt.return ({{ 
                        {{ (sources_page_content 
