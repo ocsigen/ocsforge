@@ -34,28 +34,24 @@ let set_length_service =
     ~name:"ocsforge_set_length"
     ~options:`NoReload
     ~post_params:(
+       (Params.user_type Types.task_of_string Types.string_of_task "id") **
        (Params.user_type
-          Types.task_of_string
-          Types.string_of_task
-          "id") **
-       (Params.user_type
-          (Olang.t_opt_of_string Olang.period_of_string)
-          (Olang.string_of_t_opt Olang.string_of_period)
+          (Olang.t_opt_of_string int_of_string)
+          (Olang.string_of_t_opt string_of_int)
           "length")
       )
     (* error_handler *)
     (fun sp () (task, length) ->
-       Data.edit_task ~sp ~task ~length () )
+       Data.edit_task ~sp ~task
+         ~length:(Olang.apply_on_opted Calendar.Period.day length)
+         () )
 
 let set_progress_service =
   Eliom_predefmod.Action.register_new_post_coservice'
     ~name:"ocsforge_set_progress"
     ~options:`NoReload
     ~post_params:(
-       (Params.user_type
-          Types.task_of_string
-          Types.string_of_task
-          "id") **
+       (Params.user_type Types.task_of_string Types.string_of_task "id") **
        (Params.user_type
           (Olang.t_opt_of_string Int32.of_string)
           (Olang.string_of_t_opt Int32.to_string)
@@ -70,10 +66,7 @@ let set_importance_service =
     ~name:"ocsforge_set_importance"
     ~options:`NoReload
     ~post_params:(
-       (Params.user_type
-          Types.task_of_string
-          Types.string_of_task
-          "id") **
+       (Params.user_type Types.task_of_string Types.string_of_task "id") **
        (Params.user_type
           (Olang.t_opt_of_string Int32.of_string)
           (Olang.string_of_t_opt Int32.to_string)
@@ -88,28 +81,26 @@ let set_deadline_time_service =
     ~name:"ocsforge_set_deadline_t"
     ~options:`NoReload
     ~post_params:(
+       (Params.user_type Types.task_of_string Types.string_of_task "id") **
        (Params.user_type
-          Types.task_of_string
-          Types.string_of_task
-          "id") **
-       (Params.user_type
-          (Olang.t_opt_of_string Olang.date_of_string)
-          (Olang.string_of_t_opt Olang.string_of_date)
+          (Olang.t_opt_of_string int_of_string)
+          (Olang.string_of_t_opt string_of_int)
           "deadline_t")
       )
     (* error_handler *)
-    (fun sp () (task, deadline_time) ->
-       Data.edit_task ~sp ~task ~deadline_time ())
+    (fun sp () (task, dlt) ->
+       Data.edit_task ~sp ~task
+         ~deadline_time:(Olang.apply_on_opted
+                           (Date.add (Date.today ()))
+                           (Olang.apply_on_opted Date.Period.day dlt))
+         ())
 
 let set_deadline_version_service =
   Eliom_predefmod.Action.register_new_post_coservice'
     ~name:"ocsforge_set_deadline_v"
     ~options:`NoReload
     ~post_params:(
-       (Params.user_type
-          Types.task_of_string
-          Types.string_of_task
-          "id") **
+       (Params.user_type Types.task_of_string Types.string_of_task "id") **
        (Params.string "deadline_v")
       )
     (* error_handler *)
@@ -122,10 +113,7 @@ let set_kind_service =
     ~name:"ocsforge_set_kind"
     ~options:`NoReload
     ~post_params:(
-       (Params.user_type
-          Types.task_of_string
-          Types.string_of_task
-          "id") **
+       (Params.user_type Types.task_of_string Types.string_of_task "id") **
        (Params.user_type
           (Olang.t_opt_of_string (fun s -> s))
           (Olang.string_of_t_opt (fun s -> s))
@@ -135,22 +123,17 @@ let set_kind_service =
     (fun sp () (task, kind) ->
        Data.edit_task ~sp ~task ~kind ())
 
-
 let new_task_service =
   Eliom_predefmod.Action.register_new_post_coservice'
     ~name:"ocsforge_add_task"
-    ~options:`Reload
+    ~options:`NoReload
     ~post_params:(
-       ((Params.user_type
-           Types.task_of_string Types.string_of_task
-           "parent") **
+       ((Params.user_type Types.task_of_string Types.string_of_task "parent") **
         ((Params.string "subject") **
          ((Params.string "text") **
           ((Params.user_type
-              (Olang.t_opt_of_string
-                 (fun s -> Calendar.Period.hour (int_of_string s)))
-              (Olang.string_of_t_opt
-                 (fun p -> string_of_int (Olang.hours_in_period p)))
+              (Olang.t_opt_of_string int_of_string)
+              (Olang.string_of_t_opt string_of_int)
               "length") **
            ((Params.user_type
                (Olang.t_opt_of_string Int32.of_string)
@@ -161,13 +144,9 @@ let new_task_service =
                 (Olang.string_of_t_opt Int32.to_string)
                 "importance") **
              ((Params.user_type
-                  (Olang.t_opt_of_string
-                     (fun s ->
-                        Calendar.Date.add (Calendar.Date.today ())
-                          (Calendar.Date.Period.day (int_of_string s))))
-                  (Olang.string_of_t_opt
-                     (fun d -> string_of_int (Olang.days_until d)))
-                  "deadline_t") **
+                 (Olang.t_opt_of_string int_of_string)
+                 (Olang.string_of_t_opt string_of_int)
+                 "deadline_t") **
               (((Params.user_type
                    (Olang.t_opt_of_string (fun k -> k))
                    (Olang.string_of_t_opt (fun k -> k))
@@ -189,14 +168,22 @@ let new_task_service =
                       (deadline_version,
                        kind         ))))))))
            ->
+       let deadline_time = 
+         Olang.apply_on_opted
+           (Date.add (Date.today ()))
+           (Olang.apply_on_opted Date.Period.day deadline_time)
+       in
+       let length = Olang.apply_on_opted Calendar.Period.day length in
        Data.new_task ~sp ~parent ~subject ~text
           ?length ?progress ?importance ?deadline_time ?deadline_version ?kind
           () >>= fun _ -> Lwt.return ())
 
 
-let register_dump_tree_service path task_widget =
-  Eliom_predefmod.Any.register_new_service
-    ~path:[ path ; "" ; "tasks" ]
+let register_dump_tree_service ?sp path task_widget =
+  Lwt.return (
+  Eliom_duce.Xhtml.register_new_service
+    ?sp
+    ~path:[ path ; "tasks" ; "" ]
     ~get_params:Params.unit
     (fun sp _ _ ->
       Ocsforge_data.get_area_for_page ~sp ~page:path    >>= fun ri ->
@@ -219,8 +206,22 @@ let register_dump_tree_service path task_widget =
                 ~menu_style:`Linear
                 ~page:((Ocsigen_lib.string_of_url_path ~encode:true []), [])
                 ~gen_box:gen_box
-                >>= fun (html, code) -> Eliom_duce.Xhtml.send ~sp ~code html)
-    
+                >>= fun (html, _) -> Lwt.return html)
+  )
+
+let register_get_message_service message_widget =
+  Eliom_duce.Blocks.register_new_post_coservice'
+    ~name:"ocsforge_get_message"
+    ~post_params:(Params.int32 "task")
+    (fun sp () task ->
+       Ocsforge_data.get_task ~sp ~task:(Types.task_of_sql task) >>= fun t ->
+       message_widget#display ~sp ?classes:(Some ["ocsforge_task_message"])
+         ~data:t.Types.t_message
+         ()
+       >>= fun ( b : Xhtmltypes_duce.block ) ->
+         Lwt.return {{ [ <div>[ {: b :} ] ] }}
+    )
+
 type supported_format =
   | Xml
 
@@ -252,7 +253,8 @@ let register_xml_dump_services t_widget =
     ) ;
   Ocsforge_sql.get_projects_path_list () >>= fun l ->
   Lwt_util.iter_serial
-    (fun p -> register_dump_tree_service p t_widget ; Lwt.return ()) l
+    (fun p -> register_dump_tree_service p t_widget >>= fun _ -> Lwt.return ())
+    l
 
 
 
@@ -309,18 +311,18 @@ let set_version_service =
        Data.edit_area ~sp ~area ~version ())
 
 
-let new_project_service =
+let register_new_project_service task_widget =
   Eliom_predefmod.Action.register_new_post_coservice'
     ~name:"ocsforge_add_project"
-    ~options:`Reload
+    ~options:`NoReload
     ~post_params:(
        ((Params.user_type
            Types.task_of_string Types.string_of_task
            "parent") **
         ((Params.string "name") **
           ((Params.user_type
-              (Olang.t_opt_of_string Olang.period_of_string)
-              (Olang.string_of_t_opt Olang.string_of_period)
+              (Olang.t_opt_of_string int_of_string)
+              (Olang.string_of_t_opt string_of_int)
               "length") **
            ((Params.user_type
                (Olang.t_opt_of_string Int32.of_string)
@@ -331,9 +333,9 @@ let new_project_service =
                 (Olang.string_of_t_opt Int32.to_string)
                 "importance") **
              ((Params.user_type
-                  (Olang.t_opt_of_string Olang.date_of_string)
-                  (Olang.string_of_t_opt Olang.string_of_date)
-                  "deadline_t") **
+                 (Olang.t_opt_of_string int_of_string)
+                 (Olang.string_of_t_opt string_of_int)
+                 "deadline_t") **
                ((Params.user_type
                    (Olang.t_opt_of_string (fun k -> k))
                    (Olang.string_of_t_opt (fun k -> k))
@@ -353,10 +355,29 @@ let new_project_service =
                        (repository_kind,
                         repository_path))))))))
            ->
+       let deadline = 
+         Olang.apply_on_opted
+           (Date.add (Date.today ()))
+           (Olang.apply_on_opted Date.Period.day deadline)
+       in
+       let length = Olang.apply_on_opted Calendar.Period.day length in
        Data.new_project ~sp ~parent ~name
          ?length ?importance ?deadline ?kind
          ?repository_kind ?repository_path 
                ~wiki_container:Wiki.default_container_page
-               () >>= fun _ -> Lwt.return ()
+               ()                                               >>= fun task ->
+       Data.get_area_for_task ~sp ~task                         >>= fun area ->
+       Ocsforge_sql.get_project_path ~area:area.Types.r_id ()
+       >>= (function
+              | None -> Lwt.return ()
+              | Some path ->
+                  (
+                   register_dump_tree_service ~sp path task_widget
+                     >>= fun _ ->
+                   Ocsforge_services_source.register_repository_service ~sp path
+                     >>= fun _ ->
+                   Lwt.return ()
+                  )
+           )
     )
 

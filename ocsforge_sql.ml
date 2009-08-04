@@ -170,7 +170,7 @@ let get_task_by_id ~task_id ?(with_deleted = false) =
                edit_author, edit_time, edit_version, \
                length, progress, importance, \
                deadline_time, deadline_version, kind, \
-               area, tree_min, tree_max, deleted \
+               area, tree_min, tree_max, deleted, area_root \
         FROM ocsforge_tasks
         WHERE id = $task_id AND (deleted = $with_deleted OR deleted = false)"
      >>= function
@@ -204,7 +204,7 @@ let get_tasks_by_parent ~parent ?(with_deleted = false)=
                 edit_author, edit_time, edit_version, \
                 length, progress, importance, \
                 deadline_time, deadline_version, kind, \
-                area, tree_min, tree_max, deleted
+                area, tree_min, tree_max, deleted, area_root
          FROM ocsforge_tasks
          WHERE parent = $parent
            AND (deleted = $with_deleted OR deleted = false)"
@@ -226,7 +226,7 @@ let get_tasks_in_tree ~root ?(with_deleted = false) () db =
                        edit_author, edit_time, edit_version, \
                        length, progress, importance, \
                        deadline_time, deadline_version, kind, \
-                       area, tree_min, tree_max, deleted
+                       area, tree_min, tree_max, deleted, area_root
                 FROM ocsforge_tasks
                 WHERE tree_min >= $tmin AND tree_max <= $tmax
                   AND (deleted = $with_deleted OR deleted = false)
@@ -243,7 +243,7 @@ let get_tasks_by_editor ~editor ?(with_deleted = false) () =
               edit_author, edit_time, edit_version, \
               length, progress, importance, \
               deadline_time, deadline_version, kind, \
-              area, tree_min, tree_max, deleted
+              area, tree_min, tree_max, deleted, area_root
        FROM ocsforge_tasks
        WHERE edit_author = $editor
          AND (deleted = $with_deleted OR deleted = false)"
@@ -481,6 +481,14 @@ let set_version ~area_id ~version =
             SET version = $version
             WHERE id = $area")
 
+let set_root_task ~area_id ~task =
+  let area = Types.sql_of_right_area area_id in
+  let task = Types.sql_of_task task in
+    (fun db ->
+       PGSQL(db)
+         "UPDATE ocsforge_right_areas
+          SET root_task = $task
+          WHERE id = $area")
 
 (** {3 tree tamperer : change the atributtes of tasks in a whole (sub)tree } *)
 (*TODO*)
@@ -610,9 +618,9 @@ let find_subject_content ~task =
                                        WHERE id = $task))"
     >>= Ocsforge_lang.apply_on_uniq_or_fail
           "Ocsforge_sql.find_subject_content"
-          Lwt.return
-    >>= fun s -> Lwt.return (Ocsforge_lang.unopt ~default:"" s)
+          (fun s -> Lwt.return (Ocsforge_lang.unopt ~default:"" s))
     )
+
 
 let bootstrap_task ~area ~message =
   Sql.full_transaction_block
@@ -658,7 +666,7 @@ let get_root_task () =
                edit_author, edit_time, edit_version, \
                length, progress, importance, \
                deadline_time, deadline_version, kind, \
-               area, tree_min, tree_max, deleted \
+               area, tree_min, tree_max, deleted, area_root
         FROM ocsforge_tasks
         WHERE tree_min = 0"
      >>= function
@@ -666,20 +674,13 @@ let get_root_task () =
          | []   -> Lwt.fail Not_found
          | r::_ -> failwith "Ocsforge_sql.get_root_task, more than one result")
 
+
 let is_area_root ~task =
   let task = Types.sql_of_task task in
   (fun db ->
-     PGSQL(db)
-       "SELECT parent FROM ocsforge_tasks WHERE id = $task"
-     >>= (Ocsforge_lang.apply_on_uniq_or_fail "Ocsforge_sql.is_area_root"
-            (fun ptask ->
-               PGSQL(db)
-                  "SELECT area
-                   FROM ocsforge_tasks
-                   WHERE id = $task OR id = $ptask"))
-     >>= function
-       | [ v1 ; v2 ] -> Lwt.return (v1 = v2)
-       | [] | _::[] | _::_::_::_ -> failwith "Ocsforge_sql.is_area_root unexpected query result")
+     PGSQL(db) "SELECT area_root FROM ocsforge_tasks WHERE id = $task"
+       >>= (Ocsforge_lang.apply_on_uniq_or_fail "Ocsforge_sql.is_area_root"
+             Lwt.return))
 
 let get_projects_path_list () =
   Sql.full_transaction_block
@@ -689,6 +690,20 @@ let get_projects_path_list () =
         WHERE ocsforge_right_areas.wiki = wikis.id AND root_task IS NOT NULL;")
      >>= fun l -> Lwt.return ( Olang.filter_map (fun x -> x) l )
   )
+
+let get_project_path ~area () =
+  let area = Types.sql_of_right_area area in
+  Sql.full_transaction_block
+    (fun db ->
+       (PGSQL(db)
+          "SELECT pages
+           FROM ocsforge_right_areas, wikis
+           WHERE ocsforge_right_areas.wiki = wikis.id \
+             AND root_task IS NOT NULL \
+             AND ocsforge_right_areas.id = $area")
+    >>= (Ocsforge_lang.apply_on_uniq_or_fail "Ocsforge_sql.get_project_path"
+           Lwt.return)
+    )
 
 
 let first_message ~forum ~wiki ~creator ~title_syntax ~text ~content_type =

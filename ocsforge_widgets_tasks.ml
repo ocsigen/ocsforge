@@ -290,12 +290,17 @@ object (self)
   method display ~sp ~root_task =
     Lwt.catch
       (fun () ->
+         Ocsimore_page.Header.require_header Forum_widgets.forum_css_header sp ;
          (self#display_noscript ~sp ~root_task) >>= fun ns ->
          Ocsimore_page.add_obrowser_header sp ;
-(*       Ocsimore_page.add_onload_function sp (run 189 root_task) ; *)(*FIXME*)
          Lwt.return
-           ({{ [ <div id="ocsforge_task_tree">[ <span onclick={: run 189 root_task :} >[ !{: to_utf8 "toto" :} ] <noscript>[ ns ] ] ] }}
-            : {{ Xhtmltypes_duce.flows }} ))
+           ({{ [ <div id="ocsforge_task_tree">
+                    [ <noscript
+                        id={: "root_task_" ^ Types.string_of_task root_task :}>
+                        [ ns ]
+                    ]
+               ]
+            }} : {{ Xhtmltypes_duce.flows }} ))
       (function
          | Types.Tree.Empty_tree -> Lwt.return
              {{ [ <div id="ocsforge_task_tree">[ 'No task in tree' ] ] }}

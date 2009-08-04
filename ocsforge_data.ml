@@ -92,7 +92,7 @@ let new_project ~sp ~parent ~name
            Forum.create_forum (*TODO: use Forum_data.new_forum ? *)
               ~wiki_model:Ocsisite.wikicreole_model (*TODO : give the real wiki model*)
               ~title_syntax (*TODO:give the real title_syntax*)
-              ~title:("Ocsforge area"^(Types.string_of_right_area c)^" forum")
+              ~title:("Ocsforge_area"^(Types.string_of_right_area c)^"_forum")
               ~descr:("Messages about tasks in the area"
                       ^ (Types.string_of_right_area c))
               ()                                          >>= fun finfo ->
@@ -110,7 +110,7 @@ let new_project ~sp ~parent ~name
           User.get_user_id ~sp                            >>= fun author ->
 
           Wiki.create_wiki
-             ~title:("Ocsforge area" ^ (Types.string_of_right_area c) ^ " wiki")
+             ~title:("Ocsforge_area" ^ (Types.string_of_right_area c) ^ "_wiki")
              ~descr:("Wiki for ocsforge area" ^ (Types.string_of_right_area c))
              ~path:( ppath @ [ name ] )
              ~author
@@ -170,7 +170,8 @@ let new_project ~sp ~parent ~name
           (* create task *)
             Ocsforge_sql.new_task
               ~parent ~message ~creator:author ~version:"0.0"
-              ?length ?importance ?deadline_time:deadline ?kind ~area:c ()
+              ?length ?importance ?deadline_time:deadline ?kind ~area:c
+              ~area_root:true ()
           >>= fun task ->
 
           (*propagating rights into the new area*)
@@ -196,6 +197,7 @@ let new_project ~sp ~parent ~name
                            Roles.kinds_setter ;
                            Roles.version_setter ;
                            Roles.repository_setter ; ]
+          >>= fun () -> Ocsforge_sql.set_root_task ~area_id:c ~task db
           >>= fun () -> Lwt.return task             
 
           end)
@@ -296,8 +298,8 @@ let edit_task ~sp ~task
       then
         Lwt.fail Ocsimore_common.Permission_denied
       else
-        begin
-          let f db =
+        Sql.full_transaction_block (
+          (fun db ->
             let task_id = task in
             User.get_user_id sp >>= fun author ->
             Ocsforge_sql.copy_in_history ~task_id db >>= fun () ->
@@ -305,30 +307,34 @@ let edit_task ~sp ~task
             (match length with
                | None -> Lwt.return ()
                | Some length ->
-                   Ocsforge_sql.set_length ~task_id ~length db) >>= fun () ->
+                   Ocsforge_sql.set_length ~task_id ~length db)
+            >>= fun () ->
             (match progress with
                | None -> Lwt.return ()
                | Some progress ->
-                   Ocsforge_sql.set_progress ~task_id ~progress db) >>= fun () ->
+                   Ocsforge_sql.set_progress ~task_id ~progress db)
+            >>= fun () ->
             (match importance with
                | None -> Lwt.return ()
                | Some importance ->
-                   Ocsforge_sql.set_importance ~task_id ~importance db) >>= fun () ->
+                   Ocsforge_sql.set_importance ~task_id ~importance db)
+            >>= fun () ->
             (match deadline_time with
                | None -> Lwt.return ()
                | Some deadline_time ->
-                   Ocsforge_sql.set_deadline_time ~task_id ~deadline_time db) >>= fun () ->
+                   Ocsforge_sql.set_deadline_time ~task_id ~deadline_time db)
+            >>= fun () ->
             (match deadline_version with
                | None -> Lwt.return ()
                | Some deadline_version ->
                    Ocsforge_sql.set_deadline_version
-                     ~task_id ~deadline_version db) >>= fun () ->
+                     ~task_id ~deadline_version db)
+            >>= fun () ->
             (match kind with
                | None -> Lwt.return ()
                | Some kind -> Ocsforge_sql.set_kind ~task_id ~kind db)
-          in
-            Sql.full_transaction_block f
-        end
+          )
+        )
     end
 
 let move_task ~sp ~task ~parent =

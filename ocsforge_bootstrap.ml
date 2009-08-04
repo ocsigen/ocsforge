@@ -93,9 +93,7 @@ let first_task () = (*TODO: create forum manually instead of rellying on ocsicre
          Ocsforge_roles.kinds_setter ;
          Ocsforge_roles.version_setter ; ]
         >>= fun _ ->
-          Printf.printf
-            "Your first ocsforge task's id is %ld\nUse <<ocsforge_tree id=\"%ld\">> in the newly created wiki (path : 'ocsforge')\n%!"
-            task task ;
+          Printf.printf "Your first ocsforge task's id is %ld\n%!" task ;
           Lwt.return ()
     end
 
@@ -104,21 +102,26 @@ let _ = Lwt_unix.run ( first_task () )
 let forge_wiki_model = Ocsisite.wikicreole_model (*TODO: use a real wiki model*)
 
 let _ =
-(*let wiki_widgets = Wiki_models.get_widgets forge_wiki_model in            *)
-(*let services = Forum_services.register_services () in                     *)
-(*let widget_err = new Widget.widget_with_error_box in                      *)
-(*let add_message_widget = new Forum_widgets.add_message_widget services in *)
+
   let tree_widget = new Ocsforge_widgets_tasks.tree_widget in
-(*let new_task_widget = new Ocsforge_widgets.new_task_widget in*)
-  (*let error_box = new Widget.widget_with_error_box in*)
+
   begin
     Printf.printf "registering ocsforge services\n%!" ;
-    let _ = Lwt_unix.run
-              (Ocsforge_services_source.register_repository_services ()
-                 >>= fun _ -> 
-                   Lwt.return (Ocsforge_services_source.register_xml_tree_service ()))
-    and _ = Lwt_unix.run
-              (Ocsforge_services_tasks.register_xml_dump_services tree_widget)
+    let _ =
+      Lwt_unix.run
+        (Ocsforge_services_source.register_repository_services () >>= fun _ -> 
+         Lwt.return (Ocsforge_services_source.register_xml_tree_service ()))
+    and _ =
+      Lwt_unix.run
+        (Ocsforge_services_tasks.register_xml_dump_services tree_widget
+           >>= fun _ ->
+         Lwt.return
+           (Ocsforge_services_tasks.register_new_project_service tree_widget)
+           >>= fun _ ->
+         Lwt.return
+           (Ocsforge_services_tasks.register_get_message_service
+              Forum_site.message_widget)
+           >>= fun _ -> Lwt.return ())
     in
     Printf.printf "done registering ocsforge services\n%!" ;
 

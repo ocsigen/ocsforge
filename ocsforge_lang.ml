@@ -18,7 +18,6 @@
  *)
 
 open CalendarLib
- (*TODO switch from Str to Netstring_pcre for the whole module*)
 
 (*Working with options*)
 let apply_on_opted f = function
@@ -131,6 +130,7 @@ let period_interval_list ?(bump = Calendar.Period.lmake ~hour:1 ())
 
 
 (*rougthly print period values*)
+
 let string_of_period p =
   let h = int_of_float
             (Time.Period.to_hours
@@ -154,49 +154,13 @@ let string_of_period p =
   else
     Printf.sprintf "%i hours" h
 
-let period_of_string s =
-  let days_re = Str.regexp "\\([0-9]+\\) days" in
-  let hours_re = Str.regexp "\\([0-9]+\\) hours" in
-  let hours =
-    try
-      let _ = Str.search_forward hours_re s 0 in
-      int_of_string (Str.matched_group 1 s)
-    with Not_found -> 0
-  in
-  let days =
-    try
-      let _ = Str.search_forward days_re s 0 in
-      int_of_string (Str.matched_group 1 s)
-    with Not_found -> 0
-  in Calendar.Period.lmake ~day:days ~hour:hours ()
-
 (* give the number of hours to go *)
-let hours_in_period p = 24 * (Date.Period.nb_days (Calendar.Period.to_date p))
+let days_in_period p = Date.Period.nb_days (Calendar.Period.to_date p)
 
 (*rougthly print date values*)
 let string_of_date = Printer.Date.to_string
 
-let date_of_string = Printer.Date.from_string
-
 (* get the number of day until the given date is reached *)
 let days_until d = Date.Period.nb_days (Date.sub d (Date.today ()))
-
-(* class deadlines into 10 groups *)
-let urgency d =
-  let diff = Date.Period.nb_days
-               (Calendar.Date.sub d
-                 (Calendar.Date.today ())) in
-    if diff < 0
-    then 9
-    else (match diff with
-            | 0 -> 8
-            | 1 -> 7
-            | 2 -> 6
-            | 3 -> 5
-            | 4 | 5 -> 4
-            | 6 | 7 -> 3
-            | n when n > 7 && n <= 14 -> 2
-            | n when n > 14 && n <= 30 -> 1
-            | _ -> 0)
 
 

@@ -134,7 +134,9 @@ val edit_task :
   ?progress:int32 option ->
   ?importance:int32 option ->
   ?deadline_time:CalendarLib.Date.t option ->
-  ?deadline_version:string option -> ?kind:string option -> unit -> unit Lwt.t
+  ?deadline_version:string option ->
+  ?kind:string option ->
+  unit -> unit Lwt.t
 
 (** Change fields for a right area. Only use fields you want to tamper with. *)
 val edit_area :

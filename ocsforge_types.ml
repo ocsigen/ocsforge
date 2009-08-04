@@ -79,28 +79,30 @@ let get_right_area_info (id, forum_id, ver, kind, path, task, cont, wik, wikibox
 
 (** {3 For tasks} *)
 type task_info = {
-  t_id        : task;
-  t_parent    : task;
+  t_id        : task ;
+  t_parent    : task ;
 
-  t_message : Forum_types.message;
+  t_message : Forum_types.message ;
 
-  t_edit_author  : User_sql.Types.userid;
-  t_edit_time    : Calendar.t;
-  t_edit_version : string;
+  t_edit_author  : User_sql.Types.userid ;
+  t_edit_time    : Calendar.t ;
+  t_edit_version : string ;
 
   t_length           : Calendar.Period.t option;
-  t_progress         : int32 option;
-  t_importance       : int32 option;
-  t_deadline_time    : Date.t option;
-  t_deadline_version : string option;
-  t_kind             : string option;
+  t_progress         : int32 option  ;
+  t_importance       : int32 option  ;
+  t_deadline_time    : Date.t option ;
+  t_deadline_version : string option ;
+  t_kind             : string option ;
 
-  t_area             : right_area;
+  t_area             : right_area ;
 
-  t_tree_min         : int32;
-  t_tree_max         : int32;
+  t_tree_min         : int32 ;
+  t_tree_max         : int32 ;
 
-  t_deleted          : bool;
+  t_deleted          : bool ;
+  t_area_root        : bool ;
+
 }
 
 
@@ -121,39 +123,40 @@ type raw_task_info =
      int32 * Calendar.t * string *
      Calendar.Period.t option * int32 option * int32 option
      * Calendar.t option * string option * string option *
-     int32 * int32 * int32 * bool)
+     int32 * int32 * int32 * bool * bool)
 
 let get_task_info
       (id,  parent_id,
        message,
        edit_author, edit_time, edit_version,
        length,  progress,  importance,  deadline_time, deadline_version,  kind,
-       area, tmin, tmax, deleted)
+       area, tmin, tmax, deleted, root)
       = 
   {
-    t_id     = task_of_sql id;
-    t_parent = task_of_sql parent_id;
+    t_id     = task_of_sql id ;
+    t_parent = task_of_sql parent_id ;
 
-    t_message = Forum_types.message_of_sql message;
+    t_message = Forum_types.message_of_sql message ;
 
-    t_edit_author  = User_sql.Types.userid_from_sql edit_author;
-    t_edit_time    = edit_time;
-    t_edit_version = edit_version;
+    t_edit_author  = User_sql.Types.userid_from_sql edit_author ;
+    t_edit_time    = edit_time ;
+    t_edit_version = edit_version ;
 
-    t_length           = length;
-    t_progress         = progress;
-    t_importance       = importance;
+    t_length           = length ;
+    t_progress         = progress ;
+    t_importance       = importance ;
     t_deadline_time    = Ocsforge_lang.apply_on_opted
-                           Calendar.to_date deadline_time;
-    t_deadline_version = deadline_version;
-    t_kind             = kind;
+                           Calendar.to_date deadline_time ;
+    t_deadline_version = deadline_version ;
+    t_kind             = kind ;
 
-    t_area             = right_area_of_sql area;
+    t_area             = right_area_of_sql area ;
 
-    t_tree_max         = tmin;
-    t_tree_min         = tmax;
+    t_tree_max         = tmin ;
+    t_tree_min         = tmax ;
 
-    t_deleted          = deleted;
+    t_deleted          = deleted ;
+    t_area_root        = root ;
   }
 
 

@@ -80,7 +80,8 @@ type task_info = {
   t_area : right_area;
   t_tree_min : int32;
   t_tree_max : int32;
-  t_deleted          : bool;
+  t_deleted  : bool;
+  t_area_root : bool ;
 }
 
 (** {5 Conversion} *)
@@ -98,7 +99,7 @@ type raw_task_info =
     int32 * int32 * int32 * int32 * CalendarLib.Calendar.t * string *
     CalendarLib.Calendar.Period.t option * int32 option * int32 option *
     CalendarLib.Calendar.t option * string option * string option * int32 *
-    int32 * int32 * bool
+    int32 * int32 * bool * bool
 val get_task_info : raw_task_info -> task_info
 
 (** {2 For task history marks...} *)

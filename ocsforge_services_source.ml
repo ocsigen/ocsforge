@@ -26,9 +26,10 @@ module Params = Eliom_parameters
 
 type file_tree = {{ <file_tree> [Xhtmltypes_duce.tr*]  }}
 
-let source_service path = 
-  let service_path = ((Neturl.split_path path)@["sources"; ""]) in
+let source_service ?sp path = 
+  let service_path = ( (Neturl.split_path path) @ [ "sources" ; "" ] ) in
   Eliom_predefmod.Any.register_new_service
+    ?sp
     ~path:service_path
     ~get_params:
     (Params.suffix_prod
@@ -144,9 +145,10 @@ let source_service path =
       Eliom_duce.Xhtml.send ~sp ~code html)
 
 
-let log_service path = 
-  let service_path = (Neturl.split_path path)@["log";""] in
+let log_service ?sp path = 
+  let service_path = ( Neturl.split_path path ) @ [ "log" ; "" ] in
   Eliom_predefmod.Any.register_new_service
+    ?sp
     ~path:service_path
     ~get_params: (Params.opt (Params.user_type  
                                           Vm.string_to_range 
@@ -234,18 +236,17 @@ let register_xml_tree_service () =
     ) in Lwt.return ()
 
 
-let register_repository_services () = 
+let register_repository_service ?sp page =
+  Lwt.return (
+    Ocsforge_services_hashtable.add_service 
+      page
+      { Sh.sources_service = source_service ?sp page ;
+        Sh.log_service = log_service ?sp page ; }
+  )
+
+let register_repository_services ?sp () = 
   Ocsforge_sql.get_projects_path_list () >>= fun l ->
-    Lwt_util.iter_serial
-      (fun page ->
-         Lwt.return (
-           Ocsforge_services_hashtable.add_service 
-             page
-             { Sh.sources_service = source_service page;
-               Sh.log_service = log_service page; }
-         )
-      )
-      l
+  Lwt_util.iter_serial (register_repository_service ?sp) l
 
 
   

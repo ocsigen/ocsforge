@@ -19,6 +19,7 @@
 
 module Types = Ocsforge_types
 module Olang = Ocsforge_lang
+module Roles = Ocsforge_roles
 let to_utf8 = Ocamlduce.Utf8.make
 let (>>=) = Lwt.bind
 
@@ -26,15 +27,16 @@ type boolean = {{ "true" | "false" }}
 let boolean_of_bool b = if b then {{ "true" }} else {{ "false" }}
 type task_attrs = (*TODO: improve type checking*)
     {{ {
-         id         =? String
-         _length_   =? String
-         progress   =? String
-         importance =? String
-         deadline   =? String
-         milestone  =? String
-         kind       =? String
-         deleted    =? boolean
-         (*TODO: "editable" attribute *)
+         id         =? String  (* the id of the task          *)
+         _length_   =? String  (* the estimated length        *)
+         progress   =? String  (* the progress made           *)
+         importance =? String  (* the importance              *)
+         deadline   =? String  (* the deadline for completion *)
+         milestone  =? String  (* the version the task block  *)
+         kind       =? String  (* the category the task is in *)
+         deleted    =? boolean (* true if the task has been deleted  *)
+         editable   =? boolean (* true if edition rights are granted *)
+         project    =? boolean (* true if the task is a project      *)
     } }}
 type xml_task =
     {{ <task (task_attrs) >
@@ -50,20 +52,23 @@ let rec xml_of_tree ~sp (*TODO : use all fields ? *)
         Types.t_importance = imp       ; Types.t_deadline_time = dea ;
         Types.t_deadline_version = mil ; Types.t_kind = kin          ;
         Types.t_area = area            ; Types.t_deleted = del       ;
+        Types.t_area_root = ar ;
       } ;
     Types.Tree.children =  l ;
   }
    =
   let s_of_i32_opt = Olang.string_of_t_opt Int32.to_string in
 
-  Ocsforge_widgets_tasks.draw_message_title ~sp ~task:id >>= fun msg -> 
-  Lwt_util.map_serial (xml_of_tree ~sp) l                >>= fun l ->
+  Ocsforge_widgets_tasks.draw_message_title ~sp ~task:id >>= fun msg  ->
+  Roles.get_area_role sp area                            >>= fun role ->
+  Lazy.force ( role.Roles.task_property_editor )         >>= fun edi  ->
+  Lwt_util.map_serial (xml_of_tree ~sp) l                >>= fun l    ->
   Lwt.return
     ({{ <task id         = {: to_utf8 (Types.string_of_task id)      :}
               _length_   = {: to_utf8 (Olang.string_of_t_opt
                                          string_of_int
                                          (Olang.apply_on_opted
-                                            Olang.hours_in_period
+                                            Olang.days_in_period
                                             len))                    :}
               progress   = {: to_utf8 (s_of_i32_opt pro)             :}
               importance = {: to_utf8 (s_of_i32_opt imp)             :}
@@ -76,6 +81,8 @@ let rec xml_of_tree ~sp (*TODO : use all fields ? *)
               kind       = {: to_utf8 (Olang.string_of_t_opt
                                          (fun k -> k) kin)           :}
               deleted    = {{ boolean_of_bool del }}
+              editable   = {{ boolean_of_bool edi }}
+              project    = {{ boolean_of_bool ar  }}
           >[ <subject>[ !{: to_utf8 msg :} ] <children>[ !{: l :} ] ]
       }} : {{ xml_task }} )
 

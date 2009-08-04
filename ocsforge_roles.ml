@@ -32,8 +32,6 @@ let ($) = UTypes.apply_parameterized_group
 
 (** {3 Tasks related groups} *)
 
-(*TODO: create groups in forum.ml or fix these groups !*)
-
 let aux_grp name descr =
   Lwt_unix.run (U_sql.new_parameterized_group "ocsforge_area" name descr)
 
@@ -242,9 +240,9 @@ let get_role ~sp ~area =
     (*plan is :
      * if task_reader
      * then if comment_reader
-     *      then { ...many tests... }
-     *      else { ...a few tests... }
-     * else { ...no... }
+     *      then { ... many  tests ... }
+     *      else { ... a few tests ... }
+     * else { ... no ... }
      * 
      * possible optimisation : test for admin
      *)
@@ -361,7 +359,7 @@ let blunt_sd ~sp =
 
 type area_sd = Types.right_area -> role Lwt.t
 
-(** The polytable key for retrieving forum data inside session data *)
+(** The polytable key for retrieving data inside session data *)
 let area_key : area_sd Polytables.key = Polytables.make_key ()
 
 let get_area_session_data ~sp =

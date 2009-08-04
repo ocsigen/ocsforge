@@ -196,8 +196,10 @@ val set_version :
   area_id:Ocsforge_types.right_area ->
   version:string ->
   Sql.db_t -> unit Lwt.t
-
-
+val set_root_task :
+  area_id:Ocsforge_types.right_area ->
+  task:Ocsforge_types.task ->
+  Sql.db_t -> unit Lwt.t
 
 
 (** When moving a task to a new parent, updates tree_min and tree_max fields. *)
@@ -252,7 +254,9 @@ val is_area_root :
 val get_projects_path_list :
   unit ->
   string list Lwt.t
-
+val get_project_path :
+  area:Ocsforge_types.right_area ->
+  unit -> string option Lwt.t
 
 (**/**)
 val find_subject_content :
