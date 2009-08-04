@@ -92,7 +92,9 @@ let new_project ~sp ~parent ~name
            Forum.create_forum (*TODO: use Forum_data.new_forum ? *)
               ~wiki_model:Ocsisite.wikicreole_model (*TODO : give the real wiki model*)
               ~title_syntax (*TODO:give the real title_syntax*)
-              ~title:("Ocsforge_area"^(Types.string_of_right_area c)^"_forum")
+              ~title:(Printf.sprintf "Ocsforge_%s_(area_%s)_forum"
+                         name (Types.string_of_right_area c)
+              )
               ~descr:("Messages about tasks in the area"
                       ^ (Types.string_of_right_area c))
               ()                                          >>= fun finfo ->
@@ -110,7 +112,9 @@ let new_project ~sp ~parent ~name
           User.get_user_id ~sp                            >>= fun author ->
 
           Wiki.create_wiki
-             ~title:("Ocsforge_area" ^ (Types.string_of_right_area c) ^ "_wiki")
+             ~title:(Printf.sprintf "Ocsforge_%s_(area_%s)_wiki"
+                       name (Types.string_of_right_area c)
+             )
              ~descr:("Wiki for ocsforge area" ^ (Types.string_of_right_area c))
              ~path:( ppath @ [ name ] )
              ~author

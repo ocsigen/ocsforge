@@ -21,3 +21,4 @@ Ocsforge_default_lexer
 Ocaml_lexer
 Darcs_support
 Svn_support
+Ocsforge_client_calls

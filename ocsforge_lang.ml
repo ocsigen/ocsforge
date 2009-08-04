@@ -128,6 +128,8 @@ let period_interval_list ?(bump = Calendar.Period.lmake ~hour:1 ())
     ~bump:(Calendar.Period.add bump)
     ~min ~max ()
 
+let t_opt_list_of_t_list l = None :: (List.map (fun s -> Some s) l)
+
 
 (*rougthly print period values*)
 

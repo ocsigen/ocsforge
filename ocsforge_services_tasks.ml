@@ -179,34 +179,60 @@ let new_task_service =
           () >>= fun _ -> Lwt.return ())
 
 
-let register_dump_tree_service ?sp path task_widget =
+let register_dump_tree_service ?sp path tree_widget task_widget =
   Lwt.return (
   Eliom_duce.Xhtml.register_new_service
     ?sp
     ~path:[ path ; "tasks" ; "" ]
-    ~get_params:Params.unit
-    (fun sp _ _ ->
-      Ocsforge_data.get_area_for_page ~sp ~page:path    >>= fun ri ->
-        match ri.Types.r_root_task with
-        | None -> failwith "Must not happen"
-        | Some root_task ->
-            ((task_widget#display ~sp ~root_task)
-               : {{ Xhtmltypes_duce.flows }} Lwt.t)
+    ~get_params:(Params.opt (Params.int32 "id"))
+    (fun sp id () ->
+       let p_d = Wiki_widgets_interface.Page_displayable in
+       let e404 = Wiki_widgets_interface.Page_404 in
+       match id with
+
+         | None ->
+             begin
+               Data.get_area_for_page ~sp ~page:path        >>= fun ri ->
+               ((tree_widget#display ~sp
+                   ~root_task:( Olang.unopt ri.Types.r_root_task )
+                ) : {{ Xhtmltypes_duce.flows }} Lwt.t)
                                                             >>= fun content ->
-              let gen_box _ =
-                Lwt.return
-                  (None,
-                   content,
-                   Wiki_widgets_interface.Page_displayable,
-                   Some "Ocsforge - task tree")
+              let gen_box _ = Lwt.return
+                (None, content, p_d, Some "Ocsforge - task tree")
               in
               Ocsisite.wikibox_widget#display_container
                 ~sp
                 ~wiki:ri.Types.r_wiki
                 ~menu_style:`Linear
                 ~page:((Ocsigen_lib.string_of_url_path ~encode:true []), [])
-                ~gen_box:gen_box
-                >>= fun (html, _) -> Lwt.return html)
+                ~gen_box
+
+              >>= fun (html, _) -> Lwt.return html
+             end
+
+         | Some id ->
+             begin
+               let task = Types.task_of_sql id in
+               ((task_widget#display ~sp ~task
+                ) : {{ Xhtmltypes_duce.flows }} Lwt.t)   >>= fun c ->
+               Data.get_area_for_task ~sp ~task          >>= fun ri1 ->
+               Data.get_area_for_page ~sp ~page:path     >>= fun ri2 ->
+               let gen_box _ = Lwt.return
+                 (None,
+                  c,
+                  (if ri1.Types.r_id = ri2.Types.r_id then p_d else e404),
+                  Some "Ocsforge - task")
+               in
+               Ocsisite.wikibox_widget#display_container
+                 ~sp
+                 ~wiki:ri1.Types.r_wiki
+                 ~menu_style:`Linear
+                 ~page:((Ocsigen_lib.string_of_url_path ~encode:true []), [])
+                 ~gen_box
+
+               >>= fun r -> Lwt.return (fst r) 
+             end
+    )
   )
 
 let register_get_message_service message_widget =
@@ -214,7 +240,7 @@ let register_get_message_service message_widget =
     ~name:"ocsforge_get_message"
     ~post_params:(Params.int32 "task")
     (fun sp () task ->
-       Ocsforge_data.get_task ~sp ~task:(Types.task_of_sql task) >>= fun t ->
+       Data.get_task ~sp ~task:(Types.task_of_sql task) >>= fun t ->
        message_widget#display ~sp ?classes:(Some ["ocsforge_task_message"])
          ~data:t.Types.t_message
          ()
@@ -225,7 +251,7 @@ let register_get_message_service message_widget =
 type supported_format =
   | Xml
 
-let register_xml_dump_services t_widget =
+let register_xml_dump_services tree_widget task_widget =
   Eliom_duce.Xml.register_new_post_coservice'
     ~name:"ocsforge_task_dump"
     ~post_params:(
@@ -245,16 +271,19 @@ let register_xml_dump_services t_widget =
        | Xml ->
            begin
              let root = Types.task_of_sql root in
-             Ocsforge_data.get_tree ~sp ~root ~with_deleted ?depth ()
+             Data.get_tree ~sp ~root ~with_deleted ?depth ()
                                                       >>= fun t ->
              Ocsforge_xml_tree_dump.xml_of_tree ~sp t >>= fun t ->
              Lwt.return (t : {{ Ocamlduce.Load.anyxml }})
            end
     ) ;
-  Ocsforge_sql.get_projects_path_list () >>= fun l ->
+  Ocsforge_sql.get_projects_path_list () >>= fun ppl ->
   Lwt_util.iter_serial
-    (fun p -> register_dump_tree_service p t_widget >>= fun _ -> Lwt.return ())
-    l
+    (fun p ->
+       register_dump_tree_service p tree_widget task_widget
+       >>= fun _ -> Lwt.return ()
+    )
+    ppl
 
 
 
@@ -311,7 +340,7 @@ let set_version_service =
        Data.edit_area ~sp ~area ~version ())
 
 
-let register_new_project_service task_widget =
+let register_new_project_service tree_widget task_widget =
   Eliom_predefmod.Action.register_new_post_coservice'
     ~name:"ocsforge_add_project"
     ~options:`NoReload
@@ -372,7 +401,7 @@ let register_new_project_service task_widget =
               | None -> Lwt.return ()
               | Some path ->
                   (
-                   register_dump_tree_service ~sp path task_widget
+                   register_dump_tree_service ~sp path tree_widget task_widget
                      >>= fun _ ->
                    Ocsforge_services_source.register_repository_service ~sp path
                      >>= fun _ ->

@@ -36,6 +36,7 @@ TARGETS := ocsforge.otarget
 OBROWSERDIR := $(shell ocamlfind query obrowser)
 AXODIR := $(OBROWSERDIR)
 ELIOMOBROWSERDIR := $(shell ocamlfind query ocsigen.eliom_obrowser_client)
+PAELIOMOBROWSERDIR := $(shell ocamlfind query ocsigen.eliom_obrowser_syntax)
 OCSIMOREOBROWSERDIR := $(shell ocamlfind query ocsimore.client)
 
 TOINSTALL := 
@@ -71,9 +72,9 @@ STATICFILES := static/ocsimore_client.uue \
 	       static/source_file.png\
 	       static/diff_to_previous.png		
 
-all: $(MYOCAMLFIND) ocsforge static/vm.js static/ocsimore_client.uue
+all: ocsforge_client.ml $(MYOCAMLFIND) ocsforge static/vm.js _build/ocsforge_client.cmo static/ocsimore_client.uue 
 
-ocsforge: $(MYOCAMLFIND) _build/ocsforge_svn.cma ocsforge_client.cmo
+ocsforge: $(MYOCAMLFIND) _build/ocsforge_svn.cma
 	PGUSER=$(DBUSER) PGDATABASE=$(DATABASE) PGPASSWORD=$(PASSWORD) \
 	$(OCAMLBUILD) $(TARGETS)
 
@@ -101,11 +102,17 @@ _build/ocsforge_svn.cma:
 	mv *.o *.a *.so _build
 	mv *.cm* _build
 
-ocsforge_client.cmo:
+_build/ocsforge_client.cmo: ocsforge_client.ml
 	CAMLLIB=$(OBROWSERDIR) ocamlc -c -I $(ELIOMOBROWSERDIR) $(AXODIR)/AXO.cma ocsforge_client.ml
 	mv ocsforge_client.cm[io] _build/
 
-static/ocsimore_client.uue: ./_build/ocsforge_client.cmo
+ocsforge_client.ml: ocsforge_client_calls.ml
+
+ocsforge_client_calls.ml: ocsforge_client.p.ml
+	camlp4of $(PAELIOMOBROWSERDIR)/pa_eliom_obrowser.cmo $< -o $@ \
+	  -client ocsforge_client.ml
+
+static/ocsimore_client.uue: _build/ocsforge_client.cmo
 	CAMLLIB=$(OBROWSERDIR) ocamlc -o ocsimore_client $(ELIOMOBROWSERDIR)/eliom_obrowser_client.cmo $(OBROWSERDIR)/AXO.cma $(OCSIMOREOBROWSERDIR)/wiki_client.cmo $(OCSIMOREOBROWSERDIR)/forum_client.cmo ./_build/ocsforge_client.cmo
 	uuencode ocsimore_client stdout > static/ocsimore_client.uue
 

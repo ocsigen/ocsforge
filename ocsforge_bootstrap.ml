@@ -104,6 +104,9 @@ let forge_wiki_model = Ocsisite.wikicreole_model (*TODO: use a real wiki model*)
 let _ =
 
   let tree_widget = new Ocsforge_widgets_tasks.tree_widget in
+  let task_widget =
+    new Ocsforge_widgets_tasks.task_widget Forum_site.message_widget
+  in
 
   begin
     Printf.printf "registering ocsforge services\n%!" ;
@@ -113,10 +116,12 @@ let _ =
          Lwt.return (Ocsforge_services_source.register_xml_tree_service ()))
     and _ =
       Lwt_unix.run
-        (Ocsforge_services_tasks.register_xml_dump_services tree_widget
+        (Ocsforge_services_tasks.register_xml_dump_services
+           tree_widget task_widget
            >>= fun _ ->
          Lwt.return
-           (Ocsforge_services_tasks.register_new_project_service tree_widget)
+           (Ocsforge_services_tasks.register_new_project_service
+              tree_widget task_widget)
            >>= fun _ ->
          Lwt.return
            (Ocsforge_services_tasks.register_get_message_service

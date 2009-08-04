@@ -3,6 +3,5 @@
 <**/*.ml*> : pkg_threads, pkg_ocsigen, pkg_ocsimore, pkg_ocsimore.users, pkg_ocsimore.forum, use_swig_svn, use_svn_client, dtypes, warn_Y, warn_Z
 <sql.ml*> : pkg_calendar, pkg_pgocaml
 <**/*_client*> : pkg_obrowser, pkg_ocsigen.eliom_obrowser_client, -pkg_ocsigen
-<**/*obrowser*> : pkg_obrowser, pkg_ocsigen.eliom_obrowser_client, -pkg_ocsigen
 <**/*.ml> : annot
 <**/*.c> : c, include_swig, warn_z

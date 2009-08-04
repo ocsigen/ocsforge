@@ -60,139 +60,23 @@ let draw_opt_field ~name ?alternatives ~string_of_t () =
   :} ] }}
 
 let draw_field ~name ~value ?alternatives ~string_of_t () =
-  match (value,alternatives) with
-    | (v, None)   -> {{ {: to_utf8 (string_of_t v) :} }}
-    | (v, Some l) ->
+  match alternatives with
+    | None      -> {{ {: to_utf8 ( string_of_t value ) :} }}
+    | Some alts ->
         {{ [ {:
           EDuce.Xhtml.user_type_select
              string_of_t
              ~name
-             (EDuce.Xhtml.Option ({{ { } }}, v, None, true))
+             (EDuce.Xhtml.Option ({{ { } }}, value, None, true) )
              (List.map
-                (fun a -> EDuce.Xhtml.Option ({{ { } }}, a, None, false))
-                l
+                (fun a -> EDuce.Xhtml.Option ({{ { } }}, a, None, false) )
+                alts
              )
         :} ] }}
 
 
-(*
-class new_project_widget =
-object
-
-  val add_task_class = "ocsforge_add_task_form"
-
-  method display ~sp ~parent
-                 (inline_widget : Wiki_widgets_interface.frozen_wikibox) =
-    Data.get_task ~sp ~task:parent               >>= fun p_info ->
-    Data.get_area ~sp ~area:p_info.Types.t_area  >>= fun p_a_info ->
-    Data.get_kinds ~sp ~area:p_a_info.Types.r_id >>= fun alt_k ->
-(*    Forum_data.get_message ~sp ~message_id:p_info.Types.t_message
-                                                 >>= fun p_msg ->*)
-
-    let draw_form
-          inline_widget
-          ((parent_name,
-            (subject_name,
-             (text_name,
-              (length_name,
-               (progress_name,
-                (importance_name,
-                 (deadline_t_name,
-                  (deadline_v_name,
-                   kind_name))))))))
-           : ([ `One of Types.task ] Params.param_name *
-              ([ `One of string ] Params.param_name *
-               ([ `One of string ] Params.param_name *
-                ([ `One of CalendarLib.Calendar.Period.t option ]
-                                 Params.param_name *
-                 ([ `One of int32 option ] Params.param_name *
-                  ([ `One of int32 option ] Params.param_name *
-                   ([ `One of CalendarLib.Date.t option ]
-                                    Params.param_name *
-                    ([ `One of string option ] Params.param_name *
-                     [ `One of string option ] Params.param_name)))))))
-           )) =
-      draw_message_title
-        ~sp ~message:p_info.Types.t_message inline_widget >>= fun title ->
-      Lwt.return
-      {{
-        [<p>[
-           'Creating sub task for ' title
-           <br>[]
-           {: EDuce.Xhtml.string_input
-                ~a:{{ { size="40%" } }}
-                ~input_type:{: "text" :}
-                ~name:subject_name () :}
-           <br>[]
-           {: EDuce.Xhtml.textarea ~name:text_name ~rows:1 ~cols:60 () :}
-         ]
-        <p>[
-          'length : '
-          !{: draw_opt_field
-               ~name:length_name
-               ~alternatives:Types.Alts.lengths 
-               ~string_of_t:Olang.string_of_period
-               () :}
-          <br>[]
-          'progress : '
-          !{: draw_opt_field
-                ~name:progress_name
-                ~string_of_t:Int32.to_string
-                ~alternatives:Types.Alts.percents
-                () :}
-          <br>[]
-          'importance : '
-          !{: draw_opt_field
-               ~name:importance_name
-               ~alternatives:Types.Alts.percents
-               ~string_of_t:Int32.to_string
-               () :}
-          <br>[]
-          'deadline (time) : '
-          !{: draw_opt_field
-                ~name:deadline_t_name
-                ~alternatives:Types.Alts.deadlines
-                ~string_of_t:Olang.string_of_date
-                () :}
-          <br>[]
-          'deadline (version) : '              (*TODO:use a string_input field*)
-          !{: draw_opt_field
-                ~name:deadline_v_name
-                ~alternatives:[]
-                ~string_of_t:(fun k -> k)
-                () :}
-          <br>[]
-          'kind : '
-          !{: draw_opt_field
-                ~name:kind_name
-                ~alternatives:alt_k
-                ~string_of_t:(fun k -> k)
-                () :}
-        ]
-        <p>[
-          {: EDuce.Xhtml.user_type_button
-                ~name:parent_name
-                ~value:p_info.Types.t_id
-                Types.string_of_task
-                {{ "Save" }}
-          :}
-
-        
-        ]
-       ]
-     }}
-    in
-      Lwt.return
-        (EDuce.Xhtml.lwt_post_form
-           ~service:Services.new_task_service
-           ~sp (draw_form inline_widget) ())
 
 
-end
-*)
-
-
-(* is to be included in a <noscript>... /!\ Not pretty to look at /!\ *)
 class tree_widget =
 object (self)
 
@@ -308,3 +192,87 @@ object (self)
 
 end
 
+
+class task_widget (message_widget : Forum_widgets.message_widget) =
+object (self)
+
+  method auto_update_select
+         ~id
+         ~string_of_t ?label_of_t ?value_of_t
+         ~value ~alts
+         ~name ~service
+         ()
+         =
+    let option_of_t v =
+      match label_of_t, value_of_t with
+        | None  , None   ->
+            {{ [ <option>[ !{: to_utf8 (string_of_t v) :} ] ] }}
+        | Some f, None   ->
+            {{ [ <option label={: to_utf8 (f v) :}>
+                   [ !{: to_utf8 (string_of_t v) :} ]
+            ] }}
+        | Some f, Some g ->
+            {{ [ <option label={: to_utf8 (f v) :}
+                         value={: to_utf8 (g v) :}>
+                   [ !{: to_utf8 (string_of_t v) :} ]
+            ] }}
+        | None  , Some g ->
+            {{ [ <option value={: to_utf8 (g v) :}>
+                   [ !{: to_utf8 (string_of_t v) :} ]
+            ] }}
+    in
+    {{
+      <select id={: to_utf8 ( name ^ Int32.to_string id ) :} 
+              onchange={:
+                Ocsforge_client_calls.keep_up_to_date
+                  name id service
+              :}>
+         {{ List.fold_left
+              (fun
+                 ( a : {{ [ Xhtmltypes_duce.option+ ] }} )
+                 ( b : {{ [ Xhtmltypes_duce.option ] }} )
+                 -> {{ [ !a !b ] }} )
+              ( option_of_t value )
+              ( List.map option_of_t alts )
+         }}
+    }}
+
+
+  method display ~sp ~task =
+
+    Data.get_task ~sp ~task                  >>= fun ti ->
+    message_widget#display ~sp
+      ?classes:( Some [ "ocsforge_task_message" ] )
+      ~data:ti.Types.t_message
+      ()                                     >>= fun msg ->
+
+    Lwt.return
+      ({{ [
+        <div>[
+          msg
+          <div class={: to_utf8 "task_details" :}>[
+             !{: to_utf8 "progress : " :}
+             {{ self#auto_update_select
+                  ~id:(Types.sql_of_task ti.Types.t_id)
+                  ~string_of_t:(
+                    Olang.string_of_t_opt Int32.to_string
+                  )
+                  ~label_of_t:(
+                    Olang.string_of_t_opt (Printf.sprintf "%ld %%")
+                  )
+                  ~value:ti.Types.t_progress
+                  ~alts:(
+                    Olang.t_opt_list_of_t_list
+                      (Olang.int32_interval_list
+                         ~bump:5l ~min:0l ~max:100l ()
+                      )
+                  )
+                  ~name:"progress"
+                  ~service:"ocsforge_set_progress"
+                  () }}
+          ]
+        ]
+      ] }} : {{ Xhtmltypes_duce.flows }})
+
+
+end
