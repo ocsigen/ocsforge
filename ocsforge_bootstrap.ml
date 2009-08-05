@@ -18,7 +18,8 @@
  *)
 
 (* This module is for boot straping (creating the first task, registering
- * services, etc.)*)
+ * services, etc.) It should NOT be used for other purposes as there's no rigth
+ * verification at all. *)
 
 let (>>=) = Lwt.bind
 let ($) = User_sql.Types.apply_parameterized_group
@@ -43,7 +44,13 @@ let first_task () = (*TODO: create forum manually instead of rellying on ocsicre
   then Lwt.return ()
   else
     begin
-      Forum_sql.get_forum ~title:"ocsforge_task_forum" () >>= fun fi ->
+     Forum.create_forum
+       ~wiki_model:Ocsisite.wikicreole_model
+       ~title_syntax:Forum_site.title_syntax
+       ~title:"ocsforge_task_forum"
+       ~descr:"forum for the forge root task"
+       ~arborescent:false
+       ()                                                 >>= fun fi ->
       Wiki_sql.new_wiki
         ~title:"ocsforge_task_wiki" ~descr:"" ~pages:(Some "ocsforge")
         ~boxrights:false ~staticdir:None ~author:User.admin
@@ -93,7 +100,8 @@ let first_task () = (*TODO: create forum manually instead of rellying on ocsicre
          Ocsforge_roles.kinds_setter ;
          Ocsforge_roles.version_setter ; ]
         >>= fun _ ->
-          Printf.printf "Your first ocsforge task's id is %ld\n%!" task ;
+          Printf.printf "Your first ocsforge task's id is %ld\n%!"
+            (Ocsforge_types.sql_of_task task) ;
           Lwt.return ()
     end
 
@@ -122,10 +130,6 @@ let _ =
          Lwt.return
            (Ocsforge_services_tasks.register_new_project_service
               tree_widget task_widget)
-           >>= fun _ ->
-         Lwt.return
-           (Ocsforge_services_tasks.register_get_message_service
-              Forum_site.message_widget)
            >>= fun _ -> Lwt.return ())
     in
     Printf.printf "done registering ocsforge services\n%!" ;

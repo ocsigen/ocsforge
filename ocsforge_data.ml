@@ -26,6 +26,9 @@
 
 module Roles = Ocsforge_roles
 module Types = Ocsforge_types
+module Tree  = Ocsforge_lang.Tree
+module Olang = Ocsforge_lang
+
 module FTypes = Forum_types
 module FRoles = Forum
 (*Can't compile without*)open Sql
@@ -45,32 +48,28 @@ let do_sql f = Lwt_pool.use Sql.pool f
 (** {4 Task and Area creation } *)
 
 let new_task ~sp ~parent ~subject ~text
-      ?length ?progress ?importance ?deadline_time ?deadline_version ?kind () =
-  User.get_user_id ~sp >>= fun creator ->
+      ?length ?progress ?importance ?kind () =
+  User.get_user_id ~sp                                    >>= fun creator ->
+  do_sql (Ocsforge_sql.get_area_for_task ~task_id:parent) >>= fun area ->
+  Roles.get_area_role sp area                             >>= fun role ->
+  !!(role.Roles.task_creator)                             >>= fun b ->
+  if b
+  then
+    Sql.full_transaction_block
+      (fun db ->
+         Ocsforge_sql.get_area_by_id ~area_id:area db         >>= fun ainfo ->
+           let version = ainfo.Types.r_version in
+           let forum   = ainfo.Types.r_forum   in
 
-        do_sql (Ocsforge_sql.get_area_for_task ~task_id:parent)
-                                                     >>= fun area ->
-        Roles.get_area_role sp area                  >>= fun role ->
-        !!(role.Roles.task_creator)                  >>= fun b ->
-        if b
-        then
-          Sql.full_transaction_block
-          (fun db ->
-            Ocsforge_sql.get_area_by_id ~area_id:area db >>= fun ainfo ->
-            let version = ainfo.Types.r_version in
-            let forum   = ainfo.Types.r_forum   in
+           Forum_data.new_message
+             ~sp ~forum ~creator_id:creator ~subject ~text () >>= fun message ->
 
-            Forum_data.new_message
-              ~sp ~forum ~creator_id:creator ~subject ~text ()>>= fun message ->
+           Ocsforge_sql.new_task ~parent ~message ~creator ~version
+             ?length ?progress ?importance ?kind ~area ()
+      )
+  else Lwt.fail Ocsimore_common.Permission_denied
 
-            Ocsforge_sql.new_task ~parent ~message ~creator ~version
-              ?length ?progress ?importance
-              ?deadline_time ?deadline_version ?kind ~area ()
-          )
-        else Lwt.fail Ocsimore_common.Permission_denied
-
-let new_project ~sp ~parent ~name
-      ?length ?importance ?deadline ?kind
+let new_project ~sp ~parent ~name ?length ?importance ?kind
       ?repository_kind ?repository_path ?wiki_container () =
 
   do_sql (Ocsforge_sql.get_area_for_task ~task_id:parent) >>= fun parent_area ->
@@ -82,65 +81,63 @@ let new_project ~sp ~parent ~name
   else
     Sql.full_transaction_block
       (fun db ->
-         begin
 
-           (* get area code *)
-           Ocsforge_sql.next_right_area_id db             >>= fun c ->
+         (* get area code *)
+         Ocsforge_sql.next_right_area_id db             >>= fun c ->
 
-           let title_syntax = Forum_site.title_syntax in
-           (* create forum *)
-           Forum.create_forum (*TODO: use Forum_data.new_forum ? *)
-              ~wiki_model:Ocsisite.wikicreole_model (*TODO : give the real wiki model*)
-              ~title_syntax (*TODO:give the real title_syntax*)
-              ~title:(Printf.sprintf "Ocsforge_%s_(area_%s)_forum"
-                         name (Types.string_of_right_area c)
-              )
-              ~descr:("Messages about tasks in the area"
-                      ^ (Types.string_of_right_area c))
-              ()                                          >>= fun finfo ->
+         (* create forum *)
+         let title_syntax = Forum_site.title_syntax in
+         Forum.create_forum (*TODO: use Forum_data.new_forum ? *)
+           ~wiki_model:Ocsisite.wikicreole_model (*FIXME: give the real wiki model *)
+           ~title_syntax (*TODO: give the real title_syntax *)
+           ~title:(Printf.sprintf "Ocsforge_%s_(area_%s)_forum"
+                      name (Types.string_of_right_area c)
+           )
+           ~descr:("Messages about tasks in the area"
+                   ^ (Types.string_of_right_area c))
+           ()                                          >>= fun finfo ->
 
-          let forum = finfo.FTypes.f_id in
-(*          let mwiki = finfo.FTypes.f_messages_wiki in
-          let cwiki = finfo.FTypes.f_comments_wiki in
+         let forum = finfo.FTypes.f_id in
+(*
+         let mwiki = finfo.FTypes.f_messages_wiki in
+         let cwiki = finfo.FTypes.f_comments_wiki in
  *)
 
-          (* create wiki *)
-          Ocsforge_sql.get_path_for_area ~area:parent_area db >>=
-            (function
-              | None -> failwith "Ocsforge_data.new_project"
-              | Some ppath -> Lwt.return ppath)           >>= fun ppath ->
-          User.get_user_id ~sp                            >>= fun author ->
+         (* create wiki *)
+         Ocsforge_sql.get_path_for_area ~area:parent_area db >>= fun ppath ->
+         let ppath = Olang.unopt ppath in
+         User.get_user_id ~sp                            >>= fun author ->
 
-          Wiki.create_wiki
-             ~title:(Printf.sprintf "Ocsforge_%s_(area_%s)_wiki"
-                       name (Types.string_of_right_area c)
-             )
-             ~descr:("Wiki for ocsforge area" ^ (Types.string_of_right_area c))
-             ~path:( ppath @ [ name ] )
-             ~author
-             ?container_text:wiki_container
-             ~model:Ocsisite.wikicreole_model (*TODO : give the real model *)
-             ()
+         Wiki.create_wiki
+            ~title:(Printf.sprintf "Ocsforge_%s_(area_%s)_wiki"
+                      name (Types.string_of_right_area c)
+            )
+            ~descr:("Wiki for ocsforge area" ^ (Types.string_of_right_area c))
+            ~path:( ppath @ [ name ] )
+            ~author
+            ?container_text:wiki_container
+            ~model:Ocsisite.wikicreole_model (*TODO : give the real model *)
+            ()
                                                            >>= fun wiki ->
-                                                             
-          (* TODO : give the real model *)   
-                                                          
-          Wiki_data.new_wikitextbox 
-             
-             ~rights:(Wiki_models.get_rights Ocsisite.wikicreole_model) ~sp
-             ~content_type:
-               (Wiki_models.get_default_content_type Ocsisite.wikicreole_model)
-             ~wiki:wiki
-             ~author
-             ~comment:("ocsforge subcontainer for "^name)
-             ~content:"<<content>>"
-             () 
-             >>= fun wikibox ->
-             
-          (* create area *)
-            Ocsforge_sql.new_area
-              ~id:c ~forum ~wiki ~wikibox ?repository_kind ?repository_path () 
-          >>= fun _ -> (* the result can't be anything but [c] *)
+
+         (* TODO : give the real model *)   
+                                                         
+         Wiki_data.new_wikitextbox 
+
+            ~rights:(Wiki_models.get_rights Ocsisite.wikicreole_model) ~sp
+            ~content_type:
+              (Wiki_models.get_default_content_type Ocsisite.wikicreole_model)
+            ~wiki:wiki
+            ~author
+            ~comment:("ocsforge subcontainer for "^name)
+            ~content:"<<content>>"
+            () 
+            >>= fun wikibox ->
+            
+         (* create area *)
+           Ocsforge_sql.new_area
+             ~id:c ~forum ~wiki ~wikibox ?repository_kind ?repository_path () 
+         >>= fun _ -> (* the result can't be anything but [c] *)
 
 (* link rights on area and rights on forum... Needs modifications on forum.ml
          Lwt_util.iter_serial
@@ -174,7 +171,7 @@ let new_project ~sp ~parent ~name
           (* create task *)
             Ocsforge_sql.new_task
               ~parent ~message ~creator:author ~version:"0.0"
-              ?length ?importance ?deadline_time:deadline ?kind ~area:c
+              ?length ?importance ?kind ~area:c
               ~area_root:true ()
           >>= fun task ->
 
@@ -182,29 +179,29 @@ let new_project ~sp ~parent ~name
             Lwt_util.iter_serial
               (fun a -> User.add_to_group
                           ~user:(a $ c) ~group:(a $ parent_area))
-                          [Roles.task_reader ;
-                           Roles.task_comment_reader ;
-                           Roles.task_comment_moderator ;
-                           Roles.task_comment_sticky_setter ;
-                           Roles.task_comment_deletor ;
-                           Roles.task_comment_writer ;
-                           Roles.task_comment_writer_not_moderated ;
-                           Roles.task_property_editor ;
-                           Roles.task_message_editor ;
-                           Roles.task_message_editor_if_author ;
-                           Roles.task_admin ;
-                           Roles.task_creator ;
-                           Roles.task_mover ;
-                           Roles.task_mover_from ;
-                           Roles.task_mover_to ;
-                           Roles.subarea_creator ;
-                           Roles.kinds_setter ;
-                           Roles.version_setter ;
-                           Roles.repository_setter ; ]
+              [Roles.task_reader ;
+               Roles.task_comment_reader ;
+               Roles.task_comment_moderator ;
+               Roles.task_comment_sticky_setter ;
+               Roles.task_comment_deletor ;
+               Roles.task_comment_writer ;
+               Roles.task_comment_writer_not_moderated ;
+               Roles.task_property_editor ;
+               Roles.task_message_editor ;
+               Roles.task_message_editor_if_author ;
+               Roles.task_admin ;
+               Roles.task_creator ;
+               Roles.task_mover ;
+               Roles.task_mover_from ;
+               Roles.task_mover_to ;
+               Roles.subarea_creator ;
+               Roles.kinds_setter ;
+               Roles.version_setter ;
+               Roles.repository_setter ; ]
           >>= fun () -> Ocsforge_sql.set_root_task ~area_id:c ~task db
           >>= fun () -> Lwt.return task             
 
-          end)
+      )
 
 
 let get_task ~sp ~task =
@@ -250,30 +247,42 @@ let get_tree ~sp ~root ?with_deleted ?depth () = (*TODO: use depth for sql trans
   Sql.full_transaction_block
     (Ocsforge_sql.get_tasks_in_tree ~root ?with_deleted ())
     >>= (filter_task_list_for_reading sp)
-    >>= function
-      | []       -> Lwt.fail Types.Tree.Empty_tree
+    >>= (function
+      | []       -> Lwt.fail Tree.Empty_tree
       | hd :: tl ->
           let rec aux tree = function
             | []   -> Lwt.return tree
             | h::t ->
-                aux (Types.Tree.insert
+                aux (Tree.insert
                        (fun p _ -> h.Types.t_parent = p.Types.t_id)
                        tree
-                       (Types.Tree.node h []))
+                       (Tree.node h []))
                     t
-          in aux (Types.Tree.node hd []) tl
-    >>= fun t ->
+          in aux (Tree.node hd []) tl)
+    >>= (fun t ->
       let rec aux tree = function
-        | n when n <= 0 -> { tree with Types.Tree.children = [] }
-        | n -> { tree with Types.Tree.children =
+        | n when n <= 0 -> { tree with Tree.children = [] }
+        | n -> { tree with Tree.children =
                    List.map
                      (fun t -> aux t (pred n))
-                     (Types.Tree.get_children tree)
+                     (Tree.get_children tree)
                }
       in
         match depth with
           | None -> Lwt.return t
-          | Some depth -> Lwt.return (aux t depth)
+          | Some depth -> Lwt.return (aux t depth))
+    >>= (fun t -> (*TODO: switch to a Lwt friendly sort function *)
+           Lwt.return
+             (Tree.sort
+                ~comp:(fun a b ->
+                         Int32.to_int
+                           (Int32.sub
+                              b.Tree.content.Types.t_tree_min
+                              a.Tree.content.Types.t_tree_min))
+                t)
+    )
+
+
 
 let get_sub_tasks ~sp ~parent =
   Sql.full_transaction_block
@@ -288,10 +297,9 @@ let get_tasks_edited_by ~sp ~editor =
 
 
 let edit_task ~sp ~task
-      ?length ?progress ?importance ?deadline_time ?deadline_version ?kind () =
-  if    length           = None && progress         = None
-     && importance       = None && deadline_time    = None
-     && deadline_version = None && kind             = None
+      ?length ?progress ?importance ?kind () =
+  if    length     = None && progress = None
+     && importance = None && kind     = None
   then Lwt.return ()
   else
     begin
@@ -323,17 +331,6 @@ let edit_task ~sp ~task
                | Some importance ->
                    Ocsforge_sql.set_importance ~task_id ~importance db)
             >>= fun () ->
-            (match deadline_time with
-               | None -> Lwt.return ()
-               | Some deadline_time ->
-                   Ocsforge_sql.set_deadline_time ~task_id ~deadline_time db)
-            >>= fun () ->
-            (match deadline_version with
-               | None -> Lwt.return ()
-               | Some deadline_version ->
-                   Ocsforge_sql.set_deadline_version
-                     ~task_id ~deadline_version db)
-            >>= fun () ->
             (match kind with
                | None -> Lwt.return ()
                | Some kind -> Ocsforge_sql.set_kind ~task_id ~kind db)
@@ -362,10 +359,10 @@ let move_task ~sp ~task ~parent =
            then
            (*executing*)
              User.get_user_id sp >>= fun author ->
-             Ocsforge_sql.copy_in_history ~task_id:task db >>= fun () ->
-             Ocsforge_sql.stamp_edition ~task_id:task ~author db >>= fun () ->
 
-             Ocsforge_sql.set_parent ~task_id:task ~parent db >>= fun () ->
+             Ocsforge_sql.copy_in_history ~task_id:task db         >>= fun () ->
+             Ocsforge_sql.stamp_edition ~task_id:task ~author db   >>= fun () ->
+             Ocsforge_sql.set_parent ~task_id:task ~parent db      >>= fun () ->
              Ocsforge_sql.set_area ~task_id:task ~area:area_new db >>= fun () ->
              Ocsforge_sql.change_tree_marks ~task_id:task ~parent_id:parent db
 
@@ -467,10 +464,8 @@ let make_project ~sp ~task ?repository_kind ?repository_path () =
 
           (* create wiki *)
             (* getting the path *)
-          Ocsforge_sql.get_path_for_area ~area:area_old db    >>=
-            (function
-              | None -> failwith "Ocsforge_data.new_project"
-              | Some ppath -> Lwt.return ppath)               >>= fun ppath ->
+          Ocsforge_sql.get_path_for_area ~area:area_old db   >>= fun ppath ->
+          let ppath = Olang.unopt ppath in
             (* getting the rigths *)
           Ocsforge_sql.get_task_by_id ~task_id:task db        >>= fun ti ->
           Ocsforge_sql.get_area_by_id ~area_id:area_old db    >>= fun ai ->
@@ -481,13 +476,13 @@ let make_project ~sp ~task ?repository_kind ?repository_path () =
             (* getting the wikibox *)
           Forum_sql.get_message ~message_id:ti.Types.t_message ()
                                                           >>= fun mi ->
-            (* finally : getting the content *)
+            (* eventually : getting the content *)
           Wiki_data.wikibox_content
             ~rights ~sp
             (mi.FTypes.m_wikibox)                         >>= fun (_,name,_) ->
           User.get_user_id ~sp                            >>= fun author ->
 
-          let name = Ocsforge_lang.unopt name in
+          let name = Olang.unopt name in
           Wiki.create_wiki
              ~title:("Ocsforge area" ^ (Types.string_of_right_area c) ^ " wiki")
              ~descr:("Wiki for ocsforge area" ^ (Types.string_of_right_area c))
@@ -585,9 +580,9 @@ let make_project ~sp ~task ?repository_kind ?repository_path () =
                Ocsforge_sql.get_area_info_for_task t db >>= fun a ->
                Wiki_sql.get_wiki_info_by_id a.Types.r_wiki >>= fun wi ->
                let path =
-                 Ocsforge_lang.insert_after_segment
+                 Olang.insert_after_segment
                    (Neturl.split_path
-                      (Ocsforge_lang.unopt wi.Wiki_types.wiki_pages))
+                      (Olang.unopt wi.Wiki_types.wiki_pages))
                    name
                    ppath
                in
@@ -654,4 +649,55 @@ let find_subject ~sp ~task =
     if b
     then Ocsforge_sql.find_subject_content ~task
     else Lwt.fail Ocsimore_common.Permission_denied
-  
+
+
+(** Geting and setting separators. *)
+let get_separators ~sp ~task =
+  do_sql (Ocsforge_sql.get_area_for_task ~task_id:task)   >>= fun area ->
+  Roles.get_area_role ~sp area                            >>= fun role ->
+  !!(role.Roles.task_reader)                              >>= fun b ->
+    if b
+    then do_sql (Ocsforge_sql.get_separators ~root_task:task)
+    else Lwt.fail Ocsimore_common.Permission_denied
+
+let insert_separator ~sp ~after ~content =
+  do_sql (Ocsforge_sql.get_area_for_task ~task_id:after)  >>= fun area ->
+  Roles.get_area_role ~sp area                            >>= fun role ->
+  !!(role.Roles.task_creator)                             >>= fun b ->
+    if b
+    then (
+      Sql.full_transaction_block
+        (fun db ->
+           Ocsforge_sql.get_task_by_id ~task_id:after db
+           >>= fun { Types.t_tree_max = after } ->
+           Ocsforge_sql.new_separator ~after ~content db )
+    )
+    else Lwt.fail Ocsimore_common.Permission_denied
+
+let set_separator_content ~sp ~separator ~content =
+  do_sql (Ocsforge_sql.get_area_for_separator ~separator) >>= fun area ->
+  Roles.get_area_role ~sp area.Types.r_id                 >>= fun role ->
+  !!(role.Roles.task_property_editor)                     >>= fun b ->
+    if b
+    then do_sql (Ocsforge_sql.set_separator_content ~separator ~content)
+    else Lwt.fail Ocsimore_common.Permission_denied
+
+let move_separator ~sp ~separator ~after =
+  do_sql (Ocsforge_sql.get_area_for_separator ~separator)
+                                          >>= fun { Types.r_id = old_area } ->
+  Roles.get_area_role ~sp old_area                          >>= fun oa_role ->
+  do_sql (Ocsforge_sql.get_area_info_for_task ~task_id:after)
+                                          >>= fun { Types.r_id = new_area } ->
+  Roles.get_area_role ~sp new_area                          >>= fun na_role ->
+  !!( oa_role.Roles.task_mover_from )                            >>= fun b1 ->
+  !!( na_role.Roles.task_mover_to )                              >>= fun b2 ->
+    if b1 && b2
+    then (
+      Sql.full_transaction_block
+        (fun db ->
+           Ocsforge_sql.get_task_by_id ~task_id:after db
+           >>= fun { Types.t_tree_max = after } ->
+           Ocsforge_sql.move_separator ~separator ~after db )
+    )
+    else Lwt.fail Ocsimore_common.Permission_denied
+

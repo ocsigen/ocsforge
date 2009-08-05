@@ -27,6 +27,8 @@ type right_area_arg
 type right_area = right_area_arg Opaque.int32_t
 type task_history_arg
 type task_history = task_history_arg Opaque.int32_t
+type separator_arg
+type separator = separator_arg Opaque.int32_t
 
 
 
@@ -74,8 +76,6 @@ type task_info = {
   t_length : CalendarLib.Calendar.Period.t option;
   t_progress : int32 option;
   t_importance : int32 option;
-  t_deadline_time : CalendarLib.Date.t option;
-  t_deadline_version : string option;
   t_kind : string option;
   t_area : right_area;
   t_tree_min : int32;
@@ -97,8 +97,8 @@ val task_of_int : int -> task
 (* NOT TO BE USED BUT IN ocsforge_sql *)
 type raw_task_info =
     int32 * int32 * int32 * int32 * CalendarLib.Calendar.t * string *
-    CalendarLib.Calendar.Period.t option * int32 option * int32 option *
-    CalendarLib.Calendar.t option * string option * string option * int32 *
+    CalendarLib.Calendar.Period.t option * int32 option
+    * int32 option * string option * int32 *
     int32 * int32 * bool * bool
 val get_task_info : raw_task_info -> task_info
 
@@ -115,8 +115,6 @@ type task_history_info = {
   th_length : CalendarLib.Calendar.Period.t option;
   th_progress : int32 option;
   th_importance : int32 option;
-  th_deadline_time : CalendarLib.Date.t option;
-  th_deadline_version : string option;
   th_kind : string option;
   th_area : right_area;
 }
@@ -133,34 +131,16 @@ val task_history_of_string : string -> task
 type raw_task_history_info =
     int32 * int32 * int32 * CalendarLib.Calendar.t * string *
     CalendarLib.Calendar.Period.t option * int32 option * int32 option *
-    CalendarLib.Calendar.t option * string option * string option * int32
+    string option * int32
 val get_task_history_info : raw_task_history_info -> task_history_info
 
+(** {3 for separators tampering} *)
+type separator_info =
+  { s_id : separator ; s_after : task ; s_content : string ; }
+val separator_of_sql : int32 -> separator
+val sql_of_separator : separator -> int32
+val string_of_separator : separator -> string
+val separator_of_string : string -> separator
 
-module Tree :
-sig
-  type 'a tree = { content : 'a ; children : 'a tree list }
-  exception Empty_tree
-
-  val node : 'a -> 'a tree list -> 'a tree
-  val get_content : 'a tree -> 'a
-  val get_children : 'a tree -> 'a tree list
-
-  val insert :
-    ('a -> 'a tree list -> bool) -> 'a tree -> 'a tree -> 'a tree
-
-  val filter : ('a -> 'a tree list -> bool) -> 'a tree -> 'a tree
-
-  val sort :
-    ?comp:('a tree -> 'a tree -> int) ->
-    'a tree ->
-    'a tree
-
-end
-
-module Alts :
-sig
-  val deadlines : CalendarLib.Date.t list
-  val lengths : CalendarLib.Calendar.Period.t list
-  val percents : int32 list
-end
+type raw_separator_info = int32 * int32 * string
+val get_separator_info : raw_separator_info -> separator_info

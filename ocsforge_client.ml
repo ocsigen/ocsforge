@@ -1,15 +1,15 @@
 open AXOLang;;
-let ( >=> ) x f = f x;;
+let ( >>> ) x f = f x;;
 let get_path () =
   let s =
-    ((AXOJs.Misc.get_location ()) >=> (JSOO.get "pathname")) >=> JSOO.
+    ((AXOJs.Misc.get_location ()) >>> (JSOO.get "pathname")) >>> JSOO.
       as_string
   in
     try (Regexp.exec (Regexp.make "/(.*)/sources.*") s).(1)
     with | exc -> (AXOJs.alert (Printexc.to_string exc); raise exc);;
 let get_version () =
   let s =
-    ((AXOJs.Misc.get_location ()) >=> (JSOO.get "search")) >=> JSOO.as_string
+    ((AXOJs.Misc.get_location ()) >>> (JSOO.get "search")) >>> JSOO.as_string
   in
     try
       if Regexp.test (Regexp.make ".*version=.*") s
@@ -29,12 +29,12 @@ let get_trs dir =
       AXOCom.parse_xml
   in
     (AXOCom.check_for_error l;
-     (l >=> (JSOO.get "documentElement")) >=> AXOJs.Node.children);;
+     (l >>> (JSOO.get "documentElement")) >>> AXOJs.Node.children);;
 type task =
   { id : int; sub : string; length : int option; progress : int option;
-    importance : int option; deadline : int option; milestone : string;
-    kind : string; editable : bool; project : bool
+    importance : int option; kind : string; editable : bool; project : bool
   };;
+type separator = { sid : int; scontent : string; safter : int };;
 let rec new_task_pop_up id (pos, x, y) =
   let form = new AXOToolkit.vbox in
   let popup = new AXOToolkit.popup form in
@@ -61,13 +61,6 @@ let rec new_task_pop_up id (pos, x, y) =
       (LOption.t_opt_of_string int_of_string) None
       (LList.t_opt_list_of_t_list
          (LList.int_interval_list ~bump: 6 ~min: 0 ~max: 48 ())) in
-  let deadline_t_select =
-    new AXOToolkit.select (LOption.string_of_t_opt string_of_int)
-      (LOption.t_opt_of_string int_of_string) None
-      (LList.t_opt_list_of_t_list
-         ((LList.int_interval_list ~bump: 1 ~min: (-1) ~max: 7 ()) @
-            (LList.int_interval_list ~bump: 7 ~min: 15 ~max: 29 ()))) in
-  let deadline_v_input = new AXOToolkit.text_input "" in
   let kind_input = new AXOToolkit.text_input ""
   in
     (more#set_margin_left 10;
@@ -81,13 +74,6 @@ let rec new_task_pop_up id (pos, x, y) =
      details#add_common (AXOToolkit.text "length : ");
      details#add_common (length_select :> AXOWidgets.common);
      details#add_common (AXOToolkit.text " days");
-     details#add_common new AXOToolkit.br;
-     details#add_common (AXOToolkit.text "deadline : ");
-     details#add_common (deadline_t_select :> AXOWidgets.common);
-     details#add_common (AXOToolkit.text " days ahead");
-     details#add_common new AXOToolkit.br;
-     details#add_common (AXOToolkit.text "milestone : ");
-     details#add_common (deadline_v_input :> AXOWidgets.common);
      details#add_common new AXOToolkit.br;
      details#add_common (AXOToolkit.text "category : ");
      details#add_common (kind_input :> AXOWidgets.common);
@@ -114,10 +100,6 @@ let rec new_task_pop_up id (pos, x, y) =
                        ("importance",
                         (LOption.string_of_t_opt string_of_int
                            importance_select#get_value));
-                       ("deadline_t",
-                        (LOption.string_of_t_opt string_of_int
-                           deadline_t_select#get_value));
-                       ("deadline_v", (deadline_v_input#get_value));
                        ("kind", (kind_input#get_value)) ]
                  in
                    AXOCom.alert_on_code
@@ -126,12 +108,12 @@ let rec new_task_pop_up id (pos, x, y) =
                      ~on_4xx:
                        (fun (_, m) ->
                           AXOJs.rich_alert
-                            ((AXOCom.parse_xml m) >=>
+                            ((AXOCom.parse_xml m) >>>
                                (JSOO.get "documentElement")))
                      ~on_5xx:
                        (fun (_, m) ->
                           AXOJs.rich_alert
-                            ((AXOCom.parse_xml m) >=>
+                            ((AXOCom.parse_xml m) >>>
                                (JSOO.get "documentElement")))
                      (c, m)));
            let project_button =
@@ -175,8 +157,7 @@ and new_project_popup id (pos, x, y) =
                         [ ("__eliom_na__name", "ocsforge_add_project");
                           ("parent", (string_of_int id));
                           ("name", (title_input#get_value)); ("length", "");
-                          ("progress", ""); ("importance", "");
-                          ("deadline_t", ""); ("kind", "") ]
+                          ("progress", ""); ("importance", ""); ("kind", "") ]
                         (LOption.apply_on_opted (fun s -> ("repo_kind", s))
                            repo_kind_select#get_value))
                      (LOption.apply_on_opted (fun s -> ("repo_path", s))
@@ -189,12 +170,12 @@ and new_project_popup id (pos, x, y) =
                   ~on_4xx:
                     (fun (_, m) ->
                        AXOJs.rich_alert
-                         ((AXOCom.parse_xml m) >=>
+                         ((AXOCom.parse_xml m) >>>
                             (JSOO.get "documentElement")))
                   ~on_5xx:
                     (fun (_, m) ->
                        AXOJs.rich_alert
-                         ((AXOCom.parse_xml m) >=>
+                         ((AXOCom.parse_xml m) >>>
                             (JSOO.get "documentElement")))
                   (c, m)));
         let task_button = new AXOToolkit.inline_text_widget_button "NEW TASK"
@@ -233,51 +214,58 @@ let tree_of_dom_tree get_content get_children dt =
     }
   in aux dt;;
 let get_task_tree root_task =
-  let tree =
+  let info =
     AXOCom.dynload_post "./"
       [ ("__eliom_na__name", "ocsforge_task_dump");
         ("root", (Int32.to_string root_task)); ("format", "xml") ]
-      AXOCom.parse_xml
+      AXOCom.parse_xml in
+  let get_attr n o =
+    (((o >>> (JSOO.get "attributes")) >>> (JSOO.get n)) >>>
+       (JSOO.get "value"))
+      >>> JSOO.as_string
   in
-    (AXOCom.check_for_error tree;
+    (AXOCom.check_for_error info;
      let tree =
-       let get_attr n o =
-         (((o >=> (JSOO.get "attributes")) >=> (JSOO.get n)) >=>
-            (JSOO.get "value"))
-           >=> JSOO.as_string
-       in
-         tree_of_dom_tree
-           (fun o ->
-              let sub_ =
-                ((o >=> (AXOJs.Node.child 0)) >=> (JSOO.get "textContent"))
-                  >=> JSOO.as_string
-              in
-                {
-                  sub = sub_;
-                  progress =
-                    (o >=> (get_attr "progress")) >=>
-                      (LOption.t_opt_of_string int_of_string);
-                  importance =
-                    (o >=> (get_attr "importance")) >=>
-                      (LOption.t_opt_of_string int_of_string);
-                  deadline =
-                    (o >=> (get_attr "deadline")) >=>
-                      (LOption.t_opt_of_string int_of_string);
-                  milestone = o >=> (get_attr "milestone");
-                  kind = o >=> (get_attr "kind");
-                  length =
-                    (o >=> (get_attr "_length_")) >=>
-                      (LOption.t_opt_of_string int_of_string);
-                  id = (o >=> (get_attr "id")) >=> int_of_string;
-                  editable = (o >=> (get_attr "editable")) >=> bool_of_string;
-                  project = (o >=> (get_attr "project")) >=> bool_of_string;
-                })
-           (fun o ->
-              if (o >=> AXOJs.Node.n_children) = 2
-              then (o >=> (AXOJs.Node.child 1)) >=> AXOJs.Node.children
-              else [])
-           (tree >=> (JSOO.get "documentElement"))
-     in tree);;
+       tree_of_dom_tree
+         (fun o ->
+            let sub_ =
+              ((o >>> (AXOJs.Node.child 0)) >>> (JSOO.get "textContent")) >>>
+                JSOO.as_string
+            in
+              {
+                sub = sub_;
+                progress =
+                  (o >>> (get_attr "progress")) >>>
+                    (LOption.t_opt_of_string int_of_string);
+                importance =
+                  (o >>> (get_attr "importance")) >>>
+                    (LOption.t_opt_of_string int_of_string);
+                kind = o >>> (get_attr "kind");
+                length =
+                  (o >>> (get_attr "_length_")) >>>
+                    (LOption.t_opt_of_string int_of_string);
+                id = (o >>> (get_attr "id")) >>> int_of_string;
+                editable = (o >>> (get_attr "editable")) >>> bool_of_string;
+                project = (o >>> (get_attr "project")) >>> bool_of_string;
+              })
+         (fun o ->
+            if (o >>> AXOJs.Node.n_children) = 2
+            then (o >>> (AXOJs.Node.child 1)) >>> AXOJs.Node.children
+            else [])
+         ((info >>> (JSOO.get "documentElement")) >>> (AXOJs.Node.child 1)) in
+     let seps =
+       (((info >>> (JSOO.get "documentElement")) >>> (AXOJs.Node.child 0))
+          >>> AXOJs.Node.children)
+         >>>
+         (List.map
+            (fun o ->
+               {
+                 sid = (o >>> (get_attr "id")) >>> int_of_string;
+                 scontent =
+                   (o >>> (JSOO.get "textContent")) >>> JSOO.as_string;
+                 safter = (o >>> (get_attr "after")) >>> int_of_string;
+               }))
+     in (tree, seps));;
 let make_line t =
   let main = new AXOToolkit.li_widget_container in
   let subject = new AXOToolkit.inline_widget_text t.sub in
@@ -305,7 +293,7 @@ let make_line t =
         main#add_common (subject :> AXOWidgets.common);
         main));;
 let main_tree root_task =
-  let task_tree = get_task_tree root_task
+  let (task_tree, _) = get_task_tree root_task
   in
     AXOToolkit.foldable_tree ~depth: 3 ~persistent_as_container: true
       task_tree
@@ -340,38 +328,38 @@ let show_main task =
 let _ =
   if
     Regexp.test (Regexp.make "tasks/?$")
-      (((AXOJs.Misc.get_location ()) >=> (JSOO.get "pathname")) >=> JSOO.
+      (((AXOJs.Misc.get_location ()) >>> (JSOO.get "pathname")) >>> JSOO.
          as_string)
   then
     (try
        let div =
-         AXOJs.Node.document >=>
+         AXOJs.Node.document >>>
            (JSOO.call_method "getElementById"
               [| JSOO.string "ocsforge_task_tree" |]) in
-       let noscript = div >=> (AXOJs.Node.child 0) in
+       let noscript = div >>> (AXOJs.Node.child 0) in
        let container = new AXOToolkit.block_container in
        let reload () =
          (container#wipe_content;
           container#add_common
             (show_main
-               (Scanf.sscanf (noscript >=> (AXOJs.Node.get_attribute "id"))
+               (Scanf.sscanf (noscript >>> (AXOJs.Node.get_attribute "id"))
                   "root_task_%li" (fun li -> li)))) in
        let reload_button = new AXOToolkit.inline_text_button "RELOAD"
        in
          (reload_button#add_click_action reload;
-          div >=> (AXOJs.Node.append reload_button#obj);
-          div >=> (AXOJs.Node.append container#obj);
+          div >>> (AXOJs.Node.append reload_button#obj);
+          div >>> (AXOJs.Node.append container#obj);
           reload ())
      with | exc -> AXOJs.blunt_alert (Printexc.to_string exc))
   else ();;
 let _ =
-  Eliom_obrowser_client.register_closure 0x50292216
+  Eliom_obrowser_client.register_closure 0x502921C6
     (fun ((name, id, service) : (string * int32 * string)) ->
        AXOCom.http_post "./"
          [ ("__eliom_na__name", service); ("id", (Int32.to_string id));
            (name,
-            (((AXOJs.Node.document >=>
+            (((AXOJs.Node.document >>>
                  (JSOO.call_method "getElementById"
                     [| JSOO.string (name ^ (Int32.to_string id)) |]))
-                >=> (JSOO.get "value"))
-               >=> JSOO.as_string)) ]);;
+                >>> (JSOO.get "value"))
+               >>> JSOO.as_string)) ]);;

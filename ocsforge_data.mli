@@ -33,8 +33,6 @@
   * length : the estimated time necessary to complete the task
   * progress : the advancement of the task (must be <= 100)
   * importance : the importance of the task (must be <= 100)
-  * deadline_time : the deadline for task completion
-  * deadline_version : the version the task must be completed for
   * kind : the type of the task (can be 'bug', 'rfe'...)
   * area : the area where the task should be placed, let empty for an automatic
   * set up, set to None to detach the task (create into a new area), set to
@@ -50,8 +48,6 @@ val new_task :
   ?length:CalendarLib.Calendar.Period.t ->
   ?progress:int32 ->
   ?importance:int32 ->
-  ?deadline_time:CalendarLib.Date.t ->
-  ?deadline_version:string ->
   ?kind:string ->
   unit -> Ocsforge_types.task Lwt.t
 
@@ -61,7 +57,6 @@ val new_project :
   name:string ->
   ?length:CalendarLib.Calendar.Period.t ->
   ?importance:int32 ->
-  ?deadline:CalendarLib.Date.t ->
   ?kind:string ->
   ?repository_kind:string ->
   ?repository_path:string ->
@@ -98,7 +93,7 @@ val get_tree :
   root:Ocsforge_types.task ->
   ?with_deleted:bool ->
   ?depth:int ->
-  unit -> Ocsforge_types.task_info Ocsforge_types.Tree.tree Lwt.t
+  unit -> Ocsforge_types.task_info Ocsforge_lang.Tree.tree Lwt.t
 
 (** Get tasks with a specified parent.
   * [get_sub_tasks sp parent] result in the list of desired tasks. *)
@@ -133,8 +128,6 @@ val edit_task :
   ?length:CalendarLib.Calendar.Period.t option ->
   ?progress:int32 option ->
   ?importance:int32 option ->
-  ?deadline_time:CalendarLib.Date.t option ->
-  ?deadline_version:string option ->
   ?kind:string option ->
   unit -> unit Lwt.t
 
@@ -220,6 +213,33 @@ val find_subject :
   sp:Eliom_sessions.server_params ->
   task:Ocsforge_types.task ->
   string Lwt.t
+
+
+(** Getting separators in a subtree. The root of the subtree is the [~task]
+* argument. *)
+val get_separators :
+  sp:Eliom_sessions.server_params ->
+  task:Ocsforge_types.task ->
+  Ocsforge_types.separator_info list Lwt.t
+
+(** Setting separator field. *)
+val set_separator_content :
+  sp:Eliom_sessions.server_params ->
+  separator:Ocsforge_types.separator ->
+  content:string -> unit Lwt.t
+val move_separator :
+  sp:Eliom_sessions.server_params ->
+  separator:Ocsforge_types.separator ->
+  after:Ocsforge_types.task -> unit Lwt.t
+
+(** inserting a new separator *)
+val insert_separator :
+  sp:Eliom_sessions.server_params ->
+  after:Ocsforge_types.task ->
+  content:string -> unit Lwt.t
+
+
+
 
 
 

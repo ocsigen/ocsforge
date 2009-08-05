@@ -43,7 +43,7 @@ let generate_css_style id css_class =
   else (css_class^"_even")
 
 
-let generate_menu sp version page_kind content services = 
+let generate_menu sp version page_kind (content : {{ [Xhtmltypes_duce.tr*]}} ) services : Xhtmltypes_duce.table = 
   {{ <table class="sources_menu"> [
       <tr> [
         <td> [
@@ -87,10 +87,10 @@ let sources_page_content
     sp 
     version 
     ~kind 
-    title_content 
+    (title_content : Xhtmltypes_duce.block)
     menu_content 
     main_content 
-    services =
+    services : Xhtmltypes_duce.blocks =
   add_sources_css_header sp; 
   {{
    [ title_content 
@@ -102,7 +102,7 @@ let sources_page_content
    ]] }}
 
 
-let error sp (message:string) = 
+let error sp (message:string) : Xhtmltypes_duce.blocks Lwt.t = 
   Lwt.return {{ 
               [<div class="error_message"> [
                 <span class="message_title"> [
@@ -115,7 +115,7 @@ let error sp (message:string) =
                 <p> {: message :} ]] }}
 
 
-let warning sp (message:string) = 
+let warning sp (message:string) : Xhtmltypes_duce.blocks Lwt.t = 
   Lwt.return {{ 
               [<div class="warning_message"> [
                 <span class="message_title">  [
@@ -142,7 +142,7 @@ let cut_author_mail aut =
     aut
 
 
-let utf8_span (spanclass:(string option)) s = 
+let utf8_span (spanclass:(string option)) s : Xhtmltypes_duce.span = 
   try
     match spanclass with 
     | None -> {{ <span> {: (Ocamlduce.Utf8.make s) :}  }}
@@ -696,7 +696,7 @@ let create_log_page_content ~sp ~id ~file ~range ~project_services =
                 <span class="menu_form_title"> ['Commit diff'] 
                     {:
 		       Eliom_duce.Xhtml.user_type_input
-		       (Ocsigen_extensions.string_of_url_path 
+		       (Ocsigen_lib.string_of_url_path 
                           ~encode:false)
 		       ~input_type: {: "hidden" :}
 		       ~name: file
@@ -979,7 +979,7 @@ let create_file_page ~sp ~id ~target ~version ~log_start ~project_services =
                           <br> []
 		          {:
 		             Eliom_duce.Xhtml.user_type_input
-		             (Ocsigen_extensions.string_of_url_path 
+		             (Ocsigen_lib.string_of_url_path 
                                 ~encode:false)
 		             ~input_type: {: "hidden" :}
 		             ~name: file
@@ -1025,7 +1025,7 @@ let create_file_page ~sp ~id ~target ~version ~log_start ~project_services =
                         <br>[]
 		        {:
 		           Eliom_duce.Xhtml.user_type_input
-		           (Ocsigen_extensions.string_of_url_path ~encode:false)
+		           (Ocsigen_lib.string_of_url_path ~encode:false)
 		           ~input_type: {: "hidden" :}
 		           ~name: file
 		           ~value: target 
@@ -1288,7 +1288,7 @@ let draw_repository_table ~sp ~id ~version ~dir =
           
               
 let draw_source_code_view ~sp ~id ~target ~version =
-  let file = Ocsigen_extensions.string_of_url_path ~encode:false target in
+  let file = Ocsigen_lib.string_of_url_path ~encode:false target in
   let (current_dir,current_dir_path) = build_path target in
   let dir_version = match version with
     | None -> " – latest version"
@@ -1371,7 +1371,7 @@ let draw_log_page ~sp ~id ~file ~start_rev ~end_rev =
           
 
 let draw_diff_view ~sp ~id ~target ~diff1 ~diff2 =
-  let file = Ocsigen_extensions.string_of_url_path ~encode:false target in
+  let file = Ocsigen_lib.string_of_url_path ~encode:false target in
   let (current_dir,current_dir_path) = build_path target in
   match Sh.find_service id with
   | None -> failwith "Project services not found"

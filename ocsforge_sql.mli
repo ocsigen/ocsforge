@@ -18,10 +18,7 @@
  *)
 
 
-(**Insert a new task in the database.
-  * Default values are :
-  * * kind = "MISC"
-  *)
+(**Insert a new task in the database. *)
 val new_task :
   parent:Ocsforge_types.task ->
   message:Forum_types.message ->
@@ -30,8 +27,6 @@ val new_task :
   ?length:CalendarLib.Calendar.Period.t ->
   ?progress:int32 ->
   ?importance:int32 ->
-  ?deadline_time:CalendarLib.Date.t ->
-  ?deadline_version:string ->
   ?kind:string ->
   area:Ocsforge_types.right_area ->
   ?area_root:bool ->
@@ -52,13 +47,14 @@ val new_area :
   wikibox:Wiki_types.wikibox ->
   unit -> Ocsforge_types.right_area Lwt.t
 
+(** Gets the path the area associated wiki has. *)
 val get_path_for_area :
   area:Ocsforge_types.right_area ->
   Sql.db_t -> string list option Lwt.t
 
 
 (** Get the nextval of the right_area_id_seq.
-  * Used when detaching a task into a new area*)
+  * Used when detaching a task into a new area. *)
 val next_right_area_id :
   Sql.db_t -> Ocsforge_types.right_area Lwt.t
 
@@ -76,7 +72,8 @@ val get_task_by_id :
 (** Get the task history entries.*)
 val get_task_history_by_id :
   task_id:Ocsforge_types.task ->
-  Sql.db_t -> (Ocsforge_types.task_info * Ocsforge_types.task_history_info list) Lwt.t
+  Sql.db_t ->
+    (Ocsforge_types.task_info * Ocsforge_types.task_history_info list) Lwt.t
 
 (** Get every task sharing the same specified parent*)
 val get_tasks_by_parent :
@@ -84,7 +81,7 @@ val get_tasks_by_parent :
   ?with_deleted:bool ->
   Sql.db_t -> Ocsforge_types.task_info list Lwt.t
 
-(** Get every task in a subtree*)
+(** Get every task in a subtree. *)
 val get_tasks_in_tree :
   root:Ocsforge_types.task ->
   ?with_deleted:bool -> unit ->
@@ -99,18 +96,18 @@ val get_tasks_by_editor :
   ?with_deleted:bool -> unit ->
   Sql.db_t -> Ocsforge_types.task_info list Lwt.t
 
-(** Get the area a task is in*)
+(** Get the area a task is in. *)
 val get_area_for_task :
   task_id:Ocsforge_types.task ->
   Sql.db_t -> Ocsforge_types.right_area Lwt.t
 
-(** Get the area corresponding to a wiki path *)
+(** Get the area associated to a wiki path. *)
 val get_area_for_page :
   page_id:string ->
   Sql.db_t -> Ocsforge_types.right_area Lwt.t
 
 
-(** Get the info for the area the task is in *)
+(** Get the info for the area the task is in. *)
 val get_area_info_for_task :
   task_id:Ocsforge_types.task ->
   Sql.db_t -> Ocsforge_types.right_area_info Lwt.t
@@ -158,14 +155,6 @@ val set_importance :
   task_id:Ocsforge_types.task ->
   importance:int32 option ->
   Sql.db_t -> unit Lwt.t
-val set_deadline_time :
-  task_id:Ocsforge_types.task ->
-  deadline_time:CalendarLib.Date.t option ->
-  Sql.db_t -> unit Lwt.t
-val set_deadline_version :
-  task_id:Ocsforge_types.task ->
-  deadline_version:string option ->
-  Sql.db_t -> unit Lwt.t
 val set_kind :
   task_id:Ocsforge_types.task ->
   kind:string option ->
@@ -202,10 +191,20 @@ val set_root_task :
   Sql.db_t -> unit Lwt.t
 
 
-(** When moving a task to a new parent, updates tree_min and tree_max fields. *)
+(** When moving a task to a new parent, updates tree_min and tree_max fields.
+  * The moved task is [task_id] and the new parent is [parent_id]. *)
 val change_tree_marks :
   task_id:Ocsforge_types.task ->
   parent_id:Ocsforge_types.task -> Sql.db_t -> unit Lwt.t
+
+(** When changing a task into a project, this function is called. [~spawning] is
+* the task that changes its status, [~new_area] is the newly created area,
+* [~old_area] is the area the task was in before evolving. *)
+val adapt_to_project_spawn :
+  spawning:Ocsforge_types.task ->
+  new_area:Ocsforge_types.right_area ->
+  old_area:Ocsforge_types.right_area ->
+  Sql.db_t -> unit Lwt.t
 
 
 (** Add/Delete/Set the kinds that can be associated to a task in the specified
@@ -218,14 +217,6 @@ val change_tree_marks :
 val get_kinds_for_area :
   area_id:Ocsforge_types.right_area ->
   Sql.db_t -> string list Lwt.t
-
-val adapt_to_project_spawn :
-  spawning:Ocsforge_types.task ->
-  new_area:Ocsforge_types.right_area ->
-  old_area:Ocsforge_types.right_area ->
-  Sql.db_t -> unit Lwt.t
-
-
 
 val add_kinds_for_area :
   area_id:Ocsforge_types.right_area ->
@@ -247,13 +238,58 @@ val swap_kinds_for_area :
   kinds:(string * string) list ->
   Sql.db_t -> unit Lwt.t
 
+
+(** Get every separators in the sub tree of the task. Separators are sorted.*)
+val get_separators :
+  root_task:Ocsforge_types.task ->
+  Sql.db_t -> Ocsforge_types.separator_info list Lwt.t
+
+(** Insert a separator after the specified task's tree_max. *)
+val new_separator :
+  after:int32 ->
+  content:string ->
+  Sql.db_t -> unit Lwt.t
+
+(** Change the content of a separator. *)
+val set_separator_content :
+  separator:Ocsforge_types.separator ->
+  content:string ->
+  Sql.db_t -> unit Lwt.t
+
+(** Move a separator after the specified task's tree_max. *)
+val move_separator :
+  separator:Ocsforge_types.separator ->
+  after:int32 ->
+  Sql.db_t -> unit Lwt.t
+
+(** Get info associated to a separator. *)
+val get_area_for_separator :
+  separator:Ocsforge_types.separator ->
+  Sql.db_t -> Ocsforge_types.right_area_info Lwt.t
+val get_task_for_separator :
+  separator:Ocsforge_types.separator ->
+  Sql.db_t -> Ocsforge_types.task_info Lwt.t
+
+
+
+
+
+
+
+
+
+
+(** Tells if a task is the root of a project. *)
 val is_area_root :
   task:Ocsforge_types.task ->
   Sql.db_t -> bool Lwt.t
 
+(** Get each and every path associated to areas. *)
 val get_projects_path_list :
   unit ->
   string list Lwt.t
+
+(** Get the path for a specified project. *)
 val get_project_path :
   area:Ocsforge_types.right_area ->
   unit -> string option Lwt.t
@@ -265,7 +301,7 @@ val find_subject_content :
 val bootstrap_task :
   area:Ocsforge_types.right_area ->
   message:Forum_types.message ->
-  int32 Lwt.t
+  Ocsforge_types.task Lwt.t
 val get_task_count :
   unit -> int Lwt.t
 val first_message :

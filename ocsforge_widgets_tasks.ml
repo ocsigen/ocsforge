@@ -20,13 +20,14 @@
 let (>>=) = Lwt.bind
 let (!!) = Lazy.force
 
+module Olang = Ocsforge_lang
 module Roles = Ocsforge_roles
 module Types = Ocsforge_types
 module Data  = Ocsforge_data
+
 module Services_ht = Ocsforge_services_hashtable
 module Params = Eliom_parameters
 module EDuce = Eliom_duce
-module Olang = Ocsforge_lang
 module FTypes = Forum_types
 
 open CalendarLib
@@ -103,10 +104,6 @@ object (self)
                      f Int32.to_string t.Types.t_importance
                  | "kind" ->
                      f (fun k -> k) t.Types.t_kind
-                 | "deadline_time" ->
-                     f Olang.string_of_date t.Types.t_deadline_time
-                 | "deadline_version" ->
-                     f (fun d -> d) t.Types.t_deadline_version
                  | "length" ->
                      f Olang.string_of_period t.Types.t_length
                  | _ -> f (fun _ -> "") None)
@@ -116,7 +113,7 @@ object (self)
 
   method private display_noscript ~sp ~root_task =
     let fields =
-      ["length" ; "importance" ; "deadline_version" ; "deadline_time" ; "kind" ]
+      ["length" ; "progress" ; "importance" ; "kind" ]
     in
     Data.get_tree ~sp ~root:root_task () >>= fun tree ->
       let show_line ~task = draw_message_title ~sp ~task:task.Types.t_id
@@ -147,24 +144,19 @@ object (self)
                  !{: fields :}
             ] }}
       in
-      let rec show_tree = fun
-         { Types.Tree.content = t ; Types.Tree.children = l } ->
-            (show_line ~task:t
-               >>= fun a ->
-             Lwt_util.map_serial
-               (fun tree -> show_tree tree)
-               l
-               >>= fun b ->
-             let b = List.fold_left
-                       (fun
-                          (e1 : {{ [ Xhtmltypes_duce.tr* ] }})
-                          (e2 : {{ [ Xhtmltypes_duce.tr+ ] }})
-                          -> {{ [ !e1 !e2 ] }}
-                       )
-                       ({{ [ ] }} : {{ [ Xhtmltypes_duce.tr* ] }})
-                       b
-             in
-             Lwt.return ({{ [ a !b ] }} : {{ [ Xhtmltypes_duce.tr+ ] }}))
+      let rec show_tree { Olang.Tree.content = t ; Olang.Tree.children = l } =
+        (show_line ~task:t                                    >>= fun a ->
+        Lwt_util.map_serial (fun tree -> show_tree tree) l    >>= fun b ->
+        let b = List.fold_left
+                  (fun
+                     (e1 : {{ [ Xhtmltypes_duce.tr* ] }})
+                     (e2 : {{ [ Xhtmltypes_duce.tr+ ] }})
+                     -> {{ [ !e1 !e2 ] }}
+                  )
+                  ({{ [ ] }} : {{ [ Xhtmltypes_duce.tr* ] }})
+                  b
+        in
+        Lwt.return ({{ [ a !b ] }} : {{ [ Xhtmltypes_duce.tr+ ] }}))
       in
         show_tree tree         >>= fun core ->
         let head = self#header ~fields in
@@ -186,7 +178,7 @@ object (self)
                ]
             }} : {{ Xhtmltypes_duce.flows }} ))
       (function
-         | Types.Tree.Empty_tree -> Lwt.return
+         | Olang.Tree.Empty_tree -> Lwt.return
              {{ [ <div id="ocsforge_task_tree">[ 'No task in tree' ] ] }}
          | exc -> Lwt.fail exc )
 
@@ -239,6 +231,8 @@ object (self)
 
 
   method display ~sp ~task =
+    (*TODO: put the fields between first message and comments ; complete fields
+     * ; adapt to project ; lot of CSS ; use thread widget instead *)
 
     Data.get_task ~sp ~task                  >>= fun ti ->
     message_widget#display ~sp

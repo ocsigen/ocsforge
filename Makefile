@@ -113,13 +113,12 @@ ocsforge_client_calls.ml: ocsforge_client.p.ml
 	  -client ocsforge_client.ml
 
 static/ocsimore_client.uue: _build/ocsforge_client.cmo
-	CAMLLIB=$(OBROWSERDIR) ocamlc -o ocsimore_client $(ELIOMOBROWSERDIR)/eliom_obrowser_client.cmo $(OBROWSERDIR)/AXO.cma $(OCSIMOREOBROWSERDIR)/wiki_client.cmo $(OCSIMOREOBROWSERDIR)/forum_client.cmo ./_build/ocsforge_client.cmo
+	CAMLLIB=$(OBROWSERDIR) ocamlc -o ocsimore_client $(ELIOMOBROWSERDIR)/eliom_obrowser_client.cma $(OBROWSERDIR)/AXO.cma $(OCSIMOREOBROWSERDIR)/wiki_client.cmo $(OCSIMOREOBROWSERDIR)/forum_client.cmo ./_build/ocsforge_client.cmo
 	uuencode ocsimore_client stdout > static/ocsimore_client.uue
 
 
 static/vm.js: $(OBROWSERDIR)/vm.js
 	cp -f $(OBROWSERDIR)/vm.js static
-	cp -f $(STATICDIR)/ocsiwikistyle.css static
 	cp -f $(STATICDIR)/ocsiadmin.css static
 	cp -f $(STATICDIR)/creole_cheat_sheet.png static
 	cp -f $(STATICDIR)/crayon.png static
