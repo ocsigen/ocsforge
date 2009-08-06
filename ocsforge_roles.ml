@@ -1,4 +1,3 @@
-
 (* Ocsimore
  * Copyright (C) 2005
  * Laboratoire PPS - Université Paris Diderot - CNRS
@@ -18,6 +17,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 
+
+(** @author Raphael Proust *)
 
 module U_sql = User_sql
 module UTypes = User_sql.Types
@@ -238,13 +239,13 @@ let get_role ~sp ~area =
 
   User.in_group ~sp ~group:(task_reader $ area) () >>= fun read ->
     (*plan is :
-     * if task_reader
-     * then if comment_reader
-     *      then { ... many  tests ... }
-     *      else { ... a few tests ... }
-     * else { ... no ... }
-     * 
-     * possible optimisation : test for admin
+       if task_reader
+       then if comment_reader
+            then { ... many  tests ... }
+            else { ... a few tests ... }
+       else { ... no ... }
+       
+       possible optimisation : test for admin ?
      *)
   if read
   then
@@ -371,6 +372,8 @@ let get_area_session_data ~sp =
     Polytables.set rc area_key asd;
     asd
 
+
+(** This is the only function to be called outside of this module ! *)
 let get_area_role ~sp k =
   let area_sd = get_area_session_data ~sp in
   area_sd k

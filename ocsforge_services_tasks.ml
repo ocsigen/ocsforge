@@ -17,6 +17,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 
+(** @author Raphael Proust *)
+
 let ( ** ) = Eliom_parameters.prod
 let ( >>= ) = Lwt.bind
 
@@ -28,6 +30,7 @@ module Olang = Ocsforge_lang
 open CalendarLib
 
 
+(** Task edition : set values for fields. *)
 
 let set_length_service =
   Eliom_predefmod.Action.register_new_post_coservice'
@@ -40,12 +43,10 @@ let set_length_service =
           (Olang.string_of_t_opt string_of_int)
           "length")
       )
-    (* error_handler *)
     (fun sp () (task, length) ->
        Data.edit_task ~sp ~task
          ~length:(Olang.apply_on_opted Calendar.Period.hour length)
          () )
-
 let set_progress_service =
   Eliom_predefmod.Action.register_new_post_coservice'
     ~name:"ocsforge_set_progress"
@@ -57,10 +58,8 @@ let set_progress_service =
           (Olang.string_of_t_opt Int32.to_string)
           "progress")
       )
-    (* error_handler *)
     (fun sp () (task, progress) ->
        Data.edit_task ~sp ~task ~progress ())
-
 let set_importance_service =
   Eliom_predefmod.Action.register_new_post_coservice'
     ~name:"ocsforge_set_importance"
@@ -72,10 +71,8 @@ let set_importance_service =
           (Olang.string_of_t_opt Int32.to_string)
           "importance")
       )
-    (* error_handler *)
     (fun sp () (task, importance) ->
        Data.edit_task ~sp ~task ~importance ())
-
 let set_kind_service =
   Eliom_predefmod.Action.register_new_post_coservice'
     ~name:"ocsforge_set_kind"
@@ -87,10 +84,12 @@ let set_kind_service =
           (Olang.string_of_t_opt (fun s -> s))
           "kind")
       )
-    (* error_handler *)
     (fun sp () (task, kind) ->
        Data.edit_task ~sp ~task ~kind ())
 
+
+
+(** Add a new task with the specified attributes. *)
 let new_task_service =
   Eliom_predefmod.Action.register_new_post_coservice'
     ~name:"ocsforge_add_task"
@@ -117,7 +116,6 @@ let new_task_service =
                    "kind")
                )))))))
     )
-    (* error handler ? *)
     (fun sp () (parent,
                 (subject,
                  (text,
@@ -132,8 +130,10 @@ let new_task_service =
           () >>= fun _ -> Lwt.return ())
 
 
-let register_dump_tree_service ?sp path tree_widget task_widget =
-  Lwt.return (
+(** Services used by client to get info. *)
+
+let register_dump_tree_service ?sp tree_widget task_widget path =
+  let _ =
   Eliom_duce.Xhtml.register_new_service
     ?sp
     ~path:( Neturl.split_path path @ [ "tasks" ; "" ])
@@ -186,7 +186,8 @@ let register_dump_tree_service ?sp path tree_widget task_widget =
                >>= fun r -> Lwt.return (fst r) 
              end
     )
-  )
+  in Lwt.return ()
+  
 
 type supported_format =
   | Xml
@@ -195,37 +196,30 @@ let register_xml_dump_services tree_widget task_widget =
   let _ = Eliom_duce.Xml.register_new_post_coservice'
     ~name:"ocsforge_task_dump"
     ~post_params:(
-      (  Params.int32 "root")
-       **(  (Params.user_type
-               ~of_string:(
-                 fun s -> if s = "xml" then Xml else failwith "supported_format"
-               )
-               ~to_string:(fun Xml -> "xml")
-               "format"
-               )
-          **(  (Params.opt (Params.int "depth")))
-             **(Params.bool "with_deleted")
-         )
+      (Params.int32 "root") **
+       ((Params.user_type
+           ~of_string:(function "xml" -> Xml |_ -> failwith "supported_format")
+           ~to_string:(fun Xml -> "xml")
+           "format") **
+        ((Params.opt (Params.int "depth")) **
+         (Params.bool "with_deleted")))
     )
     (fun sp () (root, (fmt, (depth, with_deleted))) -> match fmt with
        | Xml ->
-           begin
-             let task = Types.task_of_sql root in
-             Ocsforge_xml_tree_dump.xml_of_tree
-               ~sp ~task ~with_deleted ?depth ()
-             >>= fun t -> Lwt.return (t : {{ Ocamlduce.Load.anyxml }})
-           end
-    ) in
+           let task = Types.task_of_sql root in
+           Ocsforge_xml_tree_dump.xml_of_tree ~sp ~task ~with_deleted ?depth ()
+           >>= fun t -> Lwt.return (t : {{ Ocamlduce.Load.anyxml }})
+    )
+  in
   Ocsforge_sql.get_projects_path_list () >>= fun ppl ->
   Lwt_util.iter_serial
-    (fun p ->
-       register_dump_tree_service p tree_widget task_widget
-       >>= fun _ -> Lwt.return ()
-    )
+    (register_dump_tree_service tree_widget task_widget)
     ppl
 
 
 
+(* Editing fields for right areas.
+ * "id" fields are task ids because areas are server side only. *)
 
 let set_repository_path_service =
   Eliom_predefmod.Action.register_new_post_coservice'
@@ -238,11 +232,9 @@ let set_repository_path_service =
           (Olang.string_of_t_opt (fun s -> s))
           "path")
       )
-    (* error_handler *)
     (fun sp () (task, repository_path) ->
        Data.get_area_for_task ~sp ~task >>= fun { Types.r_id = area } ->
        Data.edit_area ~sp ~area ~repository_path ())
-
 let set_repository_kind_service =
   Eliom_predefmod.Action.register_new_post_coservice'
     ~name:"ocsforge_set_repository_kind"
@@ -254,27 +246,60 @@ let set_repository_kind_service =
           (Olang.string_of_t_opt (fun s -> s))
           "kind")
       )
-    (* error_handler *)
     (fun sp () (task, repository_kind) ->
        Data.get_area_for_task ~sp ~task >>= fun { Types.r_id = area } ->
        Data.edit_area ~sp ~area ~repository_kind ())
-
 let set_version_service =
   Eliom_predefmod.Action.register_new_post_coservice'
     ~name:"ocsforge_set_version"
     ~options:`NoReload
     ~post_params:(
-       (Params.user_type
-          Types.right_area_of_string
-          Types.string_of_right_area
-          "id") **
+       (Params.user_type Types.task_of_string Types.string_of_task "id") **
        (Params.string "version")
       )
-    (* error_handler *)
-    (fun sp () (area, version) ->
+    (fun sp () (task, version) ->
+       Data.get_area_for_task ~sp ~task >>= fun { Types.r_id = area } ->
        Data.edit_area ~sp ~area ~version ())
 
+(** Changing the aviable category of a project. *)
+let add_area_kind_service =
+  Eliom_predefmod.Action.register_new_post_coservice'
+    ~name:"ocsforge_add_kinds"
+    ~options:`NoReload
+    ~post_params:(
+       (Params.user_type Types.task_of_string Types.string_of_task "id") **
+       (Params.string "kind")
+    )
+    (fun sp () (task, kind) ->
+       Data.get_area_for_task ~sp ~task >>= fun { Types.r_id = area } ->
+       Data.add_kinds ~sp ~area ~kinds:[ kind ])
+let del_area_kind_service =
+  Eliom_predefmod.Action.register_new_post_coservice'
+    ~name:"ocsforge_del_kinds"
+    ~options:`NoReload
+    ~post_params:(
+       (Params.user_type Types.task_of_string Types.string_of_task "id") **
+       (Params.string "kind")
+    )
+    (fun sp () (task, kind) ->
+       Data.get_area_for_task ~sp ~task >>= fun { Types.r_id = area } ->
+       Data.del_kinds ~sp ~area ~kinds:[ kind, None ])
+let swap_area_kind_service =
+  Eliom_predefmod.Action.register_new_post_coservice'
+    ~name:"ocsforge_swap_kinds"
+    ~options:`NoReload
+    ~post_params:(
+       (Params.user_type Types.task_of_string Types.string_of_task "id") **
+       ((Params.string "from") **
+        (Params.string "to"))
+    )
+    (fun sp () (task, (from_, to_)) ->
+       Data.get_area_for_task ~sp ~task >>= fun { Types.r_id = area } ->
+       Data.swap_kinds ~sp ~area ~kinds:[ from_, to_ ])
 
+
+
+(* The service to create a project. *)
 let register_new_project_service tree_widget task_widget =
   Eliom_predefmod.Action.register_new_post_coservice'
     ~name:"ocsforge_add_project"
@@ -300,7 +325,6 @@ let register_new_project_service tree_widget task_widget =
                  (Params.opt (Params.string "repo_path"))
                ))))))
     )
-    (* error handler ? *)
     (fun sp () (parent,
                 (name,
                   (length,
@@ -323,7 +347,7 @@ let register_new_project_service tree_widget task_widget =
               | None -> Lwt.return ()
               | Some path ->
                   (
-                   register_dump_tree_service ~sp path tree_widget task_widget
+                   register_dump_tree_service ~sp tree_widget task_widget path
                      >>= fun _ ->
                    Ocsforge_services_source.register_repository_service ~sp path
                      >>= fun _ ->

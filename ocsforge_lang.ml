@@ -17,6 +17,10 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 
+(** @author Raphael Proust *)
+
+(** This module aggregates common functions. It has nothing specific to ocsforge and is probably already aviable in Batteries. *)
+
 open CalendarLib
 
 (*Working with options*)

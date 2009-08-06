@@ -17,9 +17,13 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 
-(* This module is for boot straping (creating the first task, registering
- * services, etc.) It should NOT be used for other purposes as there's no rigth
- * verification at all. *)
+(* @author Raphael Proust *)
+
+(* /!\ This module is for bootstraping
+   on the first run it creates a dummy task
+   on every run it registers services
+ 
+ /!\ It should NOT be used for other purposes as there's no rigth verification at all. /!\*)
 
 let (>>=) = Lwt.bind
 let ($) = User_sql.Types.apply_parameterized_group
@@ -52,7 +56,7 @@ let first_task () = (*TODO: create forum manually instead of rellying on ocsicre
        ~arborescent:false
        ()                                                 >>= fun fi ->
       Wiki_sql.new_wiki
-        ~title:"ocsforge_task_wiki" ~descr:"" ~pages:(Some "ocsforge")
+        ~title:"ocsforge_task_wiki" ~descr:"" ~pages:(Some "ocsforge") (*FIXME: unhardwire the "ocsforge" name*)
         ~boxrights:false ~staticdir:None ~author:User.admin
         ~container_text:Wiki.default_container_page
         ~model:Ocsisite.wikicreole_model ()

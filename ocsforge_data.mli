@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 
-
+(** @author Raphael Proust *)
 
 (** {2 Database access with verification of permissions} *)
 
@@ -25,21 +25,21 @@
 
 
 (** Add a task to the task tree.
-  *
-  * Parameters are :
-  * sp : the usual session parameters
-  * subject : the title of the message (a short description of the task)
-  * text : the content of the message (a long description of the task)
-  * length : the estimated time necessary to complete the task
-  * progress : the advancement of the task (must be <= 100)
-  * importance : the importance of the task (must be <= 100)
-  * kind : the type of the task (can be 'bug', 'rfe'...)
-  * area : the area where the task should be placed, let empty for an automatic
-  * set up, set to None to detach the task (create into a new area), set to
-  * [Some a] to create into area a
-  *
-  * Result is : the task identifier
-  * *)
+  
+    Parameters are :
+    sp : the usual session parameters
+    subject : the title of the message (a short description of the task)
+    text : the content of the message (a long description of the task)
+    length : the estimated time necessary to complete the task
+    progress : the advancement of the task (must be <= 100)
+    importance : the importance of the task (must be <= 100)
+    kind : the type of the task (can be 'bug', 'rfe'...)
+    area : the area where the task should be placed, let empty for an automatic
+    set up, set to None to detach the task (create into a new area), set to
+    [Some a] to create into area a
+   
+    Result is : the task identifier
+    *)
 val new_task :
   sp:Eliom_sessions.server_params ->
   parent:Ocsforge_types.task ->
@@ -64,21 +64,21 @@ val new_project :
   unit -> Ocsforge_types.task Lwt.t
 
 (** Get the desired task.
-  *
-  * paramter is :
-  * the usuals server_paramsthe
-  * the task identifier
-  * result is : the task information (See module Ocsforge_types)
-  * *)
+  
+   paramter is :
+   the usuals server_paramsthe
+   the task identifier
+   result is : the task information (See module Ocsforge_types)
+   *)
 val get_task :
   sp:Eliom_sessions.server_params ->
   task:Ocsforge_types.task -> Ocsforge_types.task_info Lwt.t
 
 
 (** Get the history of a task
-  * [get_task_history sp id] result in the tuple [(info, history)] where info is
-  * the info about the task and history is the list of preivous states of the
-  * task. *)
+   [get_task_history sp id] result in the tuple [(info, history)] where info is
+   the info about the task and history is the list of preivous states of the
+   task. *)
 val get_task_history :
   sp:Eliom_sessions.server_params ->
   task:Ocsforge_types.task ->
@@ -96,7 +96,7 @@ val get_tree :
   unit -> Ocsforge_types.task_info Ocsforge_lang.Tree.tree Lwt.t
 
 (** Get tasks with a specified parent.
-  * [get_sub_tasks sp parent] result in the list of desired tasks. *)
+   [get_sub_tasks sp parent] result in the list of desired tasks. *)
 val get_sub_tasks :
   sp:Eliom_sessions.server_params ->
   parent:Ocsforge_types.task -> Ocsforge_types.task_info list Lwt.t
@@ -113,15 +113,15 @@ val get_area_for_page :
 
 
 (** Get tasks sharing a common editor.
-  * [get_tasks_edited_by sp editor] result in the list of tasks with the
-  * [t_edit_author] field being [editor] *)
+   [get_tasks_edited_by sp editor] result in the list of tasks with the
+   [t_edit_author] field being [editor] *)
 val get_tasks_edited_by :
   sp:Eliom_sessions.server_params ->
   editor:User_sql.Types.userid -> Ocsforge_types.task_info list Lwt.t
 
 
 (** Change fields for the task. Only use fields you are willing to change, other
-  * fields will be left untouched.*) 
+   fields will be left untouched.*) 
 val edit_task :
   sp:Eliom_sessions.server_params ->
   task:Ocsforge_types.task ->
@@ -145,12 +145,12 @@ val edit_area :
 
 
 (** Change a task parent and possibly area fields.
-*
-* Paramters are :
-* task : the identifier of the task to move
-* parent : the identifier of the new parent for the task
-* area : if not specified, the area will be adapted to the new parent, if specified the area will
-* take the given value.*)
+  
+   Paramters are :
+   task : the identifier of the task to move
+   parent : the identifier of the new parent for the task
+   area : if not specified, the area will be adapted to the new parent, if specified the area will
+   take the given value.*)
 val move_task :
   sp:Eliom_sessions.server_params ->
   task:Ocsforge_types.task ->
@@ -158,12 +158,12 @@ val move_task :
   unit Lwt.t
 
 (** Detach a task into a new area.
-  *
-  * Parameters are :
-  * sp : the usual
-  * task : the task to detach
-  * parent : the new parent for the task. If unspecified, won't change parent.
-  * *)
+  
+   Parameters are :
+   sp : the usual
+   task : the task to detach
+   parent : the new parent for the task. If unspecified, won't change parent.
+   *)
 val make_project :
   sp:Eliom_sessions.server_params ->
   task:Ocsforge_types.task ->
@@ -180,14 +180,14 @@ val get_kinds :
   string list Lwt.t
 
 (** Adding, Deleting or Setting (aka wiping-out-then-adding) kinds.
-  *
-  * Parameters are :
-  * sp
-  * area : the area identifier
-  * kinds : a list of string that will be added/deleted/set
-  * in del_kinds kinds contain optional alternative values for deleted kinds. It
-  * is useful to avoid letting tasks with old kinds.
-  * *)
+  
+   Parameters are :
+   sp
+   area : the area identifier
+   kinds : a list of string that will be added/deleted/set
+   in del_kinds kinds contain optional alternative values for deleted kinds. It
+   is useful to avoid letting tasks with old kinds.
+   *)
 val add_kinds :
   sp:Eliom_sessions.server_params ->
   area:Ocsforge_types.right_area ->
@@ -216,7 +216,7 @@ val find_subject :
 
 
 (** Getting separators in a subtree. The root of the subtree is the [~task]
-* argument. *)
+    argument. *)
 val get_separators :
   sp:Eliom_sessions.server_params ->
   task:Ocsforge_types.task ->

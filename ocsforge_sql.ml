@@ -17,11 +17,13 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 
+(** @author Raphael Proust *)
+
 let (>>=) = Lwt.bind
 module Types = Ocsforge_types
 module Olang = Ocsforge_lang
 
-(*Can't compile w/o : *)open Sql
+(*Can't compile w/o *) open Sql
 
 
 (** {2 Database statement and queries.} *)
@@ -666,7 +668,7 @@ let bootstrap_task ~area ~message =
        let message = Forum_types.sql_of_message message in
        let area    = Types.sql_of_right_area area in
        let version = "0.0" in
-       let kind    = "Forge" in
+       let kind    = "" in
        let now     = CalendarLib.Calendar.now () in
        let author  = User_sql.Types.sql_from_userid User.admin in
        let tmin    = Int32.zero in

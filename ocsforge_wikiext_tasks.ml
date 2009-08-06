@@ -17,14 +17,16 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 
+(** @author Raphael Proust *)
+
 let (>>=) = Lwt.bind
 
-let tree_css_header =
-  Ocsimore_page.Header.create_header
-    (fun sp ->
-       {{ [ {: Eliom_duce.Xhtml.css_link
-               (Ocsimore_page.static_file_uri sp ["ocsforge_tree.css"]) () :}
-          ] }})
+let tree_css_header = Ocsimore_page.Header.create_header
+  (fun sp ->
+     {{ [ {:
+         Eliom_duce.Xhtml.css_link
+           ( Ocsimore_page.static_file_uri sp [ "ocsforge_tree.css" ] ) ()
+     :} ] }})
 
 let add_tree_css_header sp =
   Ocsimore_page.Header.require_header tree_css_header ~sp
@@ -38,7 +40,7 @@ let register_wikiext wp
 
   Wiki_syntax.add_extension
     ~wp ~name:"ocsforge_tree" ~wiki_content:false
-    ((fun bi args content ->
+    (fun bi args content ->
 
       Wikicreole.Block
         (Lwt.catch
@@ -67,78 +69,7 @@ let register_wikiext wp
                                   !{: Printexc.to_string exc :} ] ] }})
         )
 
-    )) ;
+    )
 
 
-(*
-  (Wiki_syntax.add_extension ~wp ~name:"ocsforge_new_task" ~wiki_content:
-     (fun bi args content ->
-
-       Wikicreole.Block
-         (let classes = 
-            try Some [List.assoc "class" args]
-            with Not_found -> None
-          in
-          try
-            let sp = bi.Wiki_widgets_interface.bi_sp in
-            let parent = (Types.task_of_string (List.assoc "parent" args)) in
-            add_task_widget#display ~sp ?classes ~parent ()
-            >>= fun (b : Xhtmltypes_duce.block) -> Lwt.return {{ [ {: b :} ] }}
-          with Not_found | Failure _ -> 
-            let s = Wiki_syntax.string_of_extension "raw" args content in
-            Lwt.return {{ [ <b>{: s :} ] }}
-         )
-
-     )
-  ) ;
-
-  (Wiki_syntax.add_extension ~wp ~name:"ocsforge_task" ~wiki_content:
-     (fun bi args content ->
-
-       Wikicreole.Block
-         (let classes = 
-            try Some [List.assoc "class" args]
-            with Not_found -> None
-          in
-          try
-            let sp = bi.Wiki_widgets_interface.bi_sp in
-            let id = Types.task_of_string (List.assoc "id" args) in
-            Roles.get_area_role ~sp id >>= fun role ->
-            task_widget#display ~sp ?classes id ()
-            >>= fun (b : Xhtmltypes_duce.block) -> Lwt.return {{ [ {: b :} ] }}
-          with Not_found | Failure _ -> 
-            let s = Wiki_syntax.string_of_extension "raw" args content in
-            Lwt.return {{ [ <b>{: s :} ] }}
-         )
-
-     )
-  ) ;
-
-
-  (Wiki_syntax.add_extension ~wp ~name:"ocsforge_tasks" ~wiki_content:
-     (fun bi args content ->
-
-       Wikicreole.Block
-         (let classes = 
-            try Some [List.assoc "class" args]
-            with Not_found -> None
-          in
-          try
-            let sp = bi.Wiki_widgets_interface.bi_sp in
-            let ids =
-              List.map Types.right_area_of_string (Lang.assoc_all "id" args)
-            in
-            let params = List.map (Lang.assoc_all "param" args)
-            in
-            Roles.get_area_role ~sp id >>= fun role ->
-            tree_widget#display ~sp ?classes ids params ()
-            >>= fun (b : Xhtmltypes_duce.block) -> Lwt.return {{ [ {: b :} ] }}
-          with Not_found | Failure _ -> 
-            let s = Wiki_syntax.string_of_extension "raw" args content in
-            Lwt.return {{ [ <b>{: s :} ] }}
-         )
-
-     )
-  ) ;
- *)
 

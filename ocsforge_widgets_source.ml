@@ -43,7 +43,10 @@ let generate_css_style id css_class =
   else (css_class^"_even")
 
 
-let generate_menu sp version page_kind (content : {{ [Xhtmltypes_duce.tr*]}} ) services : Xhtmltypes_duce.table = 
+let generate_menu sp version page_kind
+      (content : {{ [ Xhtmltypes_duce.tr* ] }} )
+       services
+  : Xhtmltypes_duce.table = 
   {{ <table class="sources_menu"> [
       <tr> [
         <td> [

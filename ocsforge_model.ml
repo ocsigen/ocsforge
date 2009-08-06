@@ -1,4 +1,3 @@
-
 (* Ocsimore
  * Copyright (C) 2005
  * Laboratoire PPS - Université Paris Diderot - CNRS

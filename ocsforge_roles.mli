@@ -1,5 +1,3 @@
-
-
 (* Ocsimore
  * Copyright (C) 2005
  * Laboratoire PPS - Université Paris Diderot - CNRS
@@ -19,6 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 
+(** @author Raphael Proust *)
 
 (** Groups for task and area related rights *)
 val task_admin :
@@ -85,7 +84,7 @@ type role = {
   repository_setter                  : bool Lwt.t Lazy.t ;
 }
 
-(** Low level. DO NOT USE *)
+(** Low level and not cached ! DO NOT USE *)
 val get_role :
   sp:Eliom_sessions.server_params ->
   area:Ocsforge_types.right_area -> role Lwt.t
@@ -95,6 +94,6 @@ val area_key : area_sd Polytables.key
 val get_area_session_data : sp:Eliom_sessions.server_params -> area_sd
 
 
-(** Get the role of a user. *)
+(** Get the role of a user. This version uses cache ! *)
 val get_area_role :
   sp:Eliom_sessions.server_params -> Ocsforge_types.right_area -> role Lwt.t

@@ -32,23 +32,23 @@ type log_page_kind = [ `Log of (string option * string option) ]
 type page_kind = [ src_page_kind | log_page_kind ]
  
 
-let kind_to_string kind = match kind with
-  | `Browse -> "browse"
-  | `Diff -> "diff"
+let kind_to_string = function
+  | `Browse    -> "browse"
+  | `Diff      -> "diff"
   | `PatchDiff -> "patchdiff"
-  | `Cat -> "content"
-  | `Annot -> "annot"
-  | `Options -> "options"
-  | `Error -> "error"
+  | `Cat       -> "content"
+  | `Annot     -> "annot"
+  | `Options   -> "options"
+  | `Error     -> "error"
       
-let string_to_kind s = 
-  if (s = "browse") then `Browse
-  else if (s = "diff") then `Diff
-  else if (s = "patchdiff") then `PatchDiff
-  else if (s = "content") then `Cat
-  else if (s = "annot") then `Annot
-  else if (s = "options") then `Options
-  else `Error
+let string_to_kind = function
+  | "browse"    -> `Browse
+  | "diff"      -> `Diff
+  | "patchdiff" -> `PatchDiff
+  | "content"   -> `Cat
+  | "annot"     -> `Annot
+  | "options"   -> `Options
+  | _           -> `Error
 
 
 type project_services = 
@@ -84,8 +84,5 @@ let add_service id service =
   Hashtbl.add repos_services_table id service
 
 let find_service id = 
-  try 
-    let service = Hashtbl.find repos_services_table id 
-    in Some(service)
-  with Not_found ->
-    None
+  try Some (Hashtbl.find repos_services_table id)
+  with Not_found -> None

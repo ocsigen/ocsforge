@@ -17,6 +17,12 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 
+(** @author Raphael Proust *)
+
+(** Each and every functions of this module is wraped in [Ocsforge_data] with
+    right checking when needed. This whole file should not be used without a
+    right checking layer ! *)
+
 
 (**Insert a new task in the database. *)
 val new_task :
@@ -33,9 +39,9 @@ val new_task :
   unit -> Ocsforge_types.task Lwt.t
 
 (**Insert a new area in the database.
-* needs a forum to be associated to
-* can take optionnaly an identifier and a version string
-* BEWARE : id must be unique, use [next_right_area_id]*)
+   needs a forum to be associated to
+   can take optionnaly an identifier and a version string
+   BEWARE : id must be unique, use [next_right_area_id]*)
 val new_area :
   ?id:Ocsforge_types.right_area ->
   forum:Forum_types.forum ->
@@ -54,7 +60,7 @@ val get_path_for_area :
 
 
 (** Get the nextval of the right_area_id_seq.
-  * Used when detaching a task into a new area. *)
+    Used when detaching a task into a new area. *)
 val next_right_area_id :
   Sql.db_t -> Ocsforge_types.right_area Lwt.t
 
@@ -192,14 +198,14 @@ val set_root_task :
 
 
 (** When moving a task to a new parent, updates tree_min and tree_max fields.
-  * The moved task is [task_id] and the new parent is [parent_id]. *)
+    The moved task is [task_id] and the new parent is [parent_id]. *)
 val change_tree_marks :
   task_id:Ocsforge_types.task ->
   parent_id:Ocsforge_types.task -> Sql.db_t -> unit Lwt.t
 
 (** When changing a task into a project, this function is called. [~spawning] is
-* the task that changes its status, [~new_area] is the newly created area,
-* [~old_area] is the area the task was in before evolving. *)
+   the task that changes its status, [~new_area] is the newly created area,
+   [~old_area] is the area the task was in before evolving. *)
 val adapt_to_project_spawn :
   spawning:Ocsforge_types.task ->
   new_area:Ocsforge_types.right_area ->
@@ -208,12 +214,12 @@ val adapt_to_project_spawn :
 
 
 (** Add/Delete/Set the kinds that can be associated to a task in the specified
-  * area.
-* the delete function can uses a tuple of list with the second being an
-* optionnal alternative for kinds.
-*
-* eg : del ~area ~kinds:(["BUG";"RFE";"RFF"],[Some "Bug", Some "Feature", None]) db
-* replaces instances of "BUG" with "Bug" and "RFE" with "Feature"*)
+    area.
+    the delete function can uses a tuple of list with the second being an
+    optionnal alternative for kinds.
+
+    eg : del ~area ~kinds:(["BUG";"RFE";"RFF"],[Some "Bug", Some "Feature", None]) db
+    replaces instances of "BUG" with "Bug" and "RFE" with "Feature"*)
 val get_kinds_for_area :
   area_id:Ocsforge_types.right_area ->
   Sql.db_t -> string list Lwt.t
@@ -269,13 +275,6 @@ val get_area_for_separator :
 val get_task_for_separator :
   separator:Ocsforge_types.separator ->
   Sql.db_t -> Ocsforge_types.task_info Lwt.t
-
-
-
-
-
-
-
 
 
 

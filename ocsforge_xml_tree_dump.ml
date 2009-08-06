@@ -17,6 +17,9 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 
+(** @author Raphael Proust*)
+
+
 module Types = Ocsforge_types
 module Tree = Ocsforge_lang.Tree
 module Olang = Ocsforge_lang
@@ -58,9 +61,10 @@ type xml_task =
 type dump_format = {{ <task_dump>[ ( separators xml_task )? ] }}
 
 
-
+(** Get the task tree and return a [dump_format] xml tree. *)
 let rec xml_of_tree ~sp ~task ?depth ?with_deleted () =
   let s_of_i32_opt = Olang.string_of_t_opt Int32.to_string in
+
   let rec aux_tree
     { Tree.content =
         { Types.t_id = id          ; 
@@ -121,10 +125,5 @@ let rec xml_of_tree ~sp ~task ?depth ?with_deleted () =
      )
      (function
         | Tree.Empty_tree -> Lwt.return {{ <task_dump>[] }}
-        | exc -> Lwt.fail exc) )
-
-
-
-
-
+        | exc -> Lwt.fail exc ) )
 

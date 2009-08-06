@@ -17,30 +17,28 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 
+(** @author Raphael Proust *)
+
 begin.client
+
   open AXOLang
   let (>>>) x f = f x
+  let (@@) f g = fun x -> f (g x)
+
 end
 
 
-(* Needs some debuging (look at the FIXME comment) *)
-(********************************)
-(*** Source display functions ***)
-(********************************)
+begin.client (* For source browsing (FIXME:raise a server exception... probably a problem with get path.*)
 
-begin.client
   let get_path () =
     let s = (AXOJs.Misc.get_location ()) >>> JSOO.get "pathname" >>> JSOO.as_string in
-      try
-        (Regexp.exec (Regexp.make "/(.*)/sources.*") s).(1)
-      with exc -> (AXOJs.alert (Printexc.to_string exc) ; raise exc)
+    (Regexp.exec (Regexp.make "/(.*)/sources.*") s).(1)
+
   let get_version () = (*TODO: make HL version aviable in AXO*)
     let s = (AXOJs.Misc.get_location ()) >>> JSOO.get "search" >>> JSOO.as_string in
-      try
-        if Regexp.test (Regexp.make ".*version=.*") s
-        then Some (Regexp.exec (Regexp.make "version=([^&]*)") s).(1)
-        else None
-      with exc -> (AXOJs.alert (Printexc.to_string exc) ; raise exc)
+    if Regexp.test (Regexp.make ".*version=.*") s
+    then Some (Regexp.exec (Regexp.make "version=([^&]*)") s).(1)
+    else None
 
   let get_trs dir =
     let l = (*TODO: catch error on 1xx, 3xx, 4xx, 5xx*)
@@ -54,8 +52,7 @@ begin.client
         )
         AXOCom.parse_xml
     in
-    AXOCom.check_for_error l ;
-    l >>> JSOO.get "documentElement" >>> AXOJs.Node.children
+    AXOCom.check_for_error l ; l >>> JSOO.get "documentElement" >>> AXOJs.Node.children
 
   (*
   let _ =
@@ -67,7 +64,7 @@ begin.client
       begin
         let tbodies =
            (AXOJs.Node.body >>> JSOO.call_method "getElementsByTagName"
-                                  [| AXOJs.string "TBODY" |])
+                                  [| AXOJs.string "tbody" |])
         in
 
         for i = 0 to (tbodies >>> JSOO.get "length" >>> JSOO.as_int) do
@@ -91,7 +88,7 @@ begin.client
                       in
                       let imgs =
                         folder >>> JSOO.call_method "getElementsByTagName"
-                                     [| AXOJs.string "IMG" |]
+                                     [| AXOJs.string "img" |]
                       in
                       let trs =
                         get_trs (folder >>> JSOO.get "textContent"
@@ -103,7 +100,7 @@ begin.client
                                       t (folder >>> JSOO.get "nextSibling"))
                           trs ;
                         img >>> AXOEvents.Onclick.clear ()
-                      in (*FIXME: imgs is null, but why ?*)
+                      in
                       for i = 0 to (imgs >>> JSOO.get "length" >>> JSOO.as_int) do
 
                         let img = imgs >>> JSOO.call_method "item"
@@ -119,16 +116,14 @@ begin.client
         done
       end
     with _ -> ()
-  *)
+   *)
 
 end
 
-(*********************************)
-(*** Task management functions ***)
-(*********************************)
 
-begin.client
+begin.client (* for task management and BTS *)
 
+  (* internal representation of task *)
   type task =
     (*As there's no Calendar lib aviable length is in days *)
       { id : int                 ; sub : string           ;
@@ -137,9 +132,10 @@ begin.client
         editable : bool ; project : bool ; movable : bool ;
 
       }
+  (* internal representation of separator *)
   type separator = { sid : int ; scontent : string ; safter : int }
 
-  (*poping up the new task form*)
+  (* poping up a "new task" pseudo-form (TODO: switch to Eliom client side form when aviable) *)
   let rec new_task_pop_up id (pos, x, y) =
 
     (* Base bricks *)
@@ -253,6 +249,7 @@ begin.client
       popup#set_position pos ; popup#set_x x ; popup#set_y y ;
       popup#show
 
+  (* TODO: change this pseudo-form to a Eliom form. *)
   and new_project_popup id (pos, x, y) =
     let form = new AXOToolkit.vbox in
     let popup = new AXOToolkit.popup form in
@@ -334,7 +331,7 @@ begin.client
       popup#set_position pos ; popup#set_x x ; popup#set_y y ;
       popup#show
 
-
+  (* a function to automatically build a AXOLang.LTree.tree from an obj. *)
   let tree_of_dom_tree get_content get_children dt =
     let rec aux dt =
       {
@@ -344,8 +341,7 @@ begin.client
     in
       aux dt
 
-
-
+  (* make a XMLHttpRequest, parse it, and rebuild the tree. *)
   let get_task_tree root_task =
     let info = (*TODO: catch error on 1xx, 3xx, 4xx, 5xx*)
       AXOCom.dynload_post "./"
@@ -357,13 +353,15 @@ begin.client
         ]
         AXOCom.parse_xml
     in
-    let get_attr n o =
+    let get_attr n o = (* an alias for a long method chain *)
+      (* /!\ DO NOT USE AXOJs.Node.get_attribute as it is for (X)HTML node only *)
       o >>> JSOO.get "attributes"
         >>> JSOO.get n
         >>> JSOO.get "value"
         >>> JSOO.as_string
     in
     AXOCom.check_for_error info ;
+
     let tree =
       tree_of_dom_tree
         (fun o ->
@@ -402,6 +400,7 @@ begin.client
     in
       (tree, seps)
 
+
   let make_line t =
     (* The whole line container *)
     let main = new AXOToolkit.li_widget_container in
@@ -418,7 +417,7 @@ begin.client
     (* The other columns *)
     let columns = new AXOToolkit.inline_container in
     let new_button = new AXOToolkit.img_button ~alt:"New subtask/subproject"
-      "/document-new-from-template.png" (*FIXME: have the server giving the dir argument*)
+      "/document-new-from-template.png" (*FIXME: use the static service in Eliom to have this automatically generated*)
     in
     new_button#set_position AXOWidgets.Absolute ;
     new_button#set_x 2 ;
@@ -438,6 +437,7 @@ begin.client
 
     (* The mash up *)
       main#set_style_property "listStyleType" "none" ;
+      main#set_attribute "id" ("ocsforge_task_" ^ string_of_int t.id) ;
       columns#add_common ( new_button     :> AXOWidgets.common ) ;
       columns#add_common ( details_button :> AXOWidgets.common ) ;
       main#add_common    ( columns        :> AXOWidgets.common ) ;
@@ -488,7 +488,7 @@ begin.client
 
   let _ =
     if Regexp.test
-         (Regexp.make "/tasks\\/?$") (* \\ --in-caml--> \ *)
+         (Regexp.make "/tasks\\/?$") (* \\ translates to \ and \ escapes / so it really is "/tasks/?$" *)
          (AXOJs.Misc.get_location () >>> JSOO.get "href" >>> JSOO.as_string)
     then
       try
@@ -517,7 +517,7 @@ begin.client
 end
 
 (* for auto updating fields *)
-let keep_up_to_date = (*TODO: check for errors and bugs *)
+let keep_up_to_date = (*TODO: use Eliom services instead*)
   (fun.client (name : string) (id : int32) (service : string) (salt : string) ->
      AXOCom.http_post "./"
       [
