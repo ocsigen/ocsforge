@@ -115,9 +115,12 @@ static/ocsimore_client.uue: _build/ocsforge_client.cmo
 
 static/vm.js: $(OBROWSERDIR)/vm.js
 	cp -f $(OBROWSERDIR)/vm.js static
+	cp -f $(ELIOMOBROWSERDIR)/eliom_obrowser.js static
+	cp -f $(STATICDIR)/ocsiwikistyle.css static
+	cp -f $(STATICDIR)/ocsiforumstyle.css static
 	cp -f $(STATICDIR)/ocsiadmin.css static
 	cp -f $(STATICDIR)/creole_cheat_sheet.png static
-	cp -f $(STATICDIR)/crayon.png static
+#	cp -f $(STATICDIR)/crayon.png static
 
 install:
 	$(OCAMLFIND) install ocsforge META _build/ocsforge.cma \
