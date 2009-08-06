@@ -43,7 +43,7 @@ let set_length_service =
     (* error_handler *)
     (fun sp () (task, length) ->
        Data.edit_task ~sp ~task
-         ~length:(Olang.apply_on_opted Calendar.Period.day length)
+         ~length:(Olang.apply_on_opted Calendar.Period.hour length)
          () )
 
 let set_progress_service =
@@ -136,7 +136,7 @@ let register_dump_tree_service ?sp path tree_widget task_widget =
   Lwt.return (
   Eliom_duce.Xhtml.register_new_service
     ?sp
-    ~path:[ path ; "tasks" ; "" ]
+    ~path:( Neturl.split_path path @ [ "tasks" ; "" ])
     ~get_params:(Params.opt (Params.int32 "id"))
     (fun sp id () ->
        let p_d = Wiki_widgets_interface.Page_displayable in
@@ -192,7 +192,7 @@ type supported_format =
   | Xml
 
 let register_xml_dump_services tree_widget task_widget =
-  Eliom_duce.Xml.register_new_post_coservice'
+  let _ = Eliom_duce.Xml.register_new_post_coservice'
     ~name:"ocsforge_task_dump"
     ~post_params:(
       (  Params.int32 "root")
@@ -211,10 +211,11 @@ let register_xml_dump_services tree_widget task_widget =
        | Xml ->
            begin
              let task = Types.task_of_sql root in
-             Ocsforge_xml_tree_dump.xml_of_tree ~sp ~task ?depth ()
+             Ocsforge_xml_tree_dump.xml_of_tree
+               ~sp ~task ~with_deleted ?depth ()
              >>= fun t -> Lwt.return (t : {{ Ocamlduce.Load.anyxml }})
            end
-    ) ;
+    ) in
   Ocsforge_sql.get_projects_path_list () >>= fun ppl ->
   Lwt_util.iter_serial
     (fun p ->
@@ -231,17 +232,15 @@ let set_repository_path_service =
     ~name:"ocsforge_set_repository_path"
     ~options:`NoReload
     ~post_params:(
-       (Params.user_type
-          Types.right_area_of_string
-          Types.string_of_right_area
-          "id") **
+       (Params.user_type Types.task_of_string Types.string_of_task "id") **
        (Params.user_type
           (Olang.t_opt_of_string (fun s -> s))
           (Olang.string_of_t_opt (fun s -> s))
           "path")
       )
     (* error_handler *)
-    (fun sp () (area, repository_path) ->
+    (fun sp () (task, repository_path) ->
+       Data.get_area_for_task ~sp ~task >>= fun { Types.r_id = area } ->
        Data.edit_area ~sp ~area ~repository_path ())
 
 let set_repository_kind_service =
@@ -249,17 +248,15 @@ let set_repository_kind_service =
     ~name:"ocsforge_set_repository_kind"
     ~options:`NoReload
     ~post_params:(
-       (Params.user_type
-          Types.right_area_of_string
-          Types.string_of_right_area
-          "id") **
+       (Params.user_type Types.task_of_string Types.string_of_task "id") **
        (Params.user_type
           (Olang.t_opt_of_string (fun s -> s))
           (Olang.string_of_t_opt (fun s -> s))
           "kind")
       )
     (* error_handler *)
-    (fun sp () (area, repository_kind) ->
+    (fun sp () (task, repository_kind) ->
+       Data.get_area_for_task ~sp ~task >>= fun { Types.r_id = area } ->
        Data.edit_area ~sp ~area ~repository_kind ())
 
 let set_version_service =
@@ -291,10 +288,6 @@ let register_new_project_service tree_widget task_widget =
               (Olang.t_opt_of_string int_of_string)
               (Olang.string_of_t_opt string_of_int)
               "length") **
-           ((Params.user_type
-               (Olang.t_opt_of_string Int32.of_string)
-               (Olang.string_of_t_opt Int32.to_string)
-               "progress") **
             ((Params.user_type
                 (Olang.t_opt_of_string Int32.of_string)
                 (Olang.string_of_t_opt Int32.to_string)
@@ -305,17 +298,16 @@ let register_new_project_service tree_widget task_widget =
                    "kind") **
                 ((Params.opt (Params.string "repo_kind")) **
                  (Params.opt (Params.string "repo_path"))
-               )))))))
+               ))))))
     )
     (* error handler ? *)
     (fun sp () (parent,
                 (name,
                   (length,
-                   (progress,
-                    (importance,
-                     (kind,
-                      (repository_kind,
-                       repository_path)))))))
+                   (importance,
+                    (kind,
+                     (repository_kind,
+                      repository_path))))))
            ->
        let length = Olang.apply_on_opted Calendar.Period.day length in
        Data.new_project ~sp ~parent ~name ?length ?importance ?kind
@@ -323,6 +315,9 @@ let register_new_project_service tree_widget task_widget =
          ~wiki_container:Wiki.default_container_page
          ()                                                     >>= fun task ->
        Data.get_area_for_task ~sp ~task                         >>= fun area ->
+       Data.new_task ~sp
+         ~parent:task ~subject:"Unsorted bugs" ~text:""
+         ()                                                     >>= fun _ ->
        Ocsforge_sql.get_project_path ~area:area.Types.r_id ()
        >>= (function
               | None -> Lwt.return ()

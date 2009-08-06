@@ -131,10 +131,11 @@ begin.client
 
   type task =
     (*As there's no Calendar lib aviable length is in days *)
-      { id : int                ; sub : string          ;
-        length : int option     ; progress : int option ;
-        importance : int option ; kind : string         ;
-        editable : bool         ; project : bool        ;
+      { id : int                 ; sub : string           ;
+        length : int option      ; progress : int option  ;
+        importance : int option  ; kind : string          ;
+        editable : bool ; project : bool ; movable : bool ;
+
       }
   type separator = { sid : int ; scontent : string ; safter : int }
 
@@ -178,23 +179,20 @@ begin.client
         (LList.t_opt_list_of_t_list
            (LList.int_interval_list ~bump:6 ~min:0 ~max:48 ()))
     in
-    let kind_input = new AXOToolkit.text_input "" in
 
     (* populating details and fixing some visual effects *)
     more#set_margin_left 10 ;
     details#set_style_property "border" "1px solid" ;
     details#add_common ( AXOToolkit.text "importance : "        ) ;
     details#add_common ( importance_select :> AXOWidgets.common ) ;
-    details#add_common ( new AXOToolkit.br                      ) ;
+    details#add_common ( new AXOToolkit.br ) ;
     details#add_common ( AXOToolkit.text "progress : "        ) ;
     details#add_common ( progress_select :> AXOWidgets.common ) ;
-    details#add_common ( new AXOToolkit.br                    ) ;
-    details#add_common ( AXOToolkit.text "length : "        ) ;
+    details#add_common ( AXOToolkit.text " %"                 );
+    details#add_common ( new AXOToolkit.br ) ;
+    details#add_common ( AXOToolkit.text "duration : "      ) ;
     details#add_common ( length_select :> AXOWidgets.common ) ;
-    details#add_common ( AXOToolkit.text " days"            );
-    details#add_common ( new AXOToolkit.br                  ) ;
-    details#add_common ( AXOToolkit.text "category : "   ) ;
-    details#add_common ( kind_input :> AXOWidgets.common ) ;
+    details#add_common ( AXOToolkit.text " hours"           );
 
     let title_input = new AXOToolkit.text_input "" in
       title_input#set_attribute "size" "100" ;
@@ -219,7 +217,7 @@ begin.client
                   ("importance",
                    LOption.string_of_t_opt string_of_int
                      importance_select#get_value            ) ;
-                  ("kind", kind_input#get_value             ) ;
+                  ("kind", "") ;
 
                 ]
            in
@@ -316,21 +314,21 @@ begin.client
           (fun () -> popup#hide ; new_task_pop_up id (pos, x, y)) ;
 
       form#add_common ( title_input      :> AXOWidgets.common ) ;
-      form#add_common ( let span = new AXOToolkit.inline_container in
-                          span#add_common (AXOToolkit.text "Repository kind : ") ;
-                          span#add_common (repo_kind_select :> AXOWidgets.common);
-                          (span :> AXOWidgets.common)
+      form#add_common (let span = new AXOToolkit.inline_container in
+                        span#add_common (AXOToolkit.text "Repository kind : ") ;
+                        span#add_common (repo_kind_select :> AXOWidgets.common);
+                        (span :> AXOWidgets.common)
                       ) ;
-      form#add_common ( let span = new AXOToolkit.inline_container in
-                          span#add_common (AXOToolkit.text "Repository path : ") ;
-                          span#add_common (repo_path_input :> AXOWidgets.common) ;
-                          (span :> AXOWidgets.common)
+      form#add_common (let span = new AXOToolkit.inline_container in
+                        span#add_common (AXOToolkit.text "Repository path : ") ;
+                        span#add_common (repo_path_input :> AXOWidgets.common) ;
+                        (span :> AXOWidgets.common)
                       ) ;
       form#add_common ( new AXOToolkit.br ) ;
-      form#add_common ( let span = new AXOToolkit.inline_container in
-                          span#add_common (task_button:> AXOWidgets.common) ;
-                          span#add_common (save_button   :> AXOWidgets.common) ;
-                          (span :> AXOWidgets.common)
+      form#add_common (let span = new AXOToolkit.inline_container in
+                        span#add_common (task_button:> AXOWidgets.common) ;
+                        span#add_common (save_button   :> AXOWidgets.common) ;
+                        (span :> AXOWidgets.common)
       ) ;
 
       popup#set_position pos ; popup#set_x x ; popup#set_y y ;
@@ -340,7 +338,7 @@ begin.client
   let tree_of_dom_tree get_content get_children dt =
     let rec aux dt =
       {
-        LTree.content  = get_content  dt  ;
+        LTree.content  = get_content  dt ;
         LTree.children = List.map aux (get_children dt) ;
       }
     in
@@ -348,14 +346,14 @@ begin.client
 
 
 
-  let get_task_tree root_task (*TODO: limit depth and dynamicly load the remaining branches*)=
+  let get_task_tree root_task =
     let info = (*TODO: catch error on 1xx, 3xx, 4xx, 5xx*)
       AXOCom.dynload_post "./"
         [
           ("__eliom_na__name", "ocsforge_task_dump") ;
           ("root", Int32.to_string root_task) ;
           ("format", "xml") ;
-          (* ("depth", "3") ; *)
+          (* ("depth", "1") ; *)
         ]
         AXOCom.parse_xml
     in
@@ -385,6 +383,7 @@ begin.client
                      id = (o >>> get_attr "id" ) >>> int_of_string ;
                editable = (o >>> get_attr "editable") >>> bool_of_string ;
                 project = (o >>> get_attr "project") >>> bool_of_string ;
+                movable = (o >>> get_attr "movable") >>> bool_of_string ;
            } )
         (fun o ->
            if o >>> AXOJs.Node.n_children = 2
@@ -408,19 +407,25 @@ begin.client
     let main = new AXOToolkit.li_widget_container in
 
     (* The subject *)
-    let subject = new AXOToolkit.inline_widget_text t.sub in
+    let subject =
+      if t.project
+      then ( (new AXOToolkit.link_widget ~href:("../" ^ t.sub ^ "/tasks/") t.sub
+             ) :> AXOWidgets.generic_widget )
+      else ( (new AXOToolkit.inline_widget_text t.sub
+             ) :> AXOWidgets.generic_widget )
+    in
 
     (* The other columns *)
     let columns = new AXOToolkit.inline_container in
     let new_button = new AXOToolkit.img_button ~alt:"New subtask/subproject"
-      "../../document-new-from-template.png" (*FIXME: have the server giving the dir argument*)
+      "/document-new-from-template.png" (*FIXME: have the server giving the dir argument*)
     in
     new_button#set_position AXOWidgets.Absolute ;
     new_button#set_x 2 ;
 
     let details_button = new AXOToolkit.img_link
       ~href:("?id=" ^ string_of_int t.id)
-      ~src:"../../document-preview.png" ~alt:"task details"
+      ~src:"/document-preview.png" ~alt:"task details"
     in
     details_button#set_position AXOWidgets.Absolute ;
     details_button#set_x 20 ;
@@ -441,29 +446,34 @@ begin.client
 
   let main_tree root_task =
     let (task_tree, _) = get_task_tree root_task in (*TODO: use seps*)
-      AXOToolkit.foldable_tree ~depth:3 ~persistent_as_container:true task_tree
+      AXOToolkit.foldable_tree ~depth:1 ~persistent_as_container:true
+        (LTree.sort
+           ~comp:( fun t1 t2 -> compare
+                     t2.LTree.content.project
+                     t1.LTree.content.project
+           )
+           task_tree
+        )
         (fun t l f ->
-           ((if l = []
-             then
-               ( (new AXOToolkit.inline_text_widget_button ~activated:false ". "
-                 ) :> AXOWidgets.generic_button )
-             else
-               ( (if f
-                  then new AXOToolkit.cyclic_img_button "expand/collapse"
-                    "../../arrow-right.png" [ "../../arrow-down.png" ]
-                  else new AXOToolkit.cyclic_img_button "expand/collapse"
-                    "../../arrow-down.png" [ "../../arrow-right.png" ]
+           (if l = []
+            then
+              ( (new AXOToolkit.inline_text_widget_button ~activated:false ". "
+                ) :> AXOWidgets.generic_button )
+            else
+              ( (if f
+                 then new AXOToolkit.cyclic_img_button "expand/collapse"
+                   "/arrow-right.png" [ "/arrow-down.png" ]
+                 else new AXOToolkit.cyclic_img_button "expand/collapse"
+                   "/arrow-down.png" [ "/arrow-right.png" ]
 
-                 ) :> AXOWidgets.generic_button )
+                ) :> AXOWidgets.generic_button )
             ),
-            ((make_line t) :> AXOWidgets.generic_container),
-            (let u = new AXOToolkit.ul_widget_container in
+           ((make_line t) :> AXOWidgets.generic_container),
+           (let u = new AXOToolkit.ul_widget_container in
                u#set_style_property "marginTop" "0px" ;
                u#set_style_property "marginBottom" "0px" ;
                (u :> AXOWidgets.generic_container)
-            )
            )
-
         )
         (new AXOToolkit.block_container)
 
@@ -478,8 +488,8 @@ begin.client
 
   let _ =
     if Regexp.test
-         (Regexp.make "tasks/?$")
-         (AXOJs.Misc.get_location () >>> JSOO.get "pathname" >>> JSOO.as_string)
+         (Regexp.make "/tasks\\/?$") (* \\ --in-caml--> \ *)
+         (AXOJs.Misc.get_location () >>> JSOO.get "href" >>> JSOO.as_string)
     then
       try
         let div =
@@ -507,15 +517,15 @@ begin.client
 end
 
 (* for auto updating fields *)
-let keep_up_to_date = (*TODO: check for errors*)
-  (fun.client (name : string) (id : int32) (service : string) ->
+let keep_up_to_date = (*TODO: check for errors and bugs *)
+  (fun.client (name : string) (id : int32) (service : string) (salt : string) ->
      AXOCom.http_post "./"
       [
         "__eliom_na__name", service ;
         "id", Int32.to_string id ;
         name, AXOJs.Node.document
                     >>> JSOO.call_method "getElementById"
-                           [| JSOO.string (name ^ Int32.to_string id) |] 
+                           [| JSOO.string (salt ^ name ^ Int32.to_string id) |] 
                     >>> JSOO.get "value"   
                     >>> JSOO.as_string
       ]

@@ -109,13 +109,16 @@ let _ = Lwt_unix.run ( first_task () )
 
 let forge_wiki_model = Ocsisite.wikicreole_model (*TODO: use a real wiki model*)
 
+
+let tree_widget =
+  new Ocsforge_widgets_tasks.tree_widget
+let task_widget =
+  new Ocsforge_widgets_tasks.task_widget
+    Forum_site.message_widget
+    Forum_site.thread_widget
+
+
 let _ =
-
-  let tree_widget = new Ocsforge_widgets_tasks.tree_widget in
-  let task_widget =
-    new Ocsforge_widgets_tasks.task_widget Forum_site.message_widget
-  in
-
   begin
     Printf.printf "registering ocsforge services\n%!" ;
     let _ =

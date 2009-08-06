@@ -45,25 +45,21 @@ STATICFILES := static/ocsimore_client.uue \
 	       static/accept.png\
 	       static/cross_octagon.png\
 	       static/message_error.png\
-	       static/ocsforge_tree.css\
 	       static/open_repository.png\
 	       static/up.png\
 	       static/add.png\
 	       static/down.png\
 	       static/message_warning.png\
-	       static/ocsforge_tree_deadline.css\
 	       static/parent_directory.png\
 	       static/source_folder.png\
 	       static/application_side_list.png\
 	       static/highlighter.png\
 	       static/ocsforge_sources.css\
-	       static/ocsforge_tree_importance.css\
 	       static/pencil.png\
 	       static/sources_background.png\
 	       static/wand.png\
 	       static/application_side_tree.png\
 	       static/magnifier.png\
-	       static/ocsforge_tree_complete.css\
 	       static/preview.png\
 	       static/sources_menu_item.png\
 	       static/sources_menu_item_hover.png\

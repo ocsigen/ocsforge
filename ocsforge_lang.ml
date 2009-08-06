@@ -152,14 +152,17 @@ let string_of_period p =
         then
           Printf.sprintf "%i days" d
         else
-          Printf.sprintf "%i days, %i hours" d (h mod 24)
+          Printf.sprintf "%i days, %i hours" d h
     else
       Printf.sprintf "%i days" d
   else
     Printf.sprintf "%i hours" h
 
-(* give the number of hours to go *)
+(* give the number of days/hours to go *)
 let days_in_period p = Date.Period.nb_days (Calendar.Period.to_date p)
+let hours_in_period p =
+  (fun (_,_,d,s) -> (d * 24) + ((Calendar.Time.Second.to_int s) / (60 * 60)))
+    (Calendar.Period.ymds p)
 
 (*rougthly print date values*)
 let string_of_date = Printer.Date.to_string

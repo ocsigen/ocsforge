@@ -244,8 +244,7 @@ let filter_task_list_for_editing sp tl =
   Ocsimore_lib.lwt_filter (filter_aux_edit sp) tl
 
 let get_tree ~sp ~root ?with_deleted ?depth () = (*TODO: use depth for sql transaction, not only for result sorting*)
-  Sql.full_transaction_block
-    (Ocsforge_sql.get_tasks_in_tree ~root ?with_deleted ())
+  do_sql (Ocsforge_sql.get_tasks_in_tree ~root ?with_deleted ())
     >>= (filter_task_list_for_reading sp)
     >>= (function
       | []       -> Lwt.fail Tree.Empty_tree
@@ -271,18 +270,17 @@ let get_tree ~sp ~root ?with_deleted ?depth () = (*TODO: use depth for sql trans
         match depth with
           | None -> Lwt.return t
           | Some depth -> Lwt.return (aux t depth))
-    >>= (fun t -> (*TODO: switch to a Lwt friendly sort function *)
-           Lwt.return
-             (Tree.sort
-                ~comp:(fun a b ->
-                         Int32.to_int
-                           (Int32.sub
-                              b.Tree.content.Types.t_tree_min
-                              a.Tree.content.Types.t_tree_min))
-                t)
-    )
-
-
+    >>= fun t ->
+    Lwt.return
+      { t with Tree.children =
+          List.map
+            (fun ({ Tree.content = c } as t) ->
+               if c.Types.t_area_root
+               then { t with Tree.children = [] }
+               else t
+            )
+          t.Tree.children
+      }
 
 let get_sub_tasks ~sp ~parent =
   Sql.full_transaction_block

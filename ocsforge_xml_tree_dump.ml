@@ -24,21 +24,28 @@ module Roles = Ocsforge_roles
 let to_utf8 = Ocamlduce.Utf8.make
 let (>>=) = Lwt.bind
 
+(* boolean type for ocamlduce *)
 type boolean = {{ "true" | "false" }}
 let boolean_of_bool b = if b then {{ "true" }} else {{ "false" }}
-type task_attrs = (*TODO: improve type checking*)
-    {{ {
-         id         =? String  (* the id of the task          *)
-         _length_   =? String  (* the estimated length        *)
-         progress   =? String  (* the progress made           *)
-         importance =? String  (* the importance              *)
-         kind       =? String  (* the category the task is in *)
-         deleted    =? boolean (* true if the task has been deleted  *)
-         editable   =? boolean (* true if edition rights are granted *)
-         project    =? boolean (* true if the task is a project      *)
-    } }}
+
+(* The separators *)
 type separator = {{ <separator id=String after=String>[ ( Char )* ] }}
 type separators ={{ <seps>[ ( separator )* ] }}
+
+(* The tasks *)
+type task_attrs = (*TODO: improve type checking*)
+    {{ {
+                 id =? String  (* the id of the task          *)
+               kind =? String  (* the category the task is in *)
+           _length_ =? String  (* the estimated length        *)
+           progress =? String  (* the progress made           *)
+         importance =? String  (* the importance              *)
+
+          deleted =? boolean (* true if the task has been deleted  *)
+         editable =? boolean (* true if edition rights are granted *)
+          movable =? boolean (* true if the user is a task_mover   *)
+          project =? boolean (* true if the task is a project      *)
+    } }}
 type xml_task =
     {{ <task (task_attrs) >
          [
@@ -46,15 +53,17 @@ type xml_task =
            <children>[ xml_task* ]
          ]
     }}
+
+(* The whole format *)
 type dump_format = {{ <task_dump>[ ( separators xml_task )? ] }}
 
 
 
-let rec xml_of_tree ~sp ~task ?depth () =
+let rec xml_of_tree ~sp ~task ?depth ?with_deleted () =
   let s_of_i32_opt = Olang.string_of_t_opt Int32.to_string in
   let rec aux_tree
     { Tree.content =
-        { Types.t_id = id          ; Types.t_message = msg  ;
+        { Types.t_id = id          ; 
           Types.t_length = len     ; Types.t_progress = pro ;
           Types.t_importance = imp ; Types.t_kind = kin     ;
           Types.t_area = area      ; Types.t_deleted = del  ;
@@ -65,13 +74,14 @@ let rec xml_of_tree ~sp ~task ?depth () =
     Ocsforge_widgets_tasks.draw_message_title ~sp ~task:id >>= fun msg  ->
     Roles.get_area_role sp area                            >>= fun role ->
     Lazy.force ( role.Roles.task_property_editor )         >>= fun edi  ->
+    Lazy.force ( role.Roles.task_mover )                   >>= fun mov  ->
     Lwt_util.map_serial aux_tree l                         >>= fun l ->
     Lwt.return
       ({{ <task id         = {: to_utf8 (Types.string_of_task id)      :}
                 _length_   = {: to_utf8 (Olang.string_of_t_opt
                                            string_of_int
                                           (Olang.apply_on_opted
-                                             Olang.days_in_period
+                                             Olang.hours_in_period
                                              len))                    :}
                progress   = {: to_utf8 (s_of_i32_opt pro)             :}
                importance = {: to_utf8 (s_of_i32_opt imp)             :}
@@ -79,6 +89,7 @@ let rec xml_of_tree ~sp ~task ?depth () =
                                           (fun k -> k) kin)           :}
                deleted    = {{ boolean_of_bool del }}
                editable   = {{ boolean_of_bool edi }}
+               movable    = {{ boolean_of_bool mov }}
                project    = {{ boolean_of_bool ar  }}
           >[
             <subject>[ !{: to_utf8 msg :} ]
@@ -104,7 +115,7 @@ let rec xml_of_tree ~sp ~task ?depth () =
   Lwt.return (aux_sep seps)                       >>= fun seps ->
   (Lwt.catch
      (fun () ->
-        Ocsforge_data.get_tree ~sp ~root:task ?depth ()
+        Ocsforge_data.get_tree ~sp ~root:task ?with_deleted ?depth ()
         >>= aux_tree >>= fun c ->
         Lwt.return {{ <task_dump>[ <seps> seps c ] }}
      )
