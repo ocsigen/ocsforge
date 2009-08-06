@@ -86,3 +86,48 @@ let add_service id service =
 let find_service id = 
   try Some (Hashtbl.find repos_services_table id)
   with Not_found -> None
+
+let find_sources_service id = 
+  ((Hashtbl.find repos_services_table id).sources_service
+     :    (string list * (src_page_kind option * (string option * string option)),
+     unit,
+     [ `Attached of
+         Eliom_services.get_attached_service_kind Eliom_services.a_s ],
+     [ `WithSuffix ],
+     [ `One of string list ] Eliom_parameters.param_name *
+     ([ `One of src_page_kind ] Eliom_parameters.param_name *
+      ([ `One of string ] Eliom_parameters.param_name *
+       [ `One of string ] Eliom_parameters.param_name)),
+     unit, [ `Registrable ])
+    Eliom_services.service :>
+    (string list * (src_page_kind option * (string option * string option)),
+     unit,
+     [> `Attached of
+         Eliom_services.get_attached_service_kind Eliom_services.a_s ],
+     [> `WithSuffix ],
+     [ `One of string list ] Eliom_parameters.param_name *
+     ([ `One of src_page_kind ] Eliom_parameters.param_name *
+      ([ `One of string ] Eliom_parameters.param_name *
+       [ `One of string ] Eliom_parameters.param_name)),
+     unit, [> `Registrable ])
+    Eliom_services.service)
+
+let find_log_service id = 
+  ((Hashtbl.find repos_services_table id).log_service 
+     :     ((string option * string option) option, unit,
+     [ `Attached of
+         Eliom_services.get_attached_service_kind Eliom_services.a_s ],
+     [ `WithoutSuffix ],
+     [ `One of string option * string option ] Eliom_parameters.param_name,
+     unit, [ `Registrable ])
+    Eliom_services.service
+   :>
+    ((string option * string option) option, unit,
+     [> `Attached of
+         Eliom_services.get_attached_service_kind Eliom_services.a_s ],
+     [> `WithoutSuffix ],
+     [ `One of string option * string option ] Eliom_parameters.param_name,
+     unit, [> `Registrable ])
+    Eliom_services.service)
+
+
