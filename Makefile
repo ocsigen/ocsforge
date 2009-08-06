@@ -39,7 +39,7 @@ ELIOMOBROWSERDIR := $(shell ocamlfind query ocsigen.eliom_obrowser_client)
 PAELIOMOBROWSERDIR := $(shell ocamlfind query ocsigen.eliom_obrowser_syntax)
 OCSIMOREOBROWSERDIR := $(shell ocamlfind query ocsimore.client)
 
-TOINSTALL := 
+TOINSTALL := _build/ocsforge_services_hashtable.cmi
 
 STATICFILES := static/ocsimore_client.uue \
 	       static/accept.png\
@@ -124,7 +124,7 @@ static/vm.js: $(OBROWSERDIR)/vm.js
 
 install:
 	$(OCAMLFIND) install ocsforge META _build/ocsforge.cma \
-	_build/ocsforge_svn.cma
+	_build/ocsforge_svn.cma $(TOINSTALL)
 	cp -f $(STATICFILES) $(STATICDIR)
 	mkdir -p $(DESTDIR)/stublibs
 	cp _build/dllocsforge_svn.so $(DESTDIR)/stublibs
