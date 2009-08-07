@@ -41,7 +41,7 @@ begin.client (* For source browsing (FIXME:raise a server exception... will prob
     else None
 
   let get_trs dir =
-    let l = (*TODO: catch error on 1xx, 3xx, 4xx, 5xx*)
+    let l = (* errors on 1xx, 3xx, 4xx and 5xx are catched later on*)
       AXOCom.dynload_post "./"
         (   ("__eliom_na__name", "ocsforge_repository_tree")
          :: ("dir",   get_path ()
@@ -54,8 +54,8 @@ begin.client (* For source browsing (FIXME:raise a server exception... will prob
     in
     AXOCom.check_for_error l ; l >>> JSOO.get "documentElement" >>> AXOJs.Node.children
 
-  (*
-  let _ =
+ (* 
+  let _ = (*TODO: don't use URL to check if the element should be launched. Have the page generation set a value. *)
     if Regexp.test
          (Regexp.make "sources")
          (AXOJs.Misc.get_location () >>> JSOO.get "pathname" >>> JSOO.as_string)
@@ -91,14 +91,16 @@ begin.client (* For source browsing (FIXME:raise a server exception... will prob
                                      [| AXOJs.string "img" |]
                       in
                       let trs =
-                        get_trs (folder >>> JSOO.get "textContent"
-                                        >>> JSOO.as_string)
+                        lazy (
+                          get_trs (folder >>> JSOO.get "textContent"
+                                          >>> JSOO.as_string)
+                        )
                       in
                       let click img () =
                         List.iter
                           (fun t -> tbody >>> AXOJs.Node.insert_before
                                       t (folder >>> JSOO.get "nextSibling"))
-                          trs ;
+                          (Lazy.force trs) ;
                         img >>> AXOEvents.Onclick.clear ()
                       in
                       for i = 0 to (imgs >>> JSOO.get "length" >>> JSOO.as_int) do
@@ -116,7 +118,7 @@ begin.client (* For source browsing (FIXME:raise a server exception... will prob
         done
       end
     with _ -> ()
-   *)
+  *)
 
 end
 
@@ -278,7 +280,6 @@ begin.client (* for task management and BTS *)
                         ("parent", string_of_int id) ;
                         ("name", title_input#get_value) ;
                         ("length","") ;
-                        ("progress","") ;
                         ("importance","") ;
                         ("kind", "") ;
                       ]
@@ -437,8 +438,8 @@ begin.client (* for task management and BTS *)
     new_button#add_click_action
       (fun () -> new_task_pop_up t.id
          (AXOWidgets.Absolute,
-          subject#get_attribute "offsetLeft" >>> int_of_string,
-          subject#get_attribute "offsetTop" >>> int_of_string)
+          subject#obj >>> JSOO.get "offsetLeft" >>> JSOO.as_int ,
+          subject#obj >>> JSOO.get "offsetTop" >>> JSOO.as_int )
       ) ;
 
     (* The mash up *)
@@ -513,7 +514,7 @@ begin.client (* for task management and BTS *)
                    "root_task_%li" (fun li -> li))
              )
         in
-        let reload_button = new AXOToolkit.inline_text_button "RELOAD" in
+        let reload_button = new AXOToolkit.inline_text_widget_button "RELOAD" in
         reload_button#add_click_action reload ;
         div >>> AXOJs.Node.append reload_button#obj ;
         div >>> AXOJs.Node.append container#obj ;

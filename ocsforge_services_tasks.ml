@@ -305,9 +305,7 @@ let register_new_project_service tree_widget task_widget =
     ~name:"ocsforge_add_project"
     ~options:`NoReload
     ~post_params:(
-       ((Params.user_type
-           Types.task_of_string Types.string_of_task
-           "parent") **
+       ((Params.user_type Types.task_of_string Types.string_of_task "parent") **
         ((Params.string "name") **
           ((Params.user_type
               (Olang.t_opt_of_string int_of_string)

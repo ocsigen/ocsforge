@@ -462,12 +462,12 @@ object (self)
 
     Lwt.return
       (  {{ [ <div>[
+                <div class={: utf8 "ocsforge_repository_details" :}>
+                   [ <h4>{: utf8 "Repository : " :} !src_lnk <br>[] !repo ]
                 <div class={: utf8 "ocsforge_task_details" :}>
                    [ <h4>{: utf8 "task properties : " :} !details ]
                 msg
                 (* !kinds *)
-                 <div class={: utf8 "ocsforge_repository_details" :}>
-                   [<h4>{: utf8 "Repository : " :} !src_lnk <br>[] !repo ]
       ] ] }}
        : {{ Xhtmltypes_duce.flows }})
 
