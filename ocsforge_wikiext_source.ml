@@ -29,7 +29,7 @@ let add_extension l ~name ~wiki_content f =
   List.iter (fun wp -> 
                Wiki_syntax.add_extension ~wp ~name ~wiki_content (f wp)) l
 
-let register_wikiext wp = 
+let register_wikiext _wp = 
   add_extension
     [wikicreole_parser; reduced_wikicreole_parser0; reduced_wikicreole_parser1]
     ~name:"ocsforge_repository_tree" ~wiki_content:false

@@ -553,7 +553,7 @@ let make_project ~sp ~task ?repository_kind ?repository_path () =
           (* create message *)
             Forum_data.new_message
               ~sp ~forum ~creator_id:author ~subject:name ~text:"" ()
-          >>= fun message ->
+          >>= fun _ ->
 
           (*propagating rights into the new area*)
             Lwt_util.iter_serial

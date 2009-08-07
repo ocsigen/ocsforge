@@ -41,6 +41,16 @@ open CalendarLib
 (* Alias for Ocamlduce common function *)
 let utf8 = Ocamlduce.Utf8.make
 
+(* CSS hook *)
+let tree_css_header = Ocsimore_page.Header.create_header
+  (fun sp ->
+     {{ [ {:
+         Eliom_duce.Xhtml.css_link
+           ( Ocsimore_page.static_file_uri sp [ "ocsforge_tasks.css" ] ) ()
+     :} ] }})
+let add_tree_css_header sp =
+  Ocsimore_page.Header.require_header tree_css_header ~sp
+
 
 let draw_message_title ~sp ~task = Data.find_subject ~sp ~task
 
@@ -55,7 +65,7 @@ let draw_message_title ~sp ~task = Data.find_subject ~sp ~task
    [name] is the name of the service argument ;
    [service] is the service name
 
-   /!\ This is very low level and should be replaced by eliom client side services... /!\
+   (TODO: This is very low level and should be replaced by eliom client side services...)
 *)
 let auto_update_select ~id ?(salt = "")
       ~string_of_t ?label_of_t ?value_of_t
@@ -97,7 +107,9 @@ let auto_update_select ~id ?(salt = "")
   }}
 
 (* This function makes text input with an automated save (using onchange event).
-   It behaves like auto_update_select and share his arguments with it. *)
+   It behaves like auto_update_select and share his arguments with it.
+   (TODO: call the service directly with eliom
+ *)
 let auto_update_input ~id ?(salt = "") ~value ~name ~service () =
   {{
     <input id={: utf8 ( salt ^ name ^ Int32.to_string id ) :} 
@@ -113,7 +125,7 @@ let auto_update_input ~id ?(salt = "") ~value ~name ~service () =
     - renders a "noscript" in the page (for search engines)
     - passes some info to AXO (via an id attribute)
     
-    /!\ The second behaviour is to be change with a higher level, cleaner, more appropriate way of doing it.
+    (FIXME: information passing is to be change with a higher level, cleaner, more appropriate way of doing it.
  *)
 class tree_widget =
 object (self)
@@ -204,7 +216,7 @@ object (self)
 
 
   (* The main method.
-   * FIXME: have the root_task id beeing transfered in a adapted way. *)
+  * FIXME: have the root_task id beeing transfered in a adapted way. *)
   method display ~sp ~root_task =
     Lwt.catch
       (fun () ->
@@ -229,18 +241,17 @@ end
    /!\ lazyness /!\ is used to avoid side effects and database access. *)
 
 let check_right (role_field : bool Lwt.t Lazy.t)
-  (granted : 'a Lazy.t) (refused : 'a Lazy.t)
+  (right : 'a Lazy.t) (wrong : 'a Lazy.t)
   : 'a Lwt.t =
-  !!role_field >>= (fun r ->
-    if r then Lwt.return granted else Lwt.return refused
-  ) >>= ( Lwt.return @@ (!!) )
+  !!role_field >>= (fun r -> if r then Lwt.return right else Lwt.return wrong)
+  >>= ( Lwt.return @@ (!!) )
 
+(* This version is for Lwt.t values ! *)
 let check_right_lwt (role_field : bool Lwt.t Lazy.t)
-  (granted : 'a Lwt.t Lazy.t) (refused : 'a Lwt.t Lazy.t)
+  (right : 'a Lwt.t Lazy.t) (wrong : 'a Lwt.t Lazy.t)
   : 'a Lwt.t =
-  !!role_field >>= (fun r ->
-    if r then Lwt.return granted else Lwt.return refused
-  ) >>= (!!)
+  !!role_field >>= (fun r -> if r then Lwt.return right else Lwt.return wrong)
+  >>= (!!)
 
 
 class task_widget
@@ -254,7 +265,7 @@ object (self)
     let data = ti.Types.t_message in
     let class_ = "ocsforge_task_message" in
 
-    check_right_lwt (* lazy avoids side effect and time waste in generation *)
+    check_right_lwt (* lazyness avoids side effect and time waste in generation *)
       role.Roles.task_comment_reader
       (lazy (thread_widget#display  ~sp ?classes:( Some [ class_ ] ) ~data ()))
       (lazy (message_widget#display ~sp ?classes:( Some [ class_ ] ) ~data ()))
@@ -265,10 +276,9 @@ object (self)
 
     Data.get_kinds ~sp ~area:ti.Types.t_area >>= fun kalts ->
 
-    check_right role.Roles.task_property_editor
+    check_right role.Roles.task_property_editor (* lazyness avoid db access *)
       (* What to print when the user has edition rights... *)
-      (lazy ({{
-        <div class={: utf8 "task_details" :}>[
+      (lazy ({{ [
            <div>[
              !{: utf8 "progress : " :}
              {{ auto_update_select
@@ -334,11 +344,10 @@ object (self)
                   () }}
            ]
         ]
-      }}))
+      }} : {{ [ Xhtmltypes_duce._div + ] }} ))
 
       (* What to print when the user doesn't have edition rights *)
-      (lazy ({{
-        <div class={: utf8 "task_details" :}>[
+      (lazy ({{ [
            <div>[ !{: utf8
              (  "progress : "
               ^ Olang.string_of_t_opt Int32.to_string ti.Types.t_progress
@@ -361,7 +370,7 @@ object (self)
              )
            :} ]
         ]
-      }}))
+      }} : {{ [ Xhtmltypes_duce._div + ] }} ))
 
 
 
@@ -369,20 +378,26 @@ object (self)
   method display_task ~sp ti role =
     self#display_message sp ti role      >>= fun msg ->
     self#display_task_details sp ti role >>= fun details ->
-    Lwt.return ({{ [ <div>[ details msg ] ] }} : {{ Xhtmltypes_duce.flows }})
+    add_tree_css_header sp ;
+    Lwt.return
+      ({{ [ <div>[
+              <div class={: utf8 "ocsforge_task_details" :}>
+                 [ <h4>{: utf8 "task properties : " :} !details ]
+              msg
+      ] ] }} : {{ Xhtmltypes_duce.flows }})
 
 
 
   (* Not implememted yet : show fields to tamper with aviable categories.
      FIXME: implement with Eliom client side services... (using Ocsforge_services.{add|del|swap}_area_kinds_service)*)
   method display_kind_options sp ti role =
-    Data.get_kinds ~sp ~area:ti.Types.t_area >>= fun kalts ->
+    Data.get_kinds ~sp ~area:ti.Types.t_area >>= fun _kalts ->
     check_right role.Roles.kinds_setter
-      (lazy ({{ [<div>[
+      (lazy ({{ [<div class={: utf8 "ocsforge_categories_details" :}>[
                  <div>[ !{: utf8 "add category : TODO" :} ]
                  <div>[ !{: utf8 "remove categories : TODO" :} ]
                  <div>[ !{: utf8 "swap categories : TODO" :} ]
-      ] ] }}))
+      ] ] }} : {{ [ Xhtmltypes_duce._div ] }}))
       (lazy ({{ [ ] }}))
 
 
@@ -390,34 +405,34 @@ object (self)
   method display_repository_options sp ti role =
     Data.get_area_for_task ~sp ~task:ti.Types.t_id  >>= fun ai ->
     check_right role.Roles.repository_setter
-      (lazy ({{ [<div>[
-           !{: utf8 "source repository : " :}
-           {{ auto_update_select
-                ~id:(Types.sql_of_task ti.Types.t_id)
-                ~salt:"repo_"
-                ~string_of_t:( Olang.string_of_t_opt (fun k -> k) )
-                ~value:ai.Types.r_repository_kind
-                ~alts:(Olang.t_opt_list_of_t_list
-                         (Ocsforge_version_managers.get_managers_list ())
-                )
-                ~name:"kind"
-                ~service:"ocsforge_set_repository_kind"
-                ()
-           }}
-           !{: utf8 ":" :}
-           {{ auto_update_input
-                ~id:(Types.sql_of_task ti.Types.t_id)
-                ~salt:"repo_"
-                ~value:(Olang.string_of_t_opt (fun k -> k)
-                          ai.Types.r_repository_path
-                )
-                ~name:"path"
-                ~service:"ocsforge_set_repository_path"
-                ()
+      (lazy ({{ [
+        !{: utf8 "change repository : " :}
+        {{ auto_update_select
+             ~id:(Types.sql_of_task ti.Types.t_id)
+             ~salt:"repo_"
+             ~string_of_t:( Olang.string_of_t_opt (fun k -> k) )
+             ~value:ai.Types.r_repository_kind
+             ~alts:(Olang.t_opt_list_of_t_list
+                      (Ocsforge_version_managers.get_managers_list ())
+             )
+             ~name:"kind"
+             ~service:"ocsforge_set_repository_kind"
+             ()
+        }}
+        !{: utf8 ":" :}
+        {{ auto_update_input
+             ~id:(Types.sql_of_task ti.Types.t_id)
+             ~salt:"repo_"
+             ~value:(Olang.string_of_t_opt (fun k -> k)
+                       ai.Types.r_repository_path
+             )
+             ~name:"path"
+             ~service:"ocsforge_set_repository_path"
+             ()
 
-           }}
-      ] ] }}))
-      (lazy ({{ [ ] }}))
+        }}
+      ] }} : {{ Xhtmltypes_duce.flows }} ))
+      (lazy ( {{ [ ] }} : {{ Xhtmltypes_duce.flows }} ))
 
 
   method display_source_link sp ti =
@@ -438,15 +453,22 @@ object (self)
 
   method display_project ~sp ti role =
 
-    Data.get_kinds ~sp ~area:ti.Types.t_area   >>= fun kalts ->
     self#display_message sp ti role            >>= fun msg ->
     self#display_task_details sp ti role       >>= fun details ->
-    self#display_source_link sp ti             >>= fun source ->
-    self#display_kind_options sp ti role       >>= fun kinds ->
+    self#display_source_link sp ti             >>= fun src_lnk ->
+(*    self#display_kind_options sp ti role       >>= fun kinds -> *)
     self#display_repository_options sp ti role >>= fun repo ->
+    add_tree_css_header sp ;
 
     Lwt.return
-      (  {{ [ <div>[ !source details msg (* !kinds *) !repo ] ] }}
+      (  {{ [ <div>[
+                <div class={: utf8 "ocsforge_task_details" :}>
+                   [ <h4>{: utf8 "task properties : " :} !details ]
+                msg
+                (* !kinds *)
+                 <div class={: utf8 "ocsforge_repository_details" :}>
+                   [<h4>{: utf8 "Repository : " :} !src_lnk <br>[] !repo ]
+      ] ] }}
        : {{ Xhtmltypes_duce.flows }})
 
 

@@ -21,25 +21,11 @@
 
 let (>>=) = Lwt.bind
 
-let tree_css_header = Ocsimore_page.Header.create_header
-  (fun sp ->
-     {{ [ {:
-         Eliom_duce.Xhtml.css_link
-           ( Ocsimore_page.static_file_uri sp [ "ocsforge_tree.css" ] ) ()
-     :} ] }})
-
-let add_tree_css_header sp =
-  Ocsimore_page.Header.require_header tree_css_header ~sp
 
 
+let register_wikiext wp (tree_widget : Ocsforge_widgets_tasks.tree_widget) =
 
-let register_wikiext wp
-      (tree_widget : Ocsforge_widgets_tasks.tree_widget)
-      inline_widget
-     =
-
-  Wiki_syntax.add_extension
-    ~wp ~name:"ocsforge_tree" ~wiki_content:false
+  Wiki_syntax.add_extension ~wp ~name:"ocsforge_tree" ~wiki_content:false
     (fun bi args content ->
 
       Wikicreole.Block
@@ -47,16 +33,9 @@ let register_wikiext wp
            (fun () ->
             let sp = bi.Wiki_widgets_interface.bi_sp in
             let id = Ocsforge_types.task_of_string (List.assoc "id" args) in
-            let fields =
-              let f = Ocsforge_lang.assoc_all "field" args in
-                if f = []
-                then ["importance"]
-                else f
-            in
-            add_tree_css_header sp;
-            tree_widget#display ~sp ~root_task:id
-              >>= fun b ->
-            Lwt.return ({{  b }} : {{ Xhtmltypes_duce.flows }})
+
+            (( tree_widget#display ~sp ~root_task:id )
+              : {{ Xhtmltypes_duce.flows }} Lwt.t)
            )
 
            (function

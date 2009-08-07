@@ -1167,7 +1167,7 @@ let generate_color int =
   Printf.sprintf "rgb(%d,%d,%d)" !rref !gref !bref   
   
 
-let create_annotate_page ~sp ~id ~target ~version ~project_services = 
+let create_annotate_page ~sp ~id ~target ~version ~project_services:_ = 
   let color_table:(int,string) Hashtbl.t = Hashtbl.create 10 in
   let rec extract_annotate_result (l:(string*string) list) = match l with
     | [] -> Lwt.return ({{ [] }},{{ [] }}) 
