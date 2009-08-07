@@ -267,8 +267,16 @@ object (self)
 
     check_right_lwt (* lazyness avoids side effect and time waste in generation *)
       role.Roles.task_comment_reader
-      (lazy (thread_widget#display  ~sp ?classes:( Some [ class_ ] ) ~data ()))
-      (lazy (message_widget#display ~sp ?classes:( Some [ class_ ] ) ~data ()))
+      (lazy (
+         thread_widget#display_splitted  ~sp ?classes:( Some [ class_ ] ) ~data ()
+       >>= fun (m, c) ->
+       Lwt.return (m, {{ [c] }}))
+      )
+      (lazy (
+         message_widget#display ~sp ?classes:( Some [ class_ ] ) ~data ()
+         >>= fun m ->
+         Lwt.return (m, {{ [] }})
+       ))
 
 
   (* display common task fields (progress, duration,...) with an interactive select if the user happens to be an editor. *)
@@ -376,14 +384,15 @@ object (self)
 
   (* Show a task with message and detailed information *)
   method display_task ~sp ti role =
-    self#display_message sp ti role      >>= fun msg ->
+    self#display_message sp ti role      >>= fun (msg, comments) ->
     self#display_task_details sp ti role >>= fun details ->
     add_tree_css_header sp ;
     Lwt.return
       ({{ [ <div>[
+              msg
               <div class={: utf8 "ocsforge_task_details" :}>
                  [ <h4>{: utf8 "task properties : " :} !details ]
-              msg
+              !comments
       ] ] }} : {{ Xhtmltypes_duce.flows }})
 
 
@@ -453,7 +462,7 @@ object (self)
 
   method display_project ~sp ti role =
 
-    self#display_message sp ti role            >>= fun msg ->
+    self#display_message sp ti role            >>= fun (msg, comments) ->
     self#display_task_details sp ti role       >>= fun details ->
     self#display_source_link sp ti             >>= fun src_lnk ->
 (*    self#display_kind_options sp ti role       >>= fun kinds -> *)
@@ -462,11 +471,12 @@ object (self)
 
     Lwt.return
       (  {{ [ <div>[
+                msg
                 <div class={: utf8 "ocsforge_repository_details" :}>
                    [ <h4>{: utf8 "Repository : " :} !src_lnk <br>[] !repo ]
-                <div class={: utf8 "ocsforge_task_details" :}>
-                   [ <h4>{: utf8 "task properties : " :} !details ]
-                msg
+                <div class={: utf8 "ocsforge_task_details" :}>[
+                  <h4>{: utf8 "task properties : " :} !details ]
+                  !comments
                 (* !kinds *)
       ] ] }}
        : {{ Xhtmltypes_duce.flows }})
