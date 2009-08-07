@@ -21,9 +21,12 @@
 
 let (>>=) = Lwt.bind
 
+(** The following registering function is never called. Uncomment the
+  * corresponding line in ocsforge_bootstrap.ml to make this aviable. *)
 
 
 let register_wikiext wp (tree_widget : Ocsforge_widgets_tasks.tree_widget) =
+  (* register the <<ocsforge_tree id="42">> syntax extension *)
 
   Wiki_syntax.add_extension ~wp ~name:"ocsforge_tree" ~wiki_content:false
     (fun bi args content ->

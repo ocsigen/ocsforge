@@ -139,33 +139,22 @@ let t_opt_list_of_t_list l = None :: (List.map (fun s -> Some s) l)
 
 (*rougthly print period values*)
 
-let string_of_period p =
-  let h = int_of_float
-            (Time.Period.to_hours
-               (Calendar.Period.to_time p))
-  in
-  if h >= 24
-  then
-    let d = Date.Period.nb_days
-              (Calendar.Period.to_date p)
-    in
-    if h >= 72
-    then
-      if h >= 24 * 30
-      then
-        Printf.sprintf "%i months"
-          ((h / 24) mod 30)
-      else
-        Printf.sprintf "%i days" d
-    else
-      let h = h mod 24 in
-      if h = 0
-      then
-        Printf.sprintf "%i days" d
-      else
-        Printf.sprintf "%i days, %i hours" d h
-  else
-    Printf.sprintf "%i hours" h
+let string_of_period p = match Calendar.Period.ymds p with
+  | (0, 0, 0, s) -> Printf.sprintf "%i hours" (s / (60 * 60))
+  | (0, 0, n, _) -> Printf.sprintf "%i days" n
+  | (0, m, _, _) -> Printf.sprintf "%i months" m
+  | (y, _, _, _) -> Printf.sprintf "%i years" y
+
+let period_of_string s =
+  try Scanf.sscanf s "%i hours" (fun hour -> Calendar.Period.lmake ~hour ())
+  with Scanf.Scan_failure _ -> (
+  try Scanf.sscanf s "%i days" (fun day -> Calendar.Period.lmake ~day ())
+  with Scanf.Scan_failure _ -> (
+  try Scanf.sscanf s "%i months" (fun month -> Calendar.Period.lmake ~month ())
+  with Scanf.Scan_failure _ -> (
+  try Scanf.sscanf s "%i years" (fun year -> Calendar.Period.lmake ~year ())
+  with Scanf.Scan_failure _ -> ( failwith "period_of_string" ) ) ) )
+
 
 (* give the number of days/hours to go *)
 let days_in_period p = Date.Period.nb_days (Calendar.Period.to_date p)

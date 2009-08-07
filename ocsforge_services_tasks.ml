@@ -21,6 +21,7 @@
 
 let ( ** ) = Eliom_parameters.prod
 let ( >>= ) = Lwt.bind
+let ( @@ ) f g = fun x -> f (g x)
 
 module Params = Eliom_parameters
 module Data = Ocsforge_data
@@ -39,14 +40,12 @@ let set_length_service =
     ~post_params:(
        (Params.user_type Types.task_of_string Types.string_of_task "id") **
        (Params.user_type
-          (Olang.t_opt_of_string int_of_string)
-          (Olang.string_of_t_opt string_of_int)
+          (Olang.t_opt_of_string Olang.period_of_string)
+          (Olang.string_of_t_opt Olang.string_of_period)
           "length")
       )
     (fun sp () (task, length) ->
-       Data.edit_task ~sp ~task
-         ~length:(Olang.apply_on_opted Calendar.Period.hour length)
-         () )
+       Data.edit_task ~sp ~task ~length () )
 let set_progress_service =
   Eliom_predefmod.Action.register_new_post_coservice'
     ~name:"ocsforge_set_progress"
@@ -160,7 +159,7 @@ let register_dump_tree_service ?sp tree_widget task_widget path =
                 ~page:((Ocsigen_lib.string_of_url_path ~encode:true []), [])
                 ~gen_box
 
-              >>= fun (html, _) -> Lwt.return html
+              >>= ( Lwt.return @@ fst )
              end
 
          | Some id ->
@@ -183,7 +182,7 @@ let register_dump_tree_service ?sp tree_widget task_widget path =
                  ~page:((Ocsigen_lib.string_of_url_path ~encode:true []), [])
                  ~gen_box
 
-               >>= fun r -> Lwt.return (fst r) 
+               >>= ( Lwt.return @@ fst )
              end
     )
   in Lwt.return ()
@@ -353,4 +352,43 @@ let register_new_project_service tree_widget task_widget =
                   )
            )
     )
+
+
+(** Separators services *)
+(* To get separators, one can use xml tree dumping *)
+let insert_separator_service =
+  Eliom_predefmod.Action.register_new_post_coservice'
+    ~name:"ocsforge_insert_separator"
+    ~options:`NoReload
+    ~post_params:(
+       Params.user_type Types.task_of_string Types.string_of_task "after" **
+       Params.string "content"
+     )
+    (fun sp () (after, content) -> Data.insert_separator ~sp ~after ~content)
+let set_separator_content_service =
+  Eliom_predefmod.Action.register_new_post_coservice'
+    ~name:"ocsforge_set_separator_content"
+    ~options:`NoReload
+    ~post_params:(
+       Params.user_type
+         Types.separator_of_string
+         Types.string_of_separator
+         "separator" **
+       Params.string "content"
+     )
+    (fun sp () (separator, content) ->
+       Data.set_separator_content ~sp ~separator ~content)
+let move_separator_service =
+  Eliom_predefmod.Action.register_new_post_coservice'
+    ~name:"ocsforge_move_separator"
+    ~options:`NoReload
+    ~post_params:(
+       Params.user_type
+         Types.separator_of_string
+         Types.string_of_separator
+         "separator" **
+       Params.user_type Types.task_of_string Types.string_of_task "after"
+     )
+    (fun sp () (separator, after) ->
+       Data.move_separator ~sp ~separator ~after)
 

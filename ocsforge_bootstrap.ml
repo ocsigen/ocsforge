@@ -41,7 +41,7 @@ let add_message ~forum () =
 
 
 
-let first_task () = (*TODO: create forum manually instead of rellying on ocsicreateforum*)
+let first_task () =
   (*checking for already existing tasks*)
   Ocsforge_sql.get_task_count () >>= fun c ->
   if c > 0

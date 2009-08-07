@@ -28,6 +28,7 @@ let utf8 = Ocamlduce.Utf8.make
 let (>>=) = Lwt.bind
 let (@@) f g = fun x -> f (g x)
 
+
 (* boolean type for ocamlduce *)
 type boolean = {{ "true" | "false" }}
 let boolean_of_bool b = if b then {{ "true" }} else {{ "false" }}
@@ -50,16 +51,16 @@ type task_attrs = (*TODO: improve type checking*)
           movable =? boolean (* true if the user is a task_mover   *)
           project =? boolean (* true if the task is a project      *)
     } }}
-type xml_task =
+type task =
     {{ <task (task_attrs) >
          [
            <subject>[ Char* ]
-           <children>[ xml_task* ]
+           <children>[ task* ]
          ]
     }}
 
 (* The whole format *)
-type dump_format = {{ <task_dump>[ ( separators xml_task )? ] }}
+type dump_format = {{ <task_tree>[ ( separators task )? ] }}
 
 
 (** Get the task tree and return a [dump_format] xml tree. *)
@@ -76,7 +77,7 @@ let rec xml_of_tree ~sp ~task ?depth ?with_deleted () =
         } ;
       Tree.children = l ; }
     =
-    Ocsforge_widgets_tasks.draw_message_title ~sp ~task:id >>= fun msg  ->
+    Ocsforge_widgets_tasks.draw_message_title ~sp ~task:id >>= fun msg  -> (*FIXME: get the title in a cleaner way*)
     Roles.get_area_role sp area                            >>= fun role ->
     Lazy.force ( role.Roles.task_property_editor )         >>= fun edi  ->
     Lazy.force ( role.Roles.task_mover )                   >>= fun mov  ->
@@ -100,7 +101,7 @@ let rec xml_of_tree ~sp ~task ?depth ?with_deleted () =
             <subject>[ !{: utf8 msg :} ]
             <children>[ !{: l :} ]
            ]
-       }} : {{ xml_task }} )
+       }} : {{ task }} )
   in
   let rec aux_sep = function
     | [] -> ({{ [ ] }} : {{ [ separator* ] }})
@@ -125,9 +126,9 @@ let rec xml_of_tree ~sp ~task ?depth ?with_deleted () =
         Ocsforge_data.get_separators ~sp ~task
         >>= Lwt.return @@ aux_sep >>= fun s ->
 
-        Lwt.return {{ <task_dump>[ <seps>s c ] }}
+        Lwt.return {{ <task_tree>[ <seps>s c ] }}
      )
      (function
-        | Tree.Empty_tree -> Lwt.return {{ <task_dump>[] }}
+        | Tree.Empty_tree -> Lwt.return {{ <task_tree>[] }}
         | exc -> Lwt.fail exc ) )
 

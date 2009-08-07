@@ -31,22 +31,24 @@ end
 begin.client (* For source browsing (FIXME:raise a server exception... will probably get type checked with Eliom services*)
 
   let get_path () =
-    let s = (AXOJs.Misc.get_location ()) >>> JSOO.get "pathname" >>> JSOO.as_string in
-    (Regexp.exec (Regexp.make "/(.*)/sources.*") s).(1)
+    let pl = AXOCom.Url.get_path () in
+    let rec del_trainling_sources accu = function
+      | [] -> raise Not_found
+      | [ "sources" ] | [ "sources" ; "" ] -> List.rev accu
+      | hd :: tl -> del_trainling_sources (hd :: accu) tl
+    in
+    del_trainling_sources [] pl
 
-  let get_version () = (*TODO: make HL version aviable in AXO*)
-    let s = (AXOJs.Misc.get_location ()) >>> JSOO.get "search" >>> JSOO.as_string in
-    if Regexp.test (Regexp.make ".*version=.*") s
-    then Some (Regexp.exec (Regexp.make "version=([^&]*)") s).(1)
-    else None
+  let get_version () =
+    try Some (AXOCom.Url.get_argument "version") with Not_found -> None
 
   let get_trs dir =
     let l = (* errors on 1xx, 3xx, 4xx and 5xx are catched later on*)
       AXOCom.dynload_post "./"
         (   ("__eliom_na__name", "ocsforge_repository_tree")
-         :: ("dir",   get_path ()
-                    ^ "/"
-                    ^ (String.sub dir 1 (pred (String.length dir)))
+         :: ("dir", String.concat "/"
+                    ( (try get_path () with Not_found -> [])
+                     @ [ (String.sub dir 1 (pred (String.length dir))) ])
             )
          :: (match get_version () with | None -> [] | Some s -> [ ("version", s) ])
         )
@@ -54,11 +56,9 @@ begin.client (* For source browsing (FIXME:raise a server exception... will prob
     in
     AXOCom.check_for_error l ; l >>> JSOO.get "documentElement" >>> AXOJs.Node.children
 
- (* 
-  let _ = (*TODO: don't use URL to check if the element should be launched. Have the page generation set a value. *)
-    if Regexp.test
-         (Regexp.make "sources")
-         (AXOJs.Misc.get_location () >>> JSOO.get "pathname" >>> JSOO.as_string)
+(* 
+  let _ = (*TODO: don't use URL to check if the element should be launched. Have the page generation set a flag. *)
+    if List.mem "sources" (AXOCom.Url.get_path ())
     then
     try
       begin
@@ -118,7 +118,7 @@ begin.client (* For source browsing (FIXME:raise a server exception... will prob
         done
       end
     with _ -> ()
-  *)
+ *)
 
 end
 
@@ -169,14 +169,6 @@ begin.client (* for task management and BTS *)
         (LList.t_opt_list_of_t_list
            (LList.int_interval_list ~bump:5 ~min:0 ~max:100 ()))
     in
-    let length_select =
-      new AXOToolkit.select
-        (LOption.string_of_t_opt string_of_int)
-        (LOption.t_opt_of_string int_of_string)
-        None
-        (LList.t_opt_list_of_t_list
-           (LList.int_interval_list ~bump:6 ~min:0 ~max:48 ()))
-    in
 
     (* populating details and fixing some visual effects *)
     more#set_style_property "marginLeft" (AXOWidgets.px_string 10) ;
@@ -187,10 +179,6 @@ begin.client (* for task management and BTS *)
     details#add_common ( AXOToolkit.text "progress : "        ) ;
     details#add_common ( progress_select :> AXOWidgets.common ) ;
     details#add_common ( AXOToolkit.text " %"                 );
-    details#add_common ( new AXOToolkit.br ) ;
-    details#add_common ( AXOToolkit.text "duration : "      ) ;
-    details#add_common ( length_select :> AXOWidgets.common ) ;
-    details#add_common ( AXOToolkit.text " hours"           );
 
     let title_input = new AXOToolkit.text_input "" in
       title_input#set_attribute "size" "100" ;
@@ -204,18 +192,16 @@ begin.client (* for task management and BTS *)
                 [ ("__eliom_na__name","ocsforge_add_task") ;
                   ("parent", string_of_int id            ) ;
                   ("subject", title_input#get_value      ) ;
-                  ("text", "") ;
+                  ("text", "" ) ;
 
-                  ("length",
-                   LOption.string_of_t_opt string_of_int
-                     length_select#get_value                ) ;
+                  ("length", "" ) ;
                   ("progress",
                    LOption.string_of_t_opt string_of_int
                      progress_select#get_value              ) ;
                   ("importance",
                    LOption.string_of_t_opt string_of_int
                      importance_select#get_value            ) ;
-                  ("kind", "") ;
+                  ("kind", "" ) ;
 
                 ]
            in
@@ -359,7 +345,7 @@ begin.client (* for task management and BTS *)
         AXOCom.parse_xml
     in
     let get_attr n o = (* an alias for a long method chain *)
-      (* /!\ DO NOT USE AXOJs.Node.get_attribute as it is for (X)HTML node only *)
+      (* /!\ DO NOT USE AXOJs.Node.get_attribute as it only works with (X)HTML nodes *)
       o >>> JSOO.get "attributes"
         >>> JSOO.get n
         >>> JSOO.get "value"
@@ -406,6 +392,15 @@ begin.client (* for task management and BTS *)
       (tree, seps)
 
 
+  let make_separator s =
+    let w = new AXOToolkit.li_widget_container in
+    w#add_common (AXOToolkit.text s.scontent) ;
+    w#set_attribute "id" ("separator" ^ string_of_int s.sid) ;
+    w#set_style_property "border" "2px solid #FF0000" ;
+    w#set_style_property "background" "#FF6666" ;
+    (w :> AXOWidgets.common)
+
+
   let make_line t =
     (* The whole line container *)
     let main = new AXOToolkit.li_widget_container in
@@ -424,14 +419,16 @@ begin.client (* for task management and BTS *)
     let new_button = new AXOToolkit.img_button ~alt:"New subtask/subproject"
       "/document-new-from-template.png" (*FIXME: use the static service in Eliom to have this automatically generated*)
     in
-    new_button#set_style_property "position" (AXOWidgets.string_of_position AXOWidgets.Absolute) ;
+    new_button#set_style_property "position"
+         (AXOWidgets.string_of_position AXOWidgets.Absolute) ;
     new_button#set_style_property "left" (AXOWidgets.px_string 2) ;
 
     let details_button = new AXOToolkit.img_link
       ~href:("?id=" ^ string_of_int t.id)
       ~src:"/document-preview.png" ~alt:"task details"
     in
-    details_button#set_style_property "position" (AXOWidgets.string_of_position AXOWidgets.Absolute) ;
+    details_button#set_style_property "position"
+         (AXOWidgets.string_of_position AXOWidgets.Absolute) ;
     details_button#set_style_property "left" (AXOWidgets.px_string 20) ;
 
 
@@ -452,8 +449,12 @@ begin.client (* for task management and BTS *)
       main
 
   let main_tree root_task =
-    let (task_tree, _) = get_task_tree root_task in (*TODO: use seps*)
+    let (task_tree, seps) = get_task_tree root_task in
       AXOToolkit.foldable_tree ~depth:1 ~persistent_as_container:true
+        ~separators:( fun t _ _ ->
+           LOption.apply_on_opted make_separator
+              (LList.find_opt (fun s -> s.sid = t.id) seps)
+        )
         (LTree.sort
            ~comp:( fun t1 t2 -> compare
                      t2.LTree.content.project
@@ -494,9 +495,9 @@ begin.client (* for task management and BTS *)
     (c :> AXOWidgets.common)
 
   let _ =
-    if Regexp.test
-         (Regexp.make "/tasks\\/?$") (* \\ translates to \ and \ escapes / so it really is "/tasks/?$" *)
-         (AXOJs.Misc.get_location () >>> JSOO.get "href" >>> JSOO.as_string)
+    if List.mem "tasks" (AXOCom.Url.get_path ())
+       && (try let _ = AXOCom.Url.get_argument "id" in false
+           with Not_found -> true)
     then
       try
         let div =
@@ -523,6 +524,7 @@ begin.client (* for task management and BTS *)
 
 end
 
+
 (* for auto updating fields *)
 let keep_up_to_date = (*TODO: use Eliom services instead*)
   (fun.client (name : string) (id : int32) (service : string) (salt : string) ->
@@ -530,7 +532,7 @@ let keep_up_to_date = (*TODO: use Eliom services instead*)
       [
         "__eliom_na__name", service ;
         "id", Int32.to_string id ;
-        name, AXOJs.Node.document
+        name,  AXOJs.Node.document
                     >>> JSOO.call_method "getElementById"
                            [| JSOO.string (salt ^ name ^ Int32.to_string id) |] 
                     >>> JSOO.get "value"   

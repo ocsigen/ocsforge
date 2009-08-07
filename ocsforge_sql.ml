@@ -237,7 +237,7 @@ let get_tasks_by_editor ~editor ?(with_deleted = false) () =
          AND (deleted = $with_deleted OR deleted = false)"
       >>=fun r -> Lwt.return (List.map Types.get_task_info r))
 
-(*TODO : more getter by attributes (version, time, progress...*)
+(*TODO : more getter by attributes (version, time, progress...) use "comprehensions" *)
 
 (** {5 getters for area} *)
 

@@ -97,7 +97,7 @@ let new_project ~sp
 
          (* create forum *)
          let title_syntax = Forum_site.title_syntax in
-         Forum.create_forum (*TODO: use Forum_data.new_forum ? *)
+         Forum.create_forum (*TODO: use Forum_data.new_forum ? pros : cleaner ; cons : wikis must be generated manually *)
            ~wiki_model:Ocsisite.wikicreole_model (*FIXME: give the real wiki model *)
            ~title_syntax
            ~title:(Printf.sprintf "Ocsforge_%s_(area_%s)_forum"
@@ -108,10 +108,8 @@ let new_project ~sp
            ()                                          >>= fun finfo ->
 
          let forum = finfo.FTypes.f_id in
-(*
          let mwiki = finfo.FTypes.f_messages_wiki in
          let cwiki = finfo.FTypes.f_comments_wiki in
- *)
 
          (* create wiki *)
          Ocsforge_sql.get_path_for_area ~area:parent_area db >>= fun ppath ->
@@ -151,29 +149,38 @@ let new_project ~sp
              ~id:c ~forum ~wiki ~wikibox ?repository_kind ?repository_path () 
          >>= fun _ -> (* the result can't be anything but [c] *)
 
-(* link rights on area and rights on forum... Needs modifications on forum.ml
-         Lwt_util.iter_serial
-           (fun (ar,fr) -> User.add_to_group ~user:(ar $ c) ~group:(fr $ cwiki))
-           [(task_comment_sticky_setter, FRoles.message_sticky_makers);
-            (task_comment_reader, FRoles.message_readers);
-            (task_comment_moderator, FRoles.message_moderators);
-            (task_comment_deletor, FRoles.message_deletors);
-            (task_comment_writer, FRoles.message_creator);
-            (task_comment_writer_not_moderated, FRoles.message_creators_notmod);
-           ] 
-         >>= fun () ->
-         Lwt_util.iter_serial
-           (fun (ar,fr) -> User.add_to_group ~user:(ar $ c) ~group:(fr $ mwiki))
-           [(task_message_editor_if_author, FRoles.message_editor_if_creator);
-            (task_message_editor, FRoles.message_editors);
-            (task_creator, FRoles.message_creators);
+         Lwt_util.iter_serial (* syncing rights with the comment wiki *)
+           (fun (ar,fr) ->
+              User.add_to_group ~user:(ar $ c) ~group:(fr $ cwiki)
+           )
+           [
+            (Roles.task_comment_sticky_setter, FRoles.message_sticky_makers     ) ;
+            (Roles.task_comment_reader,        FRoles.moderated_message_readers ) ;
+            (Roles.task_comment_moderator,     FRoles.message_moderators        ) ;
+            (Roles.task_comment_deletor,       FRoles.message_deletors          ) ;
+            (Roles.task_comment_deletor_if_author, FRoles.message_deletors      ) ;
+            (Roles.task_comment_writer,            FRoles.message_creators      ) ;
+            (Roles.task_comment_writer_not_moderated,
+                                                 FRoles.message_creators_notmod ) ;
+           ] >>= fun () ->
+ 
+         Lwt_util.iter_serial (* syncing rights with the message wiki *)
+           (fun (ar,fr) ->
+              User.add_to_group ~user:(ar $ c) ~group:(fr $ mwiki)
+           )
+           [
+            (Roles.task_message_editor_if_author,
+                                            FRoles.message_modifiers_if_creator ) ;
+            (Roles.task_message_editor,     FRoles.message_modifiers            ) ;
+            (Roles.task_creator,            FRoles.message_creators             ) ;
+            (*FIXME: needs subarea_creator to be included in forum_creators...
+            * But there's a typing problem !*)
            ]
          >>= fun () ->
-
-         User.add_to_group ~user:(task_admin $ c) ~group:(forum_admin $ forum)
+         User.add_to_group
+           ~user:(Roles.task_admin $ c) ~group:(FRoles.forum_admin $ forum)
          >>= fun () ->
 
-*)
 
           (* create message *)
             Forum_data.new_message ~sp
@@ -353,7 +360,7 @@ let edit_task ~sp ~task
         )
     end
 
-let move_task ~sp ~task ~parent =
+let move_task ~sp ~task ~parent = (* For this function to work, the "move forum message" part have to be implemented ! *)
 
   do_sql (Ocsforge_sql.is_area_root ~task) >>= fun area_root ->
   if not area_root

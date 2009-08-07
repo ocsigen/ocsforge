@@ -19,6 +19,8 @@
 
 (* @author Raphael Proust *)
 
+
+
 (* bind, force and compose *)
 let (>>=) = Lwt.bind
 let (!!) = Lazy.force
@@ -35,11 +37,14 @@ module Params = Eliom_parameters
 module EDuce = Eliom_duce
 module FTypes = Forum_types
 
+
 (* provides Calendar and Period module *)
 open CalendarLib
 
+
 (* Alias for Ocamlduce common function *)
 let utf8 = Ocamlduce.Utf8.make
+
 
 (* CSS hook *)
 let tree_css_header = Ocsimore_page.Header.create_header
@@ -52,7 +57,7 @@ let add_tree_css_header sp =
   Ocsimore_page.Header.require_header tree_css_header ~sp
 
 
-let draw_message_title ~sp ~task = Data.find_subject ~sp ~task
+let draw_message_title ~sp ~task = Data.find_subject ~sp ~task (*FIXME: should not be necessary... but some function needs a string !*)
 
 (* A select field that automatically updates new values
    [id] is the task id ;
@@ -124,8 +129,7 @@ let auto_update_input ~id ?(salt = "") ~value ~name ~service () =
 (** This class has a [display] method that
     - renders a "noscript" in the page (for search engines)
     - passes some info to AXO (via an id attribute)
-    
-    (FIXME: information passing is to be change with a higher level, cleaner, more appropriate way of doing it.
+    (FIXME: information passing is to be changed with a higher level, cleaner, more appropriate way of doing it.
  *)
 class tree_widget =
 object (self)
@@ -133,38 +137,31 @@ object (self)
   val task_text_class = "ocsforge_task_text"
 
   (* prepare the table header *)
-  method private header ~fields =
+  val header =
     ({{ [ <thead>[
             <tr>[
-              <th>[ ' tasks' ]
+              <th>[ ' tasks'       ]
               <th>[ ' repository ' ]
-              !{: List.map (fun s -> {{ <td>[ !{: utf8 s :} ] }} ) fields :}
+              <th>[ ' duration '   ]
+              <th>[ ' progress '   ]
+              <th>[ ' importance ' ]
+              <th>[ ' kind '       ]
             ]
     ] ] }} : {{ [ Xhtmltypes_duce.thead ] }} )
 
-  (* prepare an attribute cell *)
-  method private show_static_field ~task:t field =
-    Lwt.return
-      ({{ <td>
-           {: let f = Olang.string_of_t_opt in
-                 (match field with
-                    | "progress" ->
-                        f Int32.to_string t.Types.t_progress
-                    | "importance" ->
-                        f Int32.to_string t.Types.t_importance
-                    | "kind" ->
-                        f (fun k -> k) t.Types.t_kind
-                     | "length" ->
-                        f Olang.string_of_period t.Types.t_length
-                    | _ -> f (fun _ -> "") None)
-           :}
-       }} : {{ Xhtmltypes_duce.td }})
+  (* prepare attribute cells *)
+  method private show_static_fields t =
+     let f = Olang.string_of_t_opt in
+     Lwt.return
+      ({{ [
+        <td>[ !{: f Olang.string_of_period t.Types.t_length :} ]
+        <td>[ !{: f Int32.to_string t.Types.t_progress      :} ]
+        <td>[ !{: f Int32.to_string t.Types.t_importance    :} ]
+        <td>[ !{: f (fun k -> k) t.Types.t_kind             :} ]
+       ] }} : {{ [ Xhtmltypes_duce.td + ] }})
 
   (* prepare the noscript element with a table inside *)
   method private display_noscript ~sp ~root_task =
-    let fields =
-      ["length" ; "progress" ; "importance" ; "kind" ]
-    in
 
     let show_line ~task =
       draw_message_title ~sp ~task:task.Types.t_id          >>= fun snip ->
@@ -182,13 +179,12 @@ object (self)
                                     ([], (None, (None, None) ) )
                       :} ] }}))
         >>= fun (repo_link : {{ Xhtmltypes_duce.td }}) ->
-      Lwt_util.map_serial (self#show_static_field ~task) fields
-                                                            >>= fun fields ->
+      self#show_static_fields task                         >>= fun fields ->
       Lwt.return
           ({{ <tr>[
                 <th align="left">[ !{: utf8 snip :} ]
                 repo_link
-                !{: fields :}
+                !fields
            ] }} : {{ <tr>[ Xhtmltypes_duce.th Xhtmltypes_duce.td+ ] }})
     in
 
@@ -209,10 +205,9 @@ object (self)
 
       Data.get_tree ~sp ~root:root_task () >>= fun tree ->
       show_tree tree                       >>= fun core ->
-      let head = self#header ~fields in
 
         Lwt.return
-          ( ( {{ <table>[ !head !core ] }} ) : {{ Xhtmltypes_duce.table }})
+          ( ( {{ <table>[ !header !core ] }} ) : {{ Xhtmltypes_duce.table }})
 
 
   (* The main method.
@@ -258,25 +253,13 @@ class task_widget
       (message_widget : Forum_widgets.message_widget )
       (thread_widget  : Forum_widgets.thread_widget  ) =
 object (self)
-    (*TODO: put the fields between first message and comments ; a lot of CSS *)
 
   (* print the message w/ or w/o comments according to user rights *)
-  method display_message sp ti role =
+  method display_message sp ti =
     let data = ti.Types.t_message in
     let class_ = "ocsforge_task_message" in
-
-    check_right_lwt (* lazyness avoids side effect and time waste in generation *)
-      role.Roles.task_comment_reader
-      (lazy (
-         thread_widget#display_splitted  ~sp ?classes:( Some [ class_ ] ) ~data ()
-       >>= fun (m, c) ->
-       Lwt.return (m, {{ [c] }}))
-      )
-      (lazy (
-         message_widget#display ~sp ?classes:( Some [ class_ ] ) ~data ()
-         >>= fun m ->
-         Lwt.return (m, {{ [] }})
-       ))
+      thread_widget#display_splitted  ~sp ?classes:( Some [ class_ ] ) ~data ()
+      >>= fun (m, c) -> Lwt.return (m, {{ [c] }})
 
 
   (* display common task fields (progress, duration,...) with an interactive select if the user happens to be an editor. *)
@@ -305,10 +288,7 @@ object (self)
              !{: utf8 "duration : " :}
              {{ auto_update_select
                   ~id:(Types.sql_of_task ti.Types.t_id)
-                  ~string_of_t:( Olang.string_of_t_opt Olang.string_of_period  )
-                  ~value_of_t:( Olang.string_of_t_opt
-                      (string_of_int @@ Olang.hours_in_period)
-                  )
+                  ~string_of_t:( Olang.string_of_t_opt Olang.string_of_period )
                   ~value:ti.Types.t_length
                   ~alts:(Olang.t_opt_list_of_t_list
                       (  (Calendar.Period.lmake ~hour:1  ())
@@ -320,7 +300,11 @@ object (self)
                        ::(Calendar.Period.lmake ~day:2  ())
                        ::(Calendar.Period.lmake ~day:7  ())
                        ::(Calendar.Period.lmake ~day:15 ())
-                       ::(Calendar.Period.lmake ~day:31 ())
+                       ::(Calendar.Period.lmake ~month:1 ())
+                       ::(Calendar.Period.lmake ~month:3 ())
+                       ::(Calendar.Period.lmake ~month:6 ())
+                       ::(Calendar.Period.lmake ~year:1 ())
+                       ::(Calendar.Period.lmake ~year:5 ())
                        :: [] )
                   )
                   ~name:"length"
@@ -363,10 +347,8 @@ object (self)
            :} ]
            <div>[ !{: utf8
              (  "duration : "
-              ^ Olang.string_of_t_opt
-                  (string_of_int @@ Olang.hours_in_period)
-                  ti.Types.t_length
-              ^ " hours" )
+              ^ Olang.string_of_t_opt Olang.string_of_period ti.Types.t_length
+             )
            :} ]
            <div>[ !{: utf8
              (  "importance : "
@@ -384,7 +366,7 @@ object (self)
 
   (* Show a task with message and detailed information *)
   method display_task ~sp ti role =
-    self#display_message sp ti role      >>= fun (msg, comments) ->
+    self#display_message sp ti           >>= fun (msg, comments) ->
     self#display_task_details sp ti role >>= fun details ->
     add_tree_css_header sp ;
     Lwt.return
@@ -462,7 +444,7 @@ object (self)
 
   method display_project ~sp ti role =
 
-    self#display_message sp ti role            >>= fun (msg, comments) ->
+    self#display_message sp ti                 >>= fun (msg, comments) ->
     self#display_task_details sp ti role       >>= fun details ->
     self#display_source_link sp ti             >>= fun src_lnk ->
 (*    self#display_kind_options sp ti role       >>= fun kinds -> *)
@@ -470,7 +452,7 @@ object (self)
     add_tree_css_header sp ;
 
     Lwt.return
-      (  {{ [ <div>[
+      ( {{ [ <div>[
                 msg
                 <div class={: utf8 "ocsforge_repository_details" :}>
                    [ <h4>{: utf8 "Repository : " :} !src_lnk <br>[] !repo ]
@@ -478,7 +460,7 @@ object (self)
                   <h4>{: utf8 "task properties : " :} !details ]
                   !comments
                 (* !kinds *)
-      ] ] }}
+        ] ] }}
        : {{ Xhtmltypes_duce.flows }})
 
 
