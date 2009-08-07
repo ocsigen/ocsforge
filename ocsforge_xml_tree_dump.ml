@@ -24,8 +24,9 @@ module Types = Ocsforge_types
 module Tree = Ocsforge_lang.Tree
 module Olang = Ocsforge_lang
 module Roles = Ocsforge_roles
-let to_utf8 = Ocamlduce.Utf8.make
+let utf8 = Ocamlduce.Utf8.make
 let (>>=) = Lwt.bind
+let (@@) f g = fun x -> f (g x)
 
 (* boolean type for ocamlduce *)
 type boolean = {{ "true" | "false" }}
@@ -81,22 +82,22 @@ let rec xml_of_tree ~sp ~task ?depth ?with_deleted () =
     Lazy.force ( role.Roles.task_mover )                   >>= fun mov  ->
     Lwt_util.map_serial aux_tree l                         >>= fun l ->
     Lwt.return
-      ({{ <task id         = {: to_utf8 (Types.string_of_task id)      :}
-                _length_   = {: to_utf8 (Olang.string_of_t_opt
-                                           string_of_int
-                                          (Olang.apply_on_opted
-                                             Olang.hours_in_period
-                                             len))                    :}
-               progress   = {: to_utf8 (s_of_i32_opt pro)             :}
-               importance = {: to_utf8 (s_of_i32_opt imp)             :}
-               kind       = {: to_utf8 (Olang.string_of_t_opt
-                                          (fun k -> k) kin)           :}
+      ({{ <task id         = {: utf8 (Types.string_of_task id)      :}
+                _length_   = {: utf8
+                               (Olang.string_of_t_opt
+                                  (string_of_int @@ Olang.hours_in_period)
+                                  len
+                               )                                    :}
+               progress   = {: utf8 (s_of_i32_opt pro)              :}
+               importance = {: utf8 (s_of_i32_opt imp)              :}
+               kind       = {: utf8 (Olang.string_of_t_opt
+                                          (fun k -> k) kin)         :}
                deleted    = {{ boolean_of_bool del }}
                editable   = {{ boolean_of_bool edi }}
                movable    = {{ boolean_of_bool mov }}
                project    = {{ boolean_of_bool ar  }}
           >[
-            <subject>[ !{: to_utf8 msg :} ]
+            <subject>[ !{: utf8 msg :} ]
             <children>[ !{: l :} ]
            ]
        }} : {{ xml_task }} )
@@ -105,23 +106,26 @@ let rec xml_of_tree ~sp ~task ?depth ?with_deleted () =
     | [] -> ({{ [ ] }} : {{ [ separator* ] }})
     | h::t -> let t = aux_sep t in
         ({{ [
-           <separator id    = {: to_utf8
+           <separator id    = {: utf8
                                    (Types.string_of_separator h.Types.s_id)
                               :}
-                      after = {: to_utf8
+                      after = {: utf8
                                 (Types.string_of_task h.Types.s_after)
                               :}
-           > {: to_utf8 h.Types.s_content :} !t
+           > {: utf8 h.Types.s_content :} !t
          ] }} : {{ [ separator+ ] }} )
   in
 
-  Ocsforge_data.get_separators ~sp ~task          >>= fun seps ->
-  Lwt.return (aux_sep seps)                       >>= fun seps ->
   (Lwt.catch
      (fun () ->
+
         Ocsforge_data.get_tree ~sp ~root:task ?with_deleted ?depth ()
         >>= aux_tree >>= fun c ->
-        Lwt.return {{ <task_dump>[ <seps> seps c ] }}
+
+        Ocsforge_data.get_separators ~sp ~task
+        >>= Lwt.return @@ aux_sep >>= fun s ->
+
+        Lwt.return {{ <task_dump>[ <seps>s c ] }}
      )
      (function
         | Tree.Empty_tree -> Lwt.return {{ <task_dump>[] }}

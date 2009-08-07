@@ -293,15 +293,17 @@ object (self)
                   )
                   ~value:ti.Types.t_length
                   ~alts:(Olang.t_opt_list_of_t_list
-                      ( (Olang.period_interval_list
-                           ~min:(Calendar.Period.lmake ~hour:1 ())
-                           ~max:(Calendar.Period.lmake ~hour:23 ())
-                           ())
-                       @(Olang.period_interval_list
-                           ~bump:(Calendar.Period.lmake ~day:1 ())
-                           ~min:(Calendar.Period.lmake ~day:1 ())
-                           ~max:(Calendar.Period.lmake ~day:7 ())
-                           () ) )
+                      (  (Calendar.Period.lmake ~hour:1  ())
+                       ::(Calendar.Period.lmake ~hour:2  ())
+                       ::(Calendar.Period.lmake ~hour:3  ())
+                       ::(Calendar.Period.lmake ~hour:6  ())
+                       ::(Calendar.Period.lmake ~hour:12 ())
+                       ::(Calendar.Period.lmake ~day:1  ())
+                       ::(Calendar.Period.lmake ~day:2  ())
+                       ::(Calendar.Period.lmake ~day:7  ())
+                       ::(Calendar.Period.lmake ~day:15 ())
+                       ::(Calendar.Period.lmake ~day:31 ())
+                       :: [] )
                   )
                   ~name:"length"
                   ~service:"ocsforge_set_length"

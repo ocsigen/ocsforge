@@ -28,7 +28,7 @@ begin.client
 end
 
 
-begin.client (* For source browsing (FIXME:raise a server exception... probably a problem with get path.*)
+begin.client (* For source browsing (FIXME:raise a server exception... will probably get type checked with Eliom services*)
 
   let get_path () =
     let s = (AXOJs.Misc.get_location ()) >>> JSOO.get "pathname" >>> JSOO.as_string in
@@ -177,7 +177,7 @@ begin.client (* for task management and BTS *)
     in
 
     (* populating details and fixing some visual effects *)
-    more#set_margin_left 10 ;
+    more#set_style_property "marginLeft" (AXOWidgets.px_string 10) ;
     details#set_style_property "border" "1px solid" ;
     details#add_common ( AXOToolkit.text "importance : "        ) ;
     details#add_common ( importance_select :> AXOWidgets.common ) ;
@@ -193,7 +193,7 @@ begin.client (* for task management and BTS *)
     let title_input = new AXOToolkit.text_input "" in
       title_input#set_attribute "size" "100" ;
     let save_button = new AXOToolkit.inline_text_widget_button "SAVE" in
-      save_button#set_margin_left 70 ;
+      save_button#set_style_property "marginLeft" (AXOWidgets.px_string 70) ;
       save_button#add_click_action
         (fun () ->
            popup#hide ;
@@ -246,7 +246,9 @@ begin.client (* for task management and BTS *)
                           (span :> AXOWidgets.common)
       ) ;
 
-      popup#set_position pos ; popup#set_x x ; popup#set_y y ;
+      popup#set_style_property "position" (AXOWidgets.string_of_position pos) ;
+      popup#set_style_property "left" (AXOWidgets.px_string x) ;
+      popup#set_style_property "top" (AXOWidgets.px_string y) ;
       popup#show
 
   (* TODO: change this pseudo-form to a Eliom form. *)
@@ -264,7 +266,7 @@ begin.client (* for task management and BTS *)
     let repo_path_input = new AXOToolkit.text_input "" in
 
     let save_button = new AXOToolkit.inline_text_widget_button "SAVE" in
-      save_button#set_margin_left 70 ;
+      save_button#set_style_property "marginLeft" (AXOWidgets.px_string 70) ;
       save_button#add_click_action
         (fun () ->
            popup#hide ;
@@ -328,7 +330,9 @@ begin.client (* for task management and BTS *)
                         (span :> AXOWidgets.common)
       ) ;
 
-      popup#set_position pos ; popup#set_x x ; popup#set_y y ;
+      popup#set_style_property "position" (AXOWidgets.string_of_position pos) ;
+      popup#set_style_property "left" (AXOWidgets.px_string x) ;
+      popup#set_style_property "top" (AXOWidgets.px_string y) ;
       popup#show
 
   (* a function to automatically build a AXOLang.LTree.tree from an obj. *)
@@ -419,20 +423,22 @@ begin.client (* for task management and BTS *)
     let new_button = new AXOToolkit.img_button ~alt:"New subtask/subproject"
       "/document-new-from-template.png" (*FIXME: use the static service in Eliom to have this automatically generated*)
     in
-    new_button#set_position AXOWidgets.Absolute ;
-    new_button#set_x 2 ;
+    new_button#set_style_property "position" (AXOWidgets.string_of_position AXOWidgets.Absolute) ;
+    new_button#set_style_property "left" (AXOWidgets.px_string 2) ;
 
     let details_button = new AXOToolkit.img_link
       ~href:("?id=" ^ string_of_int t.id)
       ~src:"/document-preview.png" ~alt:"task details"
     in
-    details_button#set_position AXOWidgets.Absolute ;
-    details_button#set_x 20 ;
+    details_button#set_style_property "position" (AXOWidgets.string_of_position AXOWidgets.Absolute) ;
+    details_button#set_style_property "left" (AXOWidgets.px_string 20) ;
 
 
     new_button#add_click_action
       (fun () -> new_task_pop_up t.id
-         (AXOWidgets.Absolute, subject#get_x, subject#get_y)
+         (AXOWidgets.Absolute,
+          subject#get_attribute "offsetLeft" >>> int_of_string,
+          subject#get_attribute "offsetTop" >>> int_of_string)
       ) ;
 
     (* The mash up *)

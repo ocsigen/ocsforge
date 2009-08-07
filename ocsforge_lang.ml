@@ -149,16 +149,21 @@ let string_of_period p =
     let d = Date.Period.nb_days
               (Calendar.Period.to_date p)
     in
-    if h < 72
+    if h >= 72
     then
-      let h = h mod 24 in
-        if h = 0
-        then
-          Printf.sprintf "%i days" d
-        else
-          Printf.sprintf "%i days, %i hours" d h
+      if h >= 24 * 30
+      then
+        Printf.sprintf "%i months"
+          ((h / 24) mod 30)
+      else
+        Printf.sprintf "%i days" d
     else
-      Printf.sprintf "%i days" d
+      let h = h mod 24 in
+      if h = 0
+      then
+        Printf.sprintf "%i days" d
+      else
+        Printf.sprintf "%i days, %i hours" d h
   else
     Printf.sprintf "%i hours" h
 
