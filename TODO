@@ -1,0 +1,12 @@
+Repository browser:
+
+Bug fixes:
+* Implementation of "Diff to previous" for Darcs does not have the wanted behaviour.
+
+Missing features:
+* Annotate by date
+* Information on Darcs' way to execute diff (somewhere in the menu)
+* Get author name, last modification date for each file in the latest repository version for Darcs (use javascript ?)
+
+
+

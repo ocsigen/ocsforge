@@ -17,6 +17,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 
+(** @author Granarolo Jean-Henri *)
+
 let (>>=) = Lwt.bind
 
 let wikicreole_parser = Wiki_syntax.wikicreole_parser

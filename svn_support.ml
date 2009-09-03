@@ -17,23 +17,11 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 
+(** @author Granarolo Jean-Henri *)
 
 open Netstring_pcre
 open Ocsforge_source_types
 open Lwt
-
-(** Compilation :
-
-% swig -ocaml swig_svn.i
-% swig -ocaml -co swig.mli ; swig -ocaml co swig.ml
-% ocamlc -c swig.mli ; ocamlc -c swig.ml
-% ocamlc -c -ccopt "-I/usr/include/subversion-1 -I/usr/include/apr-1.0 -D_LARGEFILE64_SOURCE" swig_svn_wrap.c
-% ocamlc -c -ccopt "-I/usr/include/subversion-1 -I/usr/include/apr-1.0 -D_LARGEFILE64_SOURCE" swig_svn.c
-% ocamlc -c swig_svn.mli
-% ocamlc -c swig_svn.ml
-% ocamlc -o test swig.cmo swig_svn.cmo -custom swig_svn_wrap.o swig_svn.o -cclib -lsvn_client-1 svn_support.ml
-
-*)
 
 module Tree = Ocsforge_source_tree
 module Vm = Ocsforge_version_managers
