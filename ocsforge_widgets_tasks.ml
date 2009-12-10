@@ -47,14 +47,14 @@ let utf8 = Ocamlduce.Utf8.make
 
 
 (* CSS hook *)
-let tree_css_header = Ocsimore_page.Header.create_header
+let tree_css_header = Page_site.Header.create_header
   (fun sp ->
      {{ [ {:
          Eliom_duce.Xhtml.css_link
-           ( Ocsimore_page.static_file_uri sp [ "ocsforge_tasks.css" ] ) ()
+           ( Page_site.static_file_uri sp [ "ocsforge_tasks.css" ] ) ()
      :} ] }})
 let add_tree_css_header sp =
-  Ocsimore_page.Header.require_header tree_css_header ~sp
+  Page_site.Header.require_header tree_css_header ~sp
 
 
 let draw_message_title ~sp ~task = Data.find_subject ~sp ~task (*FIXME: should not be necessary... but some function needs a string !*)
@@ -216,7 +216,7 @@ object (self)
     Lwt.catch
       (fun () ->
          (self#display_noscript ~sp ~root_task)          >>= fun noscript ->
-         Ocsimore_page.add_obrowser_header sp ;
+         Page_site.add_obrowser_header sp ;
          Lwt.return
            ({{ [ <div id="ocsforge_task_tree">
                    [ <noscript
@@ -250,8 +250,8 @@ let check_right_lwt (role_field : bool Lwt.t Lazy.t)
 
 
 class task_widget
-      (message_widget : Forum_widgets.message_widget )
-      (thread_widget  : Forum_widgets.thread_widget  ) =
+      (message_widget : Forum_site.Forum_widgets.message_widget )
+      (thread_widget  : Forum_site.Forum_widgets.thread_widget  ) =
 object (self)
 
   (* print the message w/ or w/o comments according to user rights *)

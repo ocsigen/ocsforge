@@ -29,14 +29,14 @@ module Sh = Ocsforge_services_hashtable
 let _PAGE_SIZE = 100
 
 let sources_css_header =
-  Ocsimore_page.Header.create_header
+  Page_site.Header.create_header
     (fun sp ->
        {{ [ {: Eliom_duce.Xhtml.css_link
-               (Ocsimore_page.static_file_uri sp ["ocsforge_sources.css"]) () :}
+               (Page_site.static_file_uri sp ["ocsforge_sources.css"]) () :}
           ] }})
 
 let add_sources_css_header sp =
-  Ocsimore_page.Header.require_header sources_css_header ~sp
+  Page_site.Header.require_header sources_css_header ~sp
 
 
 let generate_css_style id css_class =
@@ -113,7 +113,7 @@ let error sp (message:string) : Xhtmltypes_duce.blocks Lwt.t =
                 <span class="message_title"> [
                   <img alt="Error" 
 		    src={:
-                           Ocsimore_page.static_file_uri 
+                           Page_site.static_file_uri 
                            ~sp 
                            ~path:["message_error.png"]
                            :}>[]]
@@ -126,7 +126,7 @@ let warning sp (message:string) : Xhtmltypes_duce.blocks Lwt.t =
                 <span class="message_title">  [
                   <img alt="Error" 
 		    src={: 
-                           Ocsimore_page.static_file_uri 
+                           Page_site.static_file_uri 
                            ~sp 
                            ~path:["message_warning.png"] 
                            :}>[]]
@@ -256,7 +256,7 @@ let rec build_content sp dir_l ps cpt version tree depth = match tree with
 		~service:ps.Sh.sources_service
 		~sp {{  [<img alt="file" 
                             src={:
-                                   Ocsimore_page.static_file_uri
+                                   Page_site.static_file_uri
                                    ~sp
                                    ~path:["file_history.png"]
 			    :}>[]] }}
@@ -299,7 +299,7 @@ let rec build_content sp dir_l ps cpt version tree depth = match tree with
 	if (String.length (d) > 0) && (depth>0) then
 	  {{ [<tr class="folder">[
             <td> [<img alt="folder" 
-		     src={: Ocsimore_page.static_file_uri
+		     src={: Page_site.static_file_uri
                             ~sp
                             ~path:["source_folder.png"] :}>[] 
                      {: Eliom_duce.Xhtml.a
@@ -388,7 +388,7 @@ let rec create_repository_table_content ~sp ~id ~version ~dir ~project_services=
                          ~sp
                          {{ [<img alt="parent_directory" 
 		              src={:
-                                     Ocsimore_page.static_file_uri
+                                     Page_site.static_file_uri
                                      ~sp
                                      ~path:["parent_directory.png"] :}>
                               [] ' ../'] }} 
@@ -607,7 +607,7 @@ let log_table_content ~sp ~kind ~path ~log ~ps ~start_rev ~end_rev =
                                   ~sp 
                                   {{ [<img alt="file content" 
 			               src={:
-                                            Ocsimore_page.static_file_uri
+                                            Page_site.static_file_uri
                                             ~sp
                                             ~path:["source_file.png"] :}>[]] }}
                                    (path,
@@ -623,7 +623,7 @@ let log_table_content ~sp ~kind ~path ~log ~ps ~start_rev ~end_rev =
                                   ~sp 
                                   {{ [<img alt="diff" 
 			                src={:
-                                        Ocsimore_page.static_file_uri
+                                        Page_site.static_file_uri
                                         ~sp
                                         ~path:["diff_to_previous.png"] :}>[]] }}
                                    ([],

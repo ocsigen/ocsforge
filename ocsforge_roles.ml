@@ -33,8 +33,17 @@ let ($) = UTypes.apply_parameterized_group
 
 (** {3 Tasks related groups} *)
 
+
+(* XXX find better description *)
+let param_right_area_arg = {
+  User_sql.param_description = "ocsforge right_area_arg";
+  find_param_functions = None;
+}
+
+
 let aux_grp name descr =
-  Lwt_unix.run (U_sql.new_parameterized_group "ocsforge_area" name descr)
+  Lwt_unix.run
+   (U_sql.new_parameterized_group "ocsforge_area" name descr param_right_area_arg)
 
 
 
