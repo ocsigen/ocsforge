@@ -104,8 +104,8 @@ let first_task () =
          Ocsforge_roles.kinds_setter ;
          Ocsforge_roles.version_setter ; ]
         >>= fun _ ->
-          Printf.printf "Your first ocsforge task's id is %ld\n%!"
-            (Ocsforge_types.sql_of_task task) ;
+          Ocsigen_messages.console2 (Printf.sprintf "Your first ocsforge task's id is %ld\n%!"
+            (Ocsforge_types.sql_of_task task)) ;
           Lwt.return ()
     end
 
@@ -124,7 +124,7 @@ let task_widget =
 
 let _ =
   begin
-    Printf.printf "registering ocsforge services\n%!" ;
+    Ocsigen_messages.debug2 "registering ocsforge services\n%!" ;
     let _ =
       Lwt_unix.run
         (Ocsforge_services_source.register_repository_services () >>= fun _ -> 
@@ -139,15 +139,12 @@ let _ =
               tree_widget task_widget)
            >>= fun _ -> Lwt.return ())
     in
-    Printf.printf "done registering ocsforge services\n%!" ;
 
-    Printf.printf "registering ocsforge wiki extensions\n%!" ;
     (*Ocsforge_wikiext_tasks.register_wikiext
       Wiki_syntax.wikicreole_parser
       tree_widget ;*)
     Ocsforge_wikiext_source.register_wikiext 
       Wiki_syntax.wikicreole_parser ;
-    Printf.printf "done registering ocsforge wikiextensions\n%!" ;
   end
 
 
