@@ -36,7 +36,8 @@ let ($) = UTypes.apply_parameterized_group
 
 (* XXX find better description *)
 let param_right_area_arg = {
-  User_sql.param_description = "ocsforge right_area_arg";
+  User_sql.Types.param_description = "ocsforge right_area_arg";
+  param_display = None;
   find_param_functions = None;
 }
 

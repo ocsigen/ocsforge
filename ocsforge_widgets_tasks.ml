@@ -250,8 +250,8 @@ let check_right_lwt (role_field : bool Lwt.t Lazy.t)
 
 
 class task_widget
-      (message_widget : Forum_site.Forum_widgets.message_widget )
-      (thread_widget  : Forum_site.Forum_widgets.thread_widget  ) =
+      (message_widget : Forum_widgets.message_widget )
+      (thread_widget  : Forum_widgets.thread_widget  ) =
 object (self)
 
   (* print the message w/ or w/o comments according to user rights *)

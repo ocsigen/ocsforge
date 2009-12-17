@@ -119,7 +119,7 @@ let source_service ?sp path =
       Wiki.default_bi 
           ~sp 
           ~wikibox:r_infos.Ocsforge_types.r_sources_container 
-          ~rights:(Wiki_models.get_rights Ocsisite.wikicreole_model) 
+          ~rights:(Wiki_models.get_rights Wiki_site.wikicreole_model) 
           >>= fun bi ->
       let gen_box1 _ =
         Lwt.return (Some(None,page_content))
@@ -130,7 +130,7 @@ let source_service ?sp path =
                }
       in      
       let gen_box _ = 
-        Ocsisite.wikibox_widget#display_interactive_wikibox 
+        Wiki_site.wikibox_widget#display_interactive_wikibox 
           ~bi 
           r_infos.Ocsforge_types.r_sources_container
           >>= fun page_content ->
@@ -138,7 +138,7 @@ let source_service ?sp path =
                       {{ [page_content] }},
                       Wiki_widgets_interface.Page_displayable,title)
       in
-      Ocsisite.wikibox_widget#display_container 
+      Wiki_site.wikibox_widget#display_container 
             ~sp ~wiki:(r_infos.Ocsforge_types.r_wiki) ~menu_style:`Linear
             ~page:((Ocsigen_lib.string_of_url_path ~encode:true file),file)
             ~gen_box:gen_box
@@ -171,7 +171,7 @@ let log_service ?sp path =
           Wiki.default_bi 
           ~sp 
           ~wikibox:r_infos.Ocsforge_types.r_sources_container 
-          ~rights:(Wiki_models.get_rights Ocsisite.wikicreole_model) 
+          ~rights:(Wiki_models.get_rights Wiki_site.wikicreole_model) 
           >>= fun bi ->
           let gen_box1 _ =
             Lwt.return (Some(None,page_content))
@@ -182,7 +182,7 @@ let log_service ?sp path =
                    }
           in      
           let gen_box _ = 
-            Ocsisite.wikibox_widget#display_interactive_wikibox 
+            Wiki_site.wikibox_widget#display_interactive_wikibox 
               ~bi 
               r_infos.Ocsforge_types.r_sources_container
               >>= fun page_content ->
@@ -190,7 +190,7 @@ let log_service ?sp path =
                             Wiki_widgets_interface.Page_displayable,
                             Some("Ocsforge - Repository history"))
           in
-          Ocsisite.wikibox_widget#display_container 
+          Wiki_site.wikibox_widget#display_container 
             ~sp ~wiki:(r_infos.Ocsforge_types.r_wiki) ~menu_style:`Linear
             ~page:((Ocsigen_lib.string_of_url_path ~encode:true []),[])
             ~gen_box:gen_box

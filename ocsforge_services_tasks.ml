@@ -152,7 +152,7 @@ let register_dump_tree_service ?sp tree_widget task_widget path =
               let gen_box _ = Lwt.return
                 (None, content, p_d, Some "Ocsforge - task tree")
               in
-              Ocsisite.wikibox_widget#display_container
+              Wiki_site.wikibox_widget#display_container
                 ~sp
                 ~wiki:ri.Types.r_wiki
                 ~menu_style:`Linear
@@ -175,7 +175,7 @@ let register_dump_tree_service ?sp tree_widget task_widget path =
                   (if ri1.Types.r_id = ri2.Types.r_id then p_d else e404),
                   Some "Ocsforge - task")
                in
-               Ocsisite.wikibox_widget#display_container
+               Wiki_site.wikibox_widget#display_container
                  ~sp
                  ~wiki:ri1.Types.r_wiki
                  ~menu_style:`Linear

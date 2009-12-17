@@ -98,7 +98,7 @@ let new_project ~sp
          (* create forum *)
          let title_syntax = Forum_site.title_syntax in
          Forum.create_forum (*TODO: use Forum_data.new_forum ? pros : cleaner ; cons : wikis must be generated manually *)
-           ~wiki_model:Ocsisite.wikicreole_model (*FIXME: give the real wiki model *)
+           ~wiki_model:Wiki_site.wikicreole_model (*FIXME: give the real wiki model *)
            ~title_syntax
            ~title:(Printf.sprintf "Ocsforge_%s_(area_%s)_forum"
                       name (Types.string_of_right_area c)
@@ -124,7 +124,7 @@ let new_project ~sp
             ~path:( ppath @ [ name ] )
             ~author
             ?container_text:wiki_container
-            ~model:Ocsisite.wikicreole_model (*TODO : give the real model *)
+            ~model:Wiki_site.wikicreole_model (*TODO : give the real model *)
             ()
                                                            >>= fun wiki ->
 
@@ -132,10 +132,10 @@ let new_project ~sp
                                                          
          Wiki_data.new_wikitextbox 
 
-            ~rights:( Wiki_models.get_rights Ocsisite.wikicreole_model )
+            ~rights:( Wiki_models.get_rights Wiki_site.wikicreole_model )
             ~sp
             ~content_type:(
-              Wiki_models.get_default_content_type Ocsisite.wikicreole_model
+              Wiki_models.get_default_content_type Wiki_site.wikicreole_model
             )
             ~wiki
             ~author
@@ -472,7 +472,7 @@ let make_project ~sp ~task ?repository_kind ?repository_path () =
            let title_syntax = Forum_site.title_syntax in
            (* create forum *)
            Forum.create_forum (*TODO: use Forum_data.new_forum ? *)
-              ~wiki_model:Ocsisite.wikicreole_model (*TODO : give the real wiki model*)
+              ~wiki_model:Wiki_site.wikicreole_model (*TODO : give the real wiki model*)
               ~title_syntax (*TODO:give the real title_syntax*)
               ~title:("Ocsforge area"^(Types.string_of_right_area c)^" forum")
               ~descr:("Messages about tasks in the area"
@@ -511,16 +511,16 @@ let make_project ~sp ~task ?repository_kind ?repository_path () =
              ~path:( ppath @ [ name ] )
              ~author
              (*TODO: use ~container_text*)
-             ~model:Ocsisite.wikicreole_model (*TODO : give the real model *)
+             ~model:Wiki_site.wikicreole_model (*TODO : give the real model *)
              ()
                                                            >>= fun wiki ->
                (* TODO : give the real model *)   
                                                           
           Wiki_data.new_wikitextbox 
              
-             ~rights:(Wiki_models.get_rights Ocsisite.wikicreole_model) ~sp
+             ~rights:(Wiki_models.get_rights Wiki_site.wikicreole_model) ~sp
              ~content_type:
-               (Wiki_models.get_default_content_type Ocsisite.wikicreole_model)
+               (Wiki_models.get_default_content_type Wiki_site.wikicreole_model)
              ~wiki:wiki
              ~author
              ~comment:("ocsforge subcontainer for "^name)

@@ -49,7 +49,7 @@ let first_task () =
   else
     begin
      Forum.create_forum
-       ~wiki_model:Ocsisite.wikicreole_model
+       ~wiki_model:Wiki_site.wikicreole_model
        ~title_syntax:Forum_site.title_syntax
        ~title:"ocsforge_task_forum"
        ~descr:"forum for the forge root task"
@@ -59,7 +59,7 @@ let first_task () =
         ~title:"ocsforge_task_wiki" ~descr:"" ~pages:(Some "ocsforge") (*FIXME: unhardwire the "ocsforge" name*)
         ~boxrights:false ~staticdir:None ~author:User.admin
         ~container_text:Wiki.default_container_page
-        ~model:Ocsisite.wikicreole_model ()
+        ~model:Wiki_site.wikicreole_model ()
                                                           >>= fun (wiki,_) ->
       Wiki_sql.get_wiki_info_by_id wiki                   >>= fun wi ->
       Wiki_sql.new_wikibox 
@@ -68,7 +68,7 @@ let first_task () =
           ~comment:("ocsforge first task wikibox")
           ~content:"<<content>>" 
           ~content_type:
-          (Wiki_models.get_default_content_type Ocsisite.wikicreole_model)
+          (Wiki_models.get_default_content_type Wiki_site.wikicreole_model)
           ()     
           >>= fun wikibox ->
       Ocsforge_sql.new_area
@@ -111,7 +111,7 @@ let first_task () =
 
 let _ = Lwt_unix.run ( first_task () )
 
-let forge_wiki_model = Ocsisite.wikicreole_model (*TODO: use a real wiki model*)
+let forge_wiki_model = Wiki_site.wikicreole_model (*TODO: use a real wiki model*)
 
 
 let tree_widget =
