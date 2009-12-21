@@ -92,7 +92,6 @@ let _ =
                try List.assoc "language" args
                with _ -> "" 
              in
-             print_endline lang;
              let lexbuf = Lexing.from_string s in
              Ocsforge_color.color_by_lang lexbuf lang >>= fun (_, r) -> Lwt.return r
          ) >>= fun c ->
