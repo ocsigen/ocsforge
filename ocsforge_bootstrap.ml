@@ -22,17 +22,17 @@
 (* /!\ This module is for bootstraping
    on the first run it creates a dummy task
    on every run it registers services
- 
+
  /!\ It should NOT be used for other purposes as there's no rigth verification at all. /!\*)
 
 let (>>=) = Lwt.bind
 let ($) = User_sql.Types.apply_parameterized_group
 
-let add_message ~forum () = 
+let add_message ~forum () =
   Forum_sql.get_forum ~forum () >>= fun f ->
   let wiki = f.Forum_types.f_messages_wiki in
   Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
-  let content_type = 
+  let content_type =
     Wiki_models.get_default_content_type wiki_info.Wiki_types.wiki_model
   in
   let title_syntax = f.Forum_types.f_title_syntax in
@@ -62,14 +62,14 @@ let first_task () =
         ~model:Wiki_site.wikicreole_model ()
                                                           >>= fun (wiki,_) ->
       Wiki_sql.get_wiki_info_by_id wiki                   >>= fun wi ->
-      Wiki_sql.new_wikibox 
-          ~wiki 
-          ~author:User.admin 
+      Wiki_sql.new_wikibox
+          ~wiki
+          ~author:User.admin
           ~comment:("ocsforge first task wikibox")
-          ~content:"<<content>>" 
+          ~content:"<<content>>"
           ~content_type:
           (Wiki_models.get_default_content_type Wiki_site.wikicreole_model)
-          ()     
+          ()
           >>= fun wikibox ->
       Ocsforge_sql.new_area
         ~forum:(fi.Forum_types.f_id)
@@ -127,7 +127,7 @@ let _ =
     Ocsigen_messages.debug2 "registering ocsforge services\n%!" ;
     let _ =
       Lwt_unix.run
-        (Ocsforge_services_source.register_repository_services () >>= fun _ -> 
+        (Ocsforge_services_source.register_repository_services () >>= fun _ ->
          Lwt.return (Ocsforge_services_source.register_xml_tree_service ()))
     and _ =
       Lwt_unix.run
@@ -143,7 +143,7 @@ let _ =
     (*Ocsforge_wikiext_tasks.register_wikiext
       Wiki_syntax.wikicreole_parser
       tree_widget ;*)
-    Ocsforge_wikiext_source.register_wikiext 
+    Ocsforge_wikiext_source.register_wikiext
       Wiki_syntax.wikicreole_parser ;
   end
 

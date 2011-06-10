@@ -240,14 +240,14 @@ type role =
       repository_setter : bool Lwt.t Lazy.t ;
     }
 
-let get_role ~sp ~area =
-  User.get_user_id sp >>= fun userid ->
+let get_role ~area =
+  User.get_user_id () >>= fun userid ->
   let user = UTypes.basic_user userid in
-  let in_grp grp id = User.in_group ~sp ~user ~group:(grp $ id) () in
+  let in_grp grp id = User.in_group ~user ~group:(grp $ id) () in
   let no = lazy (Lwt.return false) in
   let yes = lazy (Lwt.return true) in
 
-  User.in_group ~sp ~group:(task_reader $ area) () >>= fun read ->
+  User.in_group () ~group:(task_reader $ area) >>= fun read ->
     (*plan is :
        if task_reader
        then if comment_reader
@@ -260,7 +260,7 @@ let get_role ~sp ~area =
   if read
   then
     begin
-      User.in_group ~sp
+      User.in_group
         ~group:(task_comment_reader $ area) ()
       >>= fun readc ->
        if readc 
@@ -353,14 +353,14 @@ module RoleMap = Map.Make (struct
                              let compare = compare
                            end)
 
-let blunt_sd ~sp =
+let blunt_sd () =
   let cache = ref RoleMap.empty in
     fun k ->
       Lwt.catch
         (fun () -> Lwt.return (RoleMap.find k !cache))
         (function
            | Not_found ->
-               (get_role ~sp ~area:k >>= fun role ->
+               (get_role ~area:k >>= fun role ->
                 cache := RoleMap.add k role !cache ;
                 Lwt.return role)
            | exc -> (failwith ("Ocsforge.blunt_sd : "
@@ -373,19 +373,19 @@ type area_sd = Types.right_area -> role Lwt.t
 (** The polytable key for retrieving data inside session data *)
 let area_key : area_sd Polytables.key = Polytables.make_key ()
 
-let get_area_session_data ~sp =
-  let rc = Eliom_sessions.get_request_cache sp in
+let get_area_session_data () =
+  let rc = Eliom_request_info.get_request_cache () in
   try
     Polytables.get ~table:rc ~key:area_key
   with Not_found ->
-    let asd = blunt_sd ~sp in
+    let asd = blunt_sd () in
     Polytables.set rc area_key asd;
     asd
 
 
 (** This is the only function to be called outside of this module ! *)
-let get_area_role ~sp k =
-  let area_sd = get_area_session_data ~sp in
+let get_area_role k =
+  let area_sd = get_area_session_data () in
   area_sd k
 
 

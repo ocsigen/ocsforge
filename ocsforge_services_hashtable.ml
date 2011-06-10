@@ -23,14 +23,14 @@ type src_page_kind = [
   | `Annot
   | `Diff
   | `PatchDiff
-  | `Options 
+  | `Options
   | `Error ]
 
 type log_page_kind = [ `Log of (string option * string option) ]
 
 (* Used by the menu *)
 type page_kind = [ src_page_kind | log_page_kind ]
- 
+
 
 let kind_to_string = function
   | `Browse    -> "browse"
@@ -40,7 +40,7 @@ let kind_to_string = function
   | `Annot     -> "annot"
   | `Options   -> "options"
   | `Error     -> "error"
-      
+
 let string_to_kind = function
   | "browse"    -> `Browse
   | "diff"      -> `Diff
@@ -51,83 +51,83 @@ let string_to_kind = function
   | _           -> `Error
 
 
-type project_services = 
+type project_services =
     { sources_service:
 	(string list * (src_page_kind option * (string option * string option))
            , unit,
          [ `Attached of
-           Eliom_services.get_attached_service_kind Eliom_services.a_s ],
+             (Eliom_services.attached_service_kind, [ `Get ]) Eliom_services.a_s ],
          [ `WithSuffix ],
          ([`One of string list] Eliom_parameters.param_name *
 	    ([ `One of src_page_kind ] Eliom_parameters.param_name *
                ([ `One of string ] Eliom_parameters.param_name *
                   [ `One of string ] Eliom_parameters.param_name)))
             ,unit,
-         [ `Registrable ])
+         [ `Registrable ], Eliom_services.http)
 	Eliom_services.service;
       log_service:
 	((string option * string option) option, unit,
 	 [ `Attached of
-	   Eliom_services.get_attached_service_kind Eliom_services.a_s ],
+             (Eliom_services.attached_service_kind, [ `Get ]) Eliom_services.a_s ],
 	 [ `WithoutSuffix ],
-	 ([ `One of (string option * string option)] Eliom_parameters.param_name), 
-          unit,[ `Registrable ])
+	 ([ `One of (string option * string option)] Eliom_parameters.param_name),
+          unit,[ `Registrable ], Eliom_services.http)
 	Eliom_services.service
     }
 
 
 (* Hashtable (task id, service) *)
-let repos_services_table : (string,project_services) Hashtbl.t = 
+let repos_services_table : (string,project_services) Hashtbl.t =
   Hashtbl.create 50
 
-let add_service id service = 
+let add_service id service =
   Hashtbl.add repos_services_table id service
 
-let find_service id = 
+let find_service id =
   try Some (Hashtbl.find repos_services_table id)
   with Not_found -> None
 
-let find_sources_service id = 
+let find_sources_service id =
   ((Hashtbl.find repos_services_table id).sources_service
      :    (string list * (src_page_kind option * (string option * string option)),
      unit,
      [ `Attached of
-         Eliom_services.get_attached_service_kind Eliom_services.a_s ],
+         (Eliom_services.attached_service_kind, [ `Get ]) Eliom_services.a_s ],
      [ `WithSuffix ],
      [ `One of string list ] Eliom_parameters.param_name *
      ([ `One of src_page_kind ] Eliom_parameters.param_name *
       ([ `One of string ] Eliom_parameters.param_name *
        [ `One of string ] Eliom_parameters.param_name)),
-     unit, [ `Registrable ])
+     unit, [ `Registrable ], Eliom_services.http)
     Eliom_services.service :>
     (string list * (src_page_kind option * (string option * string option)),
      unit,
      [> `Attached of
-         Eliom_services.get_attached_service_kind Eliom_services.a_s ],
+         (Eliom_services.attached_service_kind, [ `Get ]) Eliom_services.a_s ],
      [> `WithSuffix ],
      [ `One of string list ] Eliom_parameters.param_name *
      ([ `One of src_page_kind ] Eliom_parameters.param_name *
       ([ `One of string ] Eliom_parameters.param_name *
        [ `One of string ] Eliom_parameters.param_name)),
-     unit, [> `Registrable ])
+     unit, [> `Registrable ], Eliom_services.http)
     Eliom_services.service)
 
-let find_log_service id = 
-  ((Hashtbl.find repos_services_table id).log_service 
+let find_log_service id =
+  ((Hashtbl.find repos_services_table id).log_service
      :     ((string option * string option) option, unit,
      [ `Attached of
-         Eliom_services.get_attached_service_kind Eliom_services.a_s ],
+         (Eliom_services.attached_service_kind, [ `Get ]) Eliom_services.a_s ],
      [ `WithoutSuffix ],
      [ `One of string option * string option ] Eliom_parameters.param_name,
-     unit, [ `Registrable ])
+     unit, [ `Registrable ], Eliom_services.http)
     Eliom_services.service
    :>
     ((string option * string option) option, unit,
      [> `Attached of
-         Eliom_services.get_attached_service_kind Eliom_services.a_s ],
+         (Eliom_services.attached_service_kind, [ `Get ]) Eliom_services.a_s ],
      [> `WithoutSuffix ],
      [ `One of string option * string option ] Eliom_parameters.param_name,
-     unit, [> `Registrable ])
+     unit, [> `Registrable ], Eliom_services.http)
     Eliom_services.service)
 
 

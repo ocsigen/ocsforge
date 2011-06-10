@@ -130,7 +130,7 @@ let new_task_service =
 
 
 (** Services used by client to get info. *)
-
+(*
 let register_dump_tree_service ?sp tree_widget task_widget path =
   let _ =
   Eliom_duce.Xhtml.register_new_service
@@ -186,7 +186,6 @@ let register_dump_tree_service ?sp tree_widget task_widget path =
              end
     )
   in Lwt.return ()
-  
 
 type supported_format =
   | Xml
@@ -214,7 +213,7 @@ let register_xml_dump_services tree_widget task_widget =
   Lwt_util.iter_serial
     (register_dump_tree_service tree_widget task_widget)
     ppl
-
+*)
 
 
 (* Editing fields for right areas.

@@ -25,9 +25,8 @@
 
 
 (** Add a task to the task tree.
-  
+
     Parameters are :
-    sp : the usual session parameters
     subject : the title of the message (a short description of the task)
     text : the content of the message (a long description of the task)
     length : the estimated time necessary to complete the task
@@ -37,11 +36,10 @@
     area : the area where the task should be placed, let empty for an automatic
     set up, set to None to detach the task (create into a new area), set to
     [Some a] to create into area a
-   
+
     Result is : the task identifier
     *)
 val new_task :
-  sp:Eliom_sessions.server_params ->
   parent:Ocsforge_types.task ->
   subject:string ->
   text:string ->
@@ -52,7 +50,6 @@ val new_task :
   unit -> Ocsforge_types.task Lwt.t
 
 val new_project :
-  sp:Eliom_sessions.server_params ->
   parent:Ocsforge_types.task ->
   name:string ->
   ?length:CalendarLib.Calendar.Period.t ->
@@ -64,66 +61,57 @@ val new_project :
   unit -> Ocsforge_types.task Lwt.t
 
 (** Get the desired task.
-  
+
    paramter is :
    the usuals server_paramsthe
    the task identifier
    result is : the task information (See module Ocsforge_types)
    *)
 val get_task :
-  sp:Eliom_sessions.server_params ->
   task:Ocsforge_types.task -> Ocsforge_types.task_info Lwt.t
 
 
 (** Get the history of a task
-   [get_task_history sp id] result in the tuple [(info, history)] where info is
+   [get_task_history id] result in the tuple [(info, history)] where info is
    the info about the task and history is the list of preivous states of the
    task. *)
 val get_task_history :
-  sp:Eliom_sessions.server_params ->
   task:Ocsforge_types.task ->
   (Ocsforge_types.task_info * Ocsforge_types.task_history_info list) Lwt.t
 
 val get_area :
-  sp:Eliom_sessions.server_params ->
   area:Ocsforge_types.right_area -> Ocsforge_types.right_area_info Lwt.t
 
 val get_tree :
-  sp:Eliom_sessions.server_params ->
   root:Ocsforge_types.task ->
   ?with_deleted:bool ->
   ?depth:int ->
   unit -> Ocsforge_types.task_info Ocsforge_lang.Tree.tree Lwt.t
 
 (** Get tasks with a specified parent.
-   [get_sub_tasks sp parent] result in the list of desired tasks. *)
+   [get_sub_tasks parent] result in the list of desired tasks. *)
 val get_sub_tasks :
-  sp:Eliom_sessions.server_params ->
   parent:Ocsforge_types.task -> Ocsforge_types.task_info list Lwt.t
 
 
 val get_area_for_task :
-  sp:Eliom_sessions.server_params ->
   task:Ocsforge_types.task -> Ocsforge_types.right_area_info Lwt.t
 
 val get_area_for_page :
-  sp:Eliom_sessions.server_params ->
   page:string -> Ocsforge_types.right_area_info Lwt.t
 
 
 
 (** Get tasks sharing a common editor.
-   [get_tasks_edited_by sp editor] result in the list of tasks with the
+   [get_tasks_edited_by editor] result in the list of tasks with the
    [t_edit_author] field being [editor] *)
 val get_tasks_edited_by :
-  sp:Eliom_sessions.server_params ->
   editor:User_sql.Types.userid -> Ocsforge_types.task_info list Lwt.t
 
 
 (** Change fields for the task. Only use fields you are willing to change, other
-   fields will be left untouched.*) 
+   fields will be left untouched.*)
 val edit_task :
-  sp:Eliom_sessions.server_params ->
   task:Ocsforge_types.task ->
   ?length:CalendarLib.Calendar.Period.t option ->
   ?progress:int32 option ->
@@ -133,7 +121,6 @@ val edit_task :
 
 (** Change fields for a right area. Only use fields you want to tamper with. *)
 val edit_area :
-  sp:Eliom_sessions.server_params ->
   area:Ocsforge_types.right_area ->
   ?repository_path:string option ->
   ?repository_kind:string option ->
@@ -145,27 +132,24 @@ val edit_area :
 
 
 (** Change a task parent and possibly area fields.
-  
+
    Paramters are :
    task : the identifier of the task to move
    parent : the identifier of the new parent for the task
    area : if not specified, the area will be adapted to the new parent, if specified the area will
    take the given value.*)
 val move_task :
-  sp:Eliom_sessions.server_params ->
   task:Ocsforge_types.task ->
   parent:Ocsforge_types.task ->
   unit Lwt.t
 
 (** Detach a task into a new area.
-  
+
    Parameters are :
-   sp : the usual
    task : the task to detach
    parent : the new parent for the task. If unspecified, won't change parent.
    *)
 val make_project :
-  sp:Eliom_sessions.server_params ->
   task:Ocsforge_types.task ->
   ?repository_kind:string ->
   ?repository_path:string ->
@@ -175,42 +159,35 @@ val make_project :
 
 (** Getting kinds usable within the area *)
 val get_kinds :
-  sp:Eliom_sessions.server_params ->
   area:Ocsforge_types.right_area ->
   string list Lwt.t
 
 (** Adding, Deleting or Setting (aka wiping-out-then-adding) kinds.
-  
+
    Parameters are :
-   sp
    area : the area identifier
    kinds : a list of string that will be added/deleted/set
    in del_kinds kinds contain optional alternative values for deleted kinds. It
    is useful to avoid letting tasks with old kinds.
    *)
 val add_kinds :
-  sp:Eliom_sessions.server_params ->
   area:Ocsforge_types.right_area ->
   kinds:string list -> unit Lwt.t
 
 val del_kinds :
-  sp:Eliom_sessions.server_params ->
   area:Ocsforge_types.right_area ->
   kinds:(string * string option) list -> unit Lwt.t
 
 val set_kinds :
-  sp:Eliom_sessions.server_params ->
   area:Ocsforge_types.right_area ->
   kinds:string list -> unit Lwt.t
 
 val swap_kinds :
-  sp:Eliom_sessions.server_params ->
   area:Ocsforge_types.right_area ->
   kinds:(string * string) list -> unit Lwt.t
 
 (** Getting a task's forum message content. *)
 val find_subject :
-  sp:Eliom_sessions.server_params ->
   task:Ocsforge_types.task ->
   string Lwt.t
 
@@ -218,29 +195,19 @@ val find_subject :
 (** Getting separators in a subtree. The root of the subtree is the [~task]
     argument. *)
 val get_separators :
-  sp:Eliom_sessions.server_params ->
   task:Ocsforge_types.task ->
   Ocsforge_types.separator_info list Lwt.t
 
 (** Setting separator field. *)
 val set_separator_content :
-  sp:Eliom_sessions.server_params ->
   separator:Ocsforge_types.separator ->
   content:string -> unit Lwt.t
 val move_separator :
-  sp:Eliom_sessions.server_params ->
   separator:Ocsforge_types.separator ->
   after:Ocsforge_types.task -> unit Lwt.t
 
 (** inserting a new separator *)
 val insert_separator :
-  sp:Eliom_sessions.server_params ->
   after:Ocsforge_types.task ->
   content:string -> unit Lwt.t
-
-
-
-
-
-
 

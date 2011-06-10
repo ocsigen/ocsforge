@@ -1,38 +1,41 @@
-open Ocamlbuild_plugin               
+open Ocamlbuild_plugin
 (* open Command -- no longer needed for OCaml >= 3.10.2 *)
 
+let () = Ocamlbuild_pack.Log.classic_display := true
+let () = Unix.putenv "PGDATABASE" "ocsimore";;
+
 (* these functions are not really officially exported *)
-let run_and_read = Ocamlbuild_pack.My_unix.run_and_read 
+let run_and_read = Ocamlbuild_pack.My_unix.run_and_read
 let blank_sep_strings = Ocamlbuild_pack.Lexers.blank_sep_strings
 
 let split s ch =
   let x = ref [] in
-  let rec go s =   
+  let rec go s =
     let pos = String.index s ch in
     x := (String.before s pos)::!x;
-    go (String.after s (pos + 1))  
-  in                               
-  try                              
-    go s                           
+    go (String.after s (pos + 1))
+  in
+  try
+    go s
   with Not_found -> !x
 
 let split_nl s = split s '\n'
 
 let before_space s =
-  try               
+  try
     String.before s (String.index s ' ')
-  with Not_found -> s                   
+  with Not_found -> s
 
 (* this lists all supported packages *)
-let find_packages () =                 
+let find_packages () =
   List.map before_space (split_nl & run_and_read "ocamlfind list")
 
-(* this is supposed to list available syntaxes, 
+(* this is supposed to list available syntaxes,
    but I don't know how to do it. *)
 let find_syntaxes () = ["camlp4o"; "camlp4r"]
 
 (* ocamlfind command *)
-let ocamlfind x = S[A"./myocamlfind.byte"; x]
+let ocamlfind x = S[A"ocamlfind"; x]
 
 let svn_includes = "-I/usr/include/subversion-1 -I/usr/include/apr-1.0 -D_LARGEFILE64_SOURCE"
 let svn_client = "-lsvn_client-1"
@@ -40,7 +43,7 @@ let swig_svn = "swig_svn_wrap.o swig_svn.o"
 let headers = ["swig_svn.h"]
 
 let _ = dispatch begin function
-   | Before_options ->         
+   | Before_options ->
        (* by using Before_options one let command line options have an higher priority *)
        (* on the contrary using After_options will guarantee to have the higher priority *)
 
@@ -50,13 +53,13 @@ let _ = dispatch begin function
        Options.ocamldep   := ocamlfind & A"ocamldep";
        Options.ocamldoc   := ocamlfind & A"ocamldoc";
        Options.ocamlmktop := ocamlfind & A"ocamlmktop"
-   
+
    | After_options ->
 	 Options.ocamlyacc := A"menhir"
 
    | After_rules ->
 
-       (* When one link an OCaml library/binary/package, 
+       (* When one link an OCaml library/binary/package,
         * one should use -linkpkg *)
        flag ["ocaml"; "link"] & A"-linkpkg";
 
@@ -90,29 +93,36 @@ let _ = dispatch begin function
        flag ["ocaml"; "pkg_threads"; "link"] (S[A "-thread"]);
        flag ["ocaml"; "pkg_threads"; "infer_interface"] (S[A "-thread"]);
 
-       flag ["ocaml"; "notocamlduce"; "compile"] (S[A "-notduce"]);
-       flag ["ocaml"; "notocamlduce"; "ocamldep"] (S[A "-notduce"]);
-       flag ["ocaml"; "notocamlduce"; "doc"] (S[A "-notduce"]);
-       flag ["ocaml"; "notocamlduce"; "link"] (S[A "-notduce"]);
+       (* flag ["ocaml"; "notocamlduce"; "compile"] (S[A "-notduce"]); *)
+       (* flag ["ocaml"; "notocamlduce"; "ocamldep"] (S[A "-notduce"]); *)
+       (* flag ["ocaml"; "notocamlduce"; "doc"] (S[A "-notduce"]); *)
+       (* flag ["ocaml"; "notocamlduce"; "link"] (S[A "-notduce"]); *)
 
        (* internal libraries *)
 (*       ocaml_lib "nis_chkpwd/nis_chkpwd"; *)
        flag ["ocaml"; "link"; "with_nis_chkpwd"] (S[A "nis_chkpwd.cma"]);
 
        (* With obrowser's standard library *)
-       flag ["ocaml"; "compile"; "pkg_obrowser"] & (S[A"-nostdlib"]);
-       flag ["ocaml"; "link"; "pkg_obrowser"] & (S[A"-nostdlib"]);
-       
+       (* flag ["ocaml"; "compile"; "pkg_obrowser"] & (S[A"-nostdlib"]); *)
+       (* flag ["ocaml"; "link"; "pkg_obrowser"] & (S[A"-nostdlib"]); *)
+
        flag ["c"; "compile"; "include_swig"] (S[A"-ccopt"; A svn_includes]);
-       
-       flag ["ocaml"; "link"; "use_swig_svn"; "use_svn_client"] 
+
+       flag ["ocaml"; "link"; "use_swig_svn"; "use_svn_client"]
 	 (S[A"swig.cmo"; A"swig_svn.cmo"; A"-cclib"; A svn_client; A"-custom"; A swig_svn]);
 
-       dep  ["compile"; "c"] headers; 
+       dep  ["compile"; "c"] headers;
 (*
        flag ["ocaml"; "compile"; "pkg_obrowser"] & (S[A"-nostdlib"; A"-I" ; A"/home/balat/kroko/obrowser/trunk/rt/caml"]);
        flag ["ocaml"; "link"; "pkg_obrowser"] & (S[A"-nostdlib"; A"-I" ; A"/home/balat/kroko/obrowser/trunk/rt/caml"]);
 *)
+       rule "swig ocaml"
+	 ~dep:"%.i"
+         ~prods:["%.ml";"%.mli";"%_wrap.c"]
+	   (fun env _ ->
+	     let swig_source = env "%.i" in
+	     Cmd(S[A "swig"; A "-ocaml"; A swig_source]))
+
    | _ -> ()
 end
 

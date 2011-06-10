@@ -24,50 +24,14 @@ module Types = Ocsforge_types
 module Tree = Ocsforge_lang.Tree
 module Olang = Ocsforge_lang
 module Roles = Ocsforge_roles
-let utf8 = Ocamlduce.Utf8.make
-let (>>=) = Lwt.bind
+open Eliom_pervasives
 let (@@) f g = fun x -> f (g x)
 
+open XML
 
-(* boolean type for ocamlduce *)
-type boolean = {{ "true" | "false" }}
-let boolean_of_bool b = if b then {{ "true" }} else {{ "false" }}
-
-(* The separators *)
-type separator = {{ <separator id=String after=String>[ ( Char )* ] }}
-type separators ={{ <seps>[ ( separator )* ] }}
-
-(* The tasks *)
-type task_attrs = (*TODO: improve type checking*)
-    {{ {
-                 id =? String  (* the id of the task          *)
-               kind =? String  (* the category the task is in *)
-           _length_ =? String  (* the estimated length        *)
-           progress =? String  (* the progress made           *)
-         importance =? String  (* the importance              *)
-
-          deleted =? boolean (* true if the task has been deleted  *)
-         editable =? boolean (* true if edition rights are granted *)
-          movable =? boolean (* true if the user is a task_mover   *)
-          project =? boolean (* true if the task is a project      *)
-    } }}
-type task =
-    {{ <task (task_attrs) >
-         [
-           <subject>[ Char* ]
-           <children>[ task* ]
-         ]
-    }}
-
-(* The whole format *)
-type dump_format = {{ <task_tree>[ ( separators task )? ] }}
-
-
-(** Get the task tree and return a [dump_format] xml tree. *)
-let rec xml_of_tree ~sp ~task ?depth ?with_deleted () =
+let rec xml_of_tree ~task ?depth ?with_deleted () =
   let s_of_i32_opt = Olang.string_of_t_opt Int32.to_string in
-
-  let rec aux_tree
+    let rec aux_tree
     { Tree.content =
         { Types.t_id = id          ; 
           Types.t_length = len     ; Types.t_progress = pro ;
@@ -77,58 +41,48 @@ let rec xml_of_tree ~sp ~task ?depth ?with_deleted () =
         } ;
       Tree.children = l ; }
     =
-    Ocsforge_widgets_tasks.draw_message_title ~sp ~task:id >>= fun msg  -> (*FIXME: get the title in a cleaner way*)
-    Roles.get_area_role sp area                            >>= fun role ->
+    Ocsforge_widgets_tasks.draw_message_title ~task:id     >>= fun msg  -> (*FIXME: get the title in a cleaner way*)
+    Roles.get_area_role area                               >>= fun role ->
     Lazy.force ( role.Roles.task_property_editor )         >>= fun edi  ->
     Lazy.force ( role.Roles.task_mover )                   >>= fun mov  ->
     Lwt_util.map_serial aux_tree l                         >>= fun l ->
     Lwt.return
-      ({{ <task id         = {: utf8 (Types.string_of_task id)      :}
-                _length_   = {: utf8
-                               (Olang.string_of_t_opt
-                                  (string_of_int @@ Olang.hours_in_period)
-                                  len
-                               )                                    :}
-               progress   = {: utf8 (s_of_i32_opt pro)              :}
-               importance = {: utf8 (s_of_i32_opt imp)              :}
-               kind       = {: utf8 (Olang.string_of_t_opt
-                                          (fun k -> k) kin)         :}
-               deleted    = {{ boolean_of_bool del }}
-               editable   = {{ boolean_of_bool edi }}
-               movable    = {{ boolean_of_bool mov }}
-               project    = {{ boolean_of_bool ar  }}
-          >[
-            <subject>[ !{: utf8 msg :} ]
-            <children>[ !{: l :} ]
-           ]
-       }} : {{ task }} )
-  in
-  let rec aux_sep = function
-    | [] -> ({{ [ ] }} : {{ [ separator* ] }})
-    | h::t -> let t = aux_sep t in
-        ({{ [
-           <separator id    = {: utf8
-                                   (Types.string_of_separator h.Types.s_id)
-                              :}
-                      after = {: utf8
-                                (Types.string_of_task h.Types.s_after)
-                              :}
-           > {: utf8 h.Types.s_content :} !t
-         ] }} : {{ [ separator+ ] }} )
-  in
+      (node "task"
+	 ~a:((List.map (fun (n,v) -> string_attrib n v)
+		["id",Types.string_of_task id;
+		 "length",(Olang.string_of_t_opt
+                             (string_of_int @@ Olang.hours_in_period)
+                             len);
+		 "progress",(s_of_i32_opt pro);
+		 "importance",(s_of_i32_opt imp);
+                 "kind",(Olang.string_of_t_opt (fun k -> k) kin);])
+	       @
+		 (List.map (fun (n,b) -> string_attrib n (string_of_bool b))
+		    ["deleted",del;
+		     "editable", edi;
+		     "movable", mov;
+		     "project", ar;]))
+	 [node "subject" [pcdata msg];
+	  node "children" l])
+    in
+    let rec aux_sep = function
+      | [] -> []
+      | h::t ->
+	let t = aux_sep t in
+	(node "separator"
+	    ~a:[string_attrib "id" (Types.string_of_separator h.Types.s_id);
+		string_attrib "after" (Types.string_of_task h.Types.s_after)]
+	    [pcdata h.Types.s_content])::t
+    in
+    try_lwt
+      Ocsforge_data.get_tree ~root:task ?with_deleted ?depth ()
+      >>= aux_tree >>= fun c ->
 
-  (Lwt.catch
-     (fun () ->
+      Ocsforge_data.get_separators ~task
+      >>= Lwt.return @@ aux_sep >>= fun s ->
 
-        Ocsforge_data.get_tree ~sp ~root:task ?with_deleted ?depth ()
-        >>= aux_tree >>= fun c ->
-
-        Ocsforge_data.get_separators ~sp ~task
-        >>= Lwt.return @@ aux_sep >>= fun s ->
-
-        Lwt.return {{ <task_tree>[ <seps>s c ] }}
-     )
-     (function
-        | Tree.Empty_tree -> Lwt.return {{ <task_tree>[] }}
-        | exc -> Lwt.fail exc ) )
+      Lwt.return ( node "task_tree" [ node "seps" s; c ] )
+    with
+      | Tree.Empty_tree -> Lwt.return ( leaf "task_tree" )
+      | exc -> Lwt.fail exc
 

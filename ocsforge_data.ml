@@ -47,20 +47,20 @@ let do_sql f = Lwt_pool.use Sql.pool f
 
 (** {4 Task and Area creation } *)
 
-let new_task ~sp
+let new_task
       ~parent ~subject ~text
       ?length ?progress ?importance ?kind
       () =
-  User.get_user_id ~sp                                    >>= fun creator ->
+  User.get_user_id ()                                     >>= fun creator ->
   do_sql (Ocsforge_sql.get_area_for_task ~task_id:parent) >>= fun area ->
-  Roles.get_area_role sp area                             >>= fun role ->
+  Roles.get_area_role area                                >>= fun role ->
   !!(role.Roles.task_creator)                             >>= fun b ->
   if b
   then
     Sql.full_transaction_block
       (fun db ->
          Ocsforge_sql.get_area_by_id ~area_id:area db       >>= fun ainfo ->
-           Forum_data.new_message ~sp
+           Forum_data.new_message
              ~forum:ainfo.Types.r_forum
              ~creator_id:creator
              ~subject
@@ -77,13 +77,13 @@ let new_task ~sp
       )
   else Lwt.fail Ocsimore_common.Permission_denied
 
-let new_project ~sp
+let new_project
       ~parent ~name
       ?length ?importance ?kind ?repository_kind ?repository_path
       ?wiki_container
       () =
   do_sql (Ocsforge_sql.get_area_for_task ~task_id:parent) >>= fun parent_area ->
-  Roles.get_area_role sp parent_area                      >>= fun role ->
+  Roles.get_area_role parent_area                         >>= fun role ->
   !!(role.Roles.subarea_creator)                          >>= fun b ->
   if not b
   then
@@ -114,7 +114,7 @@ let new_project ~sp
          (* create wiki *)
          Ocsforge_sql.get_path_for_area ~area:parent_area db >>= fun ppath ->
          let ppath = Olang.unopt ppath in
-         User.get_user_id ~sp                            >>= fun author ->
+         User.get_user_id ()                                 >>= fun author ->
 
          Wiki.create_wiki
             ~title:(Printf.sprintf "Ocsforge_%s_(area_%s)_wiki"
@@ -128,12 +128,11 @@ let new_project ~sp
             ()
                                                            >>= fun wiki ->
 
-         (* TODO : give the real model *)   
-                                                         
-         Wiki_data.new_wikitextbox 
+         (* TODO : give the real model *)
+
+         Wiki_data.new_wikitextbox
 
             ~rights:( Wiki_models.get_rights Wiki_site.wikicreole_model )
-            ~sp
             ~content_type:(
               Wiki_models.get_default_content_type Wiki_site.wikicreole_model
             )
@@ -141,12 +140,12 @@ let new_project ~sp
             ~author
             ~comment:( "ocsforge subcontainer for " ^ name )
             ~content:"<<content>>"
-            () 
+            ()
             >>= fun wikibox ->
-            
+
          (* create area *)
            Ocsforge_sql.new_area
-             ~id:c ~forum ~wiki ~wikibox ?repository_kind ?repository_path () 
+             ~id:c ~forum ~wiki ~wikibox ?repository_kind ?repository_path ()
          >>= fun _ -> (* the result can't be anything but [c] *)
 
          Lwt_util.iter_serial (* syncing rights with the comment wiki *)
@@ -163,7 +162,7 @@ let new_project ~sp
             (Roles.task_comment_writer_not_moderated,
                                                  FRoles.message_creators_notmod ) ;
            ] >>= fun () ->
- 
+
          Lwt_util.iter_serial (* syncing rights with the message wiki *)
            (fun (ar,fr) ->
               User.add_to_group ~user:(ar $ c) ~group:(fr $ mwiki)
@@ -183,7 +182,7 @@ let new_project ~sp
 
 
           (* create message *)
-            Forum_data.new_message ~sp
+            Forum_data.new_message
               ~forum ~creator_id:author ~subject:name ~text:""
               () >>= fun message ->
 
@@ -218,56 +217,56 @@ let new_project ~sp
                Roles.version_setter ;
                Roles.repository_setter ; ]
           >>= fun () -> Ocsforge_sql.set_root_task ~area_id:c ~task db
-          >>= fun () -> Lwt.return task             
+          >>= fun () -> Lwt.return task
 
       )
 
 
-let get_task ~sp ~task =
+let get_task ~task =
   do_sql (Ocsforge_sql.get_area_for_task ~task_id:task)   >>= fun area ->
-  Roles.get_area_role sp area                             >>= fun role ->
+  Roles.get_area_role area                                >>= fun role ->
   !!(role.Roles.task_reader)                              >>= fun b ->
   if b
   then do_sql (Ocsforge_sql.get_task_by_id ~task_id:task)
   else Lwt.fail Ocsimore_common.Permission_denied
 
-let get_area_for_task ~sp:_ ~task =
+let get_area_for_task ~task =
   do_sql(Ocsforge_sql.get_area_info_for_task ~task_id:task)
 
-let get_area_for_page ~sp:_ ~page =
+let get_area_for_page ~page =
   do_sql(Ocsforge_sql.get_area_info_for_page ~page_id:page)
 
-let get_task_history ~sp ~task =
+let get_task_history ~task =
   do_sql (Ocsforge_sql.get_area_for_task ~task_id:task)   >>= fun area ->
-  Roles.get_area_role sp area                             >>= fun role ->
+  Roles.get_area_role area                                >>= fun role ->
   !!(role.Roles.task_reader)                              >>= fun b ->
   if b
   then do_sql (Ocsforge_sql.get_task_history_by_id ~task_id:task)
   else Lwt.fail Ocsimore_common.Permission_denied
 
-let get_area ~sp:_ ~area =
+let get_area ~area =
   do_sql (Ocsforge_sql.get_area_by_id ~area_id:area)
 
-let filter_aux_read sp t =
-  Roles.get_area_role sp t.Types.t_area >>= fun role ->
+let filter_aux_read t =
+  Roles.get_area_role t.Types.t_area >>= fun role ->
   !!(role.Roles.task_reader)
 
-let filter_aux_edit sp t =
-  Roles.get_area_role sp t.Types.t_area >>= fun role ->
+let filter_aux_edit t =
+  Roles.get_area_role t.Types.t_area >>= fun role ->
   !!(role.Roles.task_property_editor)
 
-let filter_task_list_for_reading sp tl =
- Ocsimore_lib.lwt_filter (filter_aux_read sp) tl
+let filter_task_list_for_reading tl =
+ Ocsimore_lib.lwt_filter filter_aux_read tl
 
-let filter_task_list_for_editing sp tl =
-  Ocsimore_lib.lwt_filter (filter_aux_edit sp) tl
+let filter_task_list_for_editing tl =
+  Ocsimore_lib.lwt_filter filter_aux_edit tl
 
-let get_tree ~sp ~root ?with_deleted ?depth () = (*TODO: use depth for sql transaction, not only for result sorting (not that obvious) *)
+let get_tree ~root ?with_deleted ?depth () = (*TODO: use depth for sql transaction, not only for result sorting (not that obvious) *)
   (* get as list *)
   do_sql (Ocsforge_sql.get_tasks_in_tree ~root ?with_deleted ())
   (* filter *)
-  >>= (filter_task_list_for_reading sp)
-  (* tree-fy *)      
+  >>= filter_task_list_for_reading
+  (* tree-fy *)
   >>= (function
     | []       -> Lwt.fail Tree.Empty_tree
     | hd :: tl ->
@@ -306,17 +305,17 @@ let get_tree ~sp ~root ?with_deleted ?depth () = (*TODO: use depth for sql trans
         t.Tree.children
     }
 
-let get_sub_tasks ~sp ~parent =
+let get_sub_tasks ~parent =
   Sql.full_transaction_block (Ocsforge_sql.get_tasks_by_parent ~parent)
-  >>= (filter_task_list_for_reading sp)
+  >>= filter_task_list_for_reading
 
 
-let get_tasks_edited_by ~sp ~editor =
+let get_tasks_edited_by ~editor =
   Sql.full_transaction_block (Ocsforge_sql.get_tasks_by_editor ~editor ())
-  >>= (filter_task_list_for_reading sp)
+  >>= filter_task_list_for_reading
 
 
-let edit_task ~sp ~task
+let edit_task ~task
       ?length ?progress ?importance ?kind
       () =
 
@@ -326,7 +325,7 @@ let edit_task ~sp ~task
   else
     begin
       do_sql (Ocsforge_sql.get_area_for_task ~task_id:task)  >>= fun area ->
-      Roles.get_area_role sp area                            >>= fun role ->
+      Roles.get_area_role area                               >>= fun role ->
       !!(role.Roles.task_property_editor)                    >>= fun b ->
       if not b
       then
@@ -335,7 +334,7 @@ let edit_task ~sp ~task
         Sql.full_transaction_block (
           (fun db ->
             let task_id = task in
-            User.get_user_id sp >>= fun author ->
+            User.get_user_id () >>= fun author ->
             Ocsforge_sql.copy_in_history ~task_id db >>= fun () ->
             Ocsforge_sql.stamp_edition ~task_id ~author db >>= fun () ->
             (match length with
@@ -360,7 +359,7 @@ let edit_task ~sp ~task
         )
     end
 
-let move_task ~sp ~task ~parent = (* For this function to work, the "move forum message" part have to be implemented ! *)
+let move_task ~task ~parent = (* For this function to work, the "move forum message" part have to be implemented ! *)
 
   do_sql (Ocsforge_sql.is_area_root ~task) >>= fun area_root ->
   if not area_root
@@ -371,16 +370,16 @@ let move_task ~sp ~task ~parent = (* For this function to work, the "move forum 
       (fun db ->
         (*checking rights*)
         Ocsforge_sql.get_area_for_task ~task_id:parent db >>= fun area_new ->
-        Roles.get_area_role ~sp area_new                  >>= fun role_new ->
+        Roles.get_area_role area_new                      >>= fun role_new ->
         !!(role_new.Roles.task_mover_to)                  >>= fun mover_to ->
         Ocsforge_sql.get_area_for_task ~task_id:task db   >>= fun area_old ->
-        Roles.get_area_role ~sp area_old                  >>= fun role_old ->
+        Roles.get_area_role area_old                      >>= fun role_old ->
         !!(role_old.Roles.task_mover_from)                >>= fun mover_from ->
 
            if mover_from && mover_to
            then
            (*executing*)
-             User.get_user_id sp >>= fun author ->
+             User.get_user_id () >>= fun author ->
 
              Ocsforge_sql.copy_in_history ~task_id:task db         >>= fun () ->
              Ocsforge_sql.stamp_edition ~task_id:task ~author db   >>= fun () ->
@@ -398,13 +397,13 @@ let move_task ~sp ~task ~parent = (* For this function to work, the "move forum 
       (fun db ->
         (*checking rights*)
         Ocsforge_sql.get_area_for_task ~task_id:task db  >>= fun area ->
-        Roles.get_area_role ~sp area                     >>= fun role ->
+        Roles.get_area_role area                         >>= fun role ->
         !!(role.Roles.task_mover)                        >>= fun mover ->
 
            if mover
            then
            (*executing*)
-             User.get_user_id sp >>= fun author ->
+             User.get_user_id () >>= fun author ->
              Ocsforge_sql.copy_in_history ~task_id:task db >>= fun () ->
              Ocsforge_sql.stamp_edition ~task_id:task ~author db >>= fun () ->
 
@@ -417,16 +416,16 @@ let move_task ~sp ~task ~parent = (* For this function to work, the "move forum 
              Ocsforge_sql.set_parent ~task_id:task ~parent db >>= fun () ->
              Ocsforge_sql.change_tree_marks ~task_id:task ~parent_id:parent db
 
-           (*permission denied*)    
+           (*permission denied*)
            else Lwt.fail Ocsimore_common.Permission_denied
          )
 
-let edit_area ~sp ~area ?repository_path ?repository_kind ?version () =
+let edit_area ~area ?repository_path ?repository_kind ?version () =
   if repository_path = None && repository_kind = None && version = None
   then Lwt.return ()
   else
     begin
-      Roles.get_area_role sp area                            >>= fun role ->
+      Roles.get_area_role area                               >>= fun role ->
       !!(role.Roles.repository_setter)                       >>= fun b ->
       if not b
       then
@@ -450,7 +449,7 @@ let edit_area ~sp ~area ?repository_path ?repository_kind ?version () =
     end
 
 
-let make_project ~sp ~task ?repository_kind ?repository_path () =
+let make_project ~task ?repository_kind ?repository_path () =
 
   (* creating a new area and getting rights right *)
     Sql.full_transaction_block
@@ -458,7 +457,7 @@ let make_project ~sp ~task ?repository_kind ?repository_path () =
 
          (* checking rights *)
          Ocsforge_sql.get_area_for_task ~task_id:task db   >>= fun area_old ->
-         Roles.get_area_role ~sp area_old                  >>= fun role_old ->
+         Roles.get_area_role area_old                      >>= fun role_old ->
          !!(role_old.Roles.subarea_creator)                >>= fun b ->
          if not b (*we only check subarea_creator as it's the "su" of an area*)
          then Lwt.fail Ocsimore_common.Permission_denied
@@ -500,9 +499,9 @@ let make_project ~sp ~task ?repository_kind ?repository_path () =
                                                           >>= fun mi ->
             (* eventually : getting the content *)
           Wiki_data.wikibox_content
-            ~rights ~sp
+            ~rights
             (mi.FTypes.m_wikibox)                         >>= fun (_,name,_) ->
-          User.get_user_id ~sp                            >>= fun author ->
+          User.get_user_id ()                             >>= fun author ->
 
           let name = Olang.unopt name in
           Wiki.create_wiki
@@ -514,20 +513,20 @@ let make_project ~sp ~task ?repository_kind ?repository_path () =
              ~model:Wiki_site.wikicreole_model (*TODO : give the real model *)
              ()
                                                            >>= fun wiki ->
-               (* TODO : give the real model *)   
-                                                          
-          Wiki_data.new_wikitextbox 
-             
-             ~rights:(Wiki_models.get_rights Wiki_site.wikicreole_model) ~sp
+               (* TODO : give the real model *)
+
+          Wiki_data.new_wikitextbox
+
+             ~rights:(Wiki_models.get_rights Wiki_site.wikicreole_model)
              ~content_type:
                (Wiki_models.get_default_content_type Wiki_site.wikicreole_model)
              ~wiki:wiki
              ~author
              ~comment:("ocsforge subcontainer for "^name)
              ~content:"<<content>>"
-             () 
+             ()
              >>= fun wikibox ->
-                                                             
+
           (* create area *)
             Ocsforge_sql.new_area
               ~id:c ~forum ~wiki ~wikibox ?repository_kind ?repository_path ()
@@ -542,7 +541,7 @@ let make_project ~sp ~task ?repository_kind ?repository_path () =
             (task_comment_deletor, FRoles.message_deletors);
             (task_comment_writer, FRoles.message_creator);
             (task_comment_writer_not_moderated, FRoles.message_creators_notmod);
-           ] 
+           ]
          >>= fun () ->
          Lwt_util.iter_serial
            (fun (ar,fr) -> User.add_to_group ~user:(ar $ c) ~group:(fr $ mwiki))
@@ -559,7 +558,7 @@ let make_project ~sp ~task ?repository_kind ?repository_path () =
 
           (* create message *)
             Forum_data.new_message
-              ~sp ~forum ~creator_id:author ~subject:name ~text:"" ()
+              ~forum ~creator_id:author ~subject:name ~text:"" ()
           >>= fun _ ->
 
           (*propagating rights into the new area*)
@@ -610,7 +609,6 @@ let make_project ~sp ~task ?repository_kind ?repository_path () =
                in
                Wiki_data.update_wiki
                  ~rights
-                 ~sp
                  ~path:(Some (Neturl.join_path path))
                  a.Types.r_wiki
             )
@@ -623,12 +621,12 @@ let make_project ~sp ~task ?repository_kind ?repository_path () =
 
 (** Tampering with kinds *)
 
-let get_kinds ~sp:_ ~area =
+let get_kinds ~area =
   Sql.full_transaction_block
   (Ocsforge_sql.get_kinds_for_area ~area_id:area)
 
-let add_kinds ~sp ~area ~kinds =
-  Roles.get_area_role ~sp area >>= fun role ->
+let add_kinds ~area ~kinds =
+  Roles.get_area_role area     >>= fun role ->
   !!(role.Roles.kinds_setter)  >>= fun b ->
   if b
   then
@@ -636,8 +634,8 @@ let add_kinds ~sp ~area ~kinds =
       (Ocsforge_sql.add_kinds_for_area ~area_id:area ~kinds)
   else Lwt.fail Ocsimore_common.Permission_denied
 
-let del_kinds ~sp ~area ~kinds =
-  Roles.get_area_role ~sp area >>= fun role ->
+let del_kinds ~area ~kinds =
+  Roles.get_area_role area     >>= fun role ->
   !!(role.Roles.kinds_setter)  >>= fun b ->
   if b
   then
@@ -645,8 +643,8 @@ let del_kinds ~sp ~area ~kinds =
       (Ocsforge_sql.del_kinds_for_area ~area_id:area ~kinds)
   else Lwt.fail Ocsimore_common.Permission_denied
 
-let set_kinds ~sp ~area ~kinds =
-  Roles.get_area_role ~sp area >>= fun role ->
+let set_kinds ~area ~kinds =
+  Roles.get_area_role area     >>= fun role ->
   !!(role.Roles.kinds_setter)  >>= fun b ->
   if b
   then
@@ -654,8 +652,8 @@ let set_kinds ~sp ~area ~kinds =
       (Ocsforge_sql.set_kinds_for_area ~area_id:area ~kinds)
   else Lwt.fail Ocsimore_common.Permission_denied
 
-let swap_kinds ~sp ~area ~kinds =
-  Roles.get_area_role ~sp area >>= fun role ->
+let swap_kinds ~area ~kinds =
+  Roles.get_area_role area     >>= fun role ->
   !!(role.Roles.kinds_setter)  >>= fun b ->
   if b
   then
@@ -664,9 +662,9 @@ let swap_kinds ~sp ~area ~kinds =
   else Lwt.fail Ocsimore_common.Permission_denied
 
 (** For digging up the subject of a task('s forum message) *)
-let find_subject ~sp ~task =
+let find_subject ~task =
   do_sql (Ocsforge_sql.get_area_for_task ~task_id:task)   >>= fun area ->
-  Roles.get_area_role ~sp area                            >>= fun role ->
+  Roles.get_area_role area                                >>= fun role ->
   !!(role.Roles.task_reader)                              >>= fun b ->
     if b
     then Ocsforge_sql.find_subject_content ~task
@@ -674,17 +672,17 @@ let find_subject ~sp ~task =
 
 
 (** Geting and setting separators. *)
-let get_separators ~sp ~task =
+let get_separators ~task =
   do_sql (Ocsforge_sql.get_area_for_task ~task_id:task)   >>= fun area ->
-  Roles.get_area_role ~sp area                            >>= fun role ->
+  Roles.get_area_role area                                >>= fun role ->
   !!(role.Roles.task_reader)                              >>= fun b ->
     if b
     then do_sql (Ocsforge_sql.get_separators ~root_task:task)
     else Lwt.fail Ocsimore_common.Permission_denied
 
-let insert_separator ~sp ~after ~content =
+let insert_separator ~after ~content =
   do_sql (Ocsforge_sql.get_area_for_task ~task_id:after)  >>= fun area ->
-  Roles.get_area_role ~sp area                            >>= fun role ->
+  Roles.get_area_role area                                >>= fun role ->
   !!(role.Roles.task_creator)                             >>= fun b ->
     if b
     then (
@@ -696,21 +694,21 @@ let insert_separator ~sp ~after ~content =
     )
     else Lwt.fail Ocsimore_common.Permission_denied
 
-let set_separator_content ~sp ~separator ~content =
+let set_separator_content ~separator ~content =
   do_sql (Ocsforge_sql.get_area_for_separator ~separator) >>= fun area ->
-  Roles.get_area_role ~sp area.Types.r_id                 >>= fun role ->
+  Roles.get_area_role area.Types.r_id                     >>= fun role ->
   !!(role.Roles.task_property_editor)                     >>= fun b ->
     if b
     then do_sql (Ocsforge_sql.set_separator_content ~separator ~content)
     else Lwt.fail Ocsimore_common.Permission_denied
 
-let move_separator ~sp ~separator ~after =
+let move_separator ~separator ~after =
   do_sql (Ocsforge_sql.get_area_for_separator ~separator)
                                           >>= fun { Types.r_id = old_area } ->
-  Roles.get_area_role ~sp old_area                          >>= fun oa_role ->
+  Roles.get_area_role old_area                          >>= fun oa_role ->
   do_sql (Ocsforge_sql.get_area_info_for_task ~task_id:after)
                                           >>= fun { Types.r_id = new_area } ->
-  Roles.get_area_role ~sp new_area                          >>= fun na_role ->
+  Roles.get_area_role new_area                                   >>= fun na_role ->
   !!( oa_role.Roles.task_mover_from )                            >>= fun b1 ->
   !!( na_role.Roles.task_mover_to )                              >>= fun b2 ->
     if b1 && b2

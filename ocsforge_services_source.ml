@@ -25,6 +25,7 @@ module Sh = Ocsforge_services_hashtable
 module Vm = Ocsforge_version_managers
 module Params = Eliom_parameters
 
+(*
 type file_tree = {{ <file_tree> [Xhtmltypes_duce.tr*]  }}
 
 let source_service ?sp path = 
@@ -251,3 +252,4 @@ let register_repository_services ?sp () =
 
 
   
+*)

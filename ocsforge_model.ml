@@ -18,11 +18,11 @@
  *)
 
 
-type 'a aux = sp:Eliom_sessions.server_parameters -> 'a -> bool Lwt.t
+type 'a aux = 'a -> bool Lwt.t
 
 class type area_rights =
 object
-  method forum_rights : Forum.forum_rights
+  method forum_rights : Forum.wiki_rights
 
   method can_set_kinds : right_area aux
   method can_set_verion : right_area aux

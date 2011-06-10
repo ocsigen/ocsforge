@@ -19,7 +19,7 @@
 
 open Ocsforge_source_types
 
-val remove_node : 
+val remove_node :
     rep_tree ->
     rep_tree list ->
     rep_tree list
@@ -35,19 +35,19 @@ val insert :
     rep_tree ->
     rep_tree
 
-val delete : 
+val delete :
     rep_tree ->
     string list ->
     rep_tree ->
     rep_tree
 
-val get_node : 
+val get_node :
     string ->
     string list ->
     rep_tree ->
     rep_tree option
 
-val move : 
+val move :
     string list ->
     string ->
     string list ->
@@ -55,7 +55,7 @@ val move :
     rep_tree ->
     rep_tree
 
-val update_infos : 
+val update_infos :
     string list ->
     string ->
     string ->

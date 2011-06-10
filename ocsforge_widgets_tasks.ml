@@ -34,18 +34,13 @@ module Data  = Ocsforge_data
 module Services_ht = Ocsforge_services_hashtable
 
 module Params = Eliom_parameters
-module EDuce = Eliom_duce
 module FTypes = Forum_types
 
 
 (* provides Calendar and Period module *)
 open CalendarLib
 
-
-(* Alias for Ocamlduce common function *)
-let utf8 = Ocamlduce.Utf8.make
-
-
+(* TODO: convert
 (* CSS hook *)
 let tree_css_header = Page_site.Header.create_header
   (fun sp ->
@@ -55,10 +50,12 @@ let tree_css_header = Page_site.Header.create_header
      :} ] }})
 let add_tree_css_header sp =
   Page_site.Header.require_header tree_css_header ~sp
+*)
 
+let draw_message_title ~task =
+  Data.find_subject ~task (*FIXME: should not be necessary... but some function needs a string !*)
 
-let draw_message_title ~sp ~task = Data.find_subject ~sp ~task (*FIXME: should not be necessary... but some function needs a string !*)
-
+(* TODO: convert
 (* A select field that automatically updates new values
    [id] is the task id ;
    [salt] is to make the identifier unique (in case there are two services with the same parameters name) ;
@@ -478,3 +475,4 @@ object (self)
 
 
 end
+*)

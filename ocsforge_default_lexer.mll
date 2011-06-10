@@ -16,15 +16,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
-   
+
 (** @author Granarolo Jean-Henri *)
 
 {
  open Lexing
  open Ocsforge_color_tokens
-   
+
  let newline lexbuf =
-   lexbuf.lex_curr_p <- { 
+   lexbuf.lex_curr_p <- {
      lexbuf.lex_curr_p with
                           pos_lnum = lexbuf.lex_curr_p.pos_lnum + 1;
                           pos_bol =  lexbuf.lex_curr_p.pos_cnum;
@@ -39,8 +39,8 @@ let default_token = [^'\n' '\r']+
 
 rule token = parse
   | ' '+ as s     { Space(s) }
-  | newline_char  
+  | newline_char
       { newline lexbuf;
 	Newline lexbuf.lex_curr_p.pos_lnum }
-  | eof     { Eof(lexbuf.lex_curr_p.pos_lnum) }  
+  | eof     { Eof(lexbuf.lex_curr_p.pos_lnum) }
   | default_token as d  { Default_lexer_token(d) }

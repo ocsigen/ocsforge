@@ -85,15 +85,12 @@ type role = {
 }
 
 (** Low level and not cached ! DO NOT USE *)
-val get_role :
-  sp:Eliom_sessions.server_params ->
-  area:Ocsforge_types.right_area -> role Lwt.t
-val blunt_sd : sp:Eliom_sessions.server_params -> Ocsforge_types.right_area -> role Lwt.t
+val get_role : area:Ocsforge_types.right_area -> role Lwt.t
+val blunt_sd : unit -> Ocsforge_types.right_area -> role Lwt.t
 type area_sd = Ocsforge_types.right_area -> role Lwt.t
 val area_key : area_sd Polytables.key
-val get_area_session_data : sp:Eliom_sessions.server_params -> area_sd
+val get_area_session_data : unit -> area_sd
 
 
 (** Get the role of a user. This version uses cache ! *)
-val get_area_role :
-  sp:Eliom_sessions.server_params -> Ocsforge_types.right_area -> role Lwt.t
+val get_area_role : Ocsforge_types.right_area -> role Lwt.t

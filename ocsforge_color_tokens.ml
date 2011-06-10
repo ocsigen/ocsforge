@@ -19,7 +19,7 @@
 
 (** @author Granarolo Jean-Henri *)
 
-type lexemes = 
+type lexemes =
   | Comment of string*string*string (* open comment + comment text + close comment *)
   | Keyword of string
   | ITE of string (* if | then | else *)
