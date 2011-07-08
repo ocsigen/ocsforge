@@ -113,14 +113,14 @@ let _ = Lwt_unix.run ( first_task () )
 
 let forge_wiki_model = Wiki_site.wikicreole_model (*TODO: use a real wiki model*)
 
-
+(*
 let tree_widget =
   new Ocsforge_widgets_tasks.tree_widget
 let task_widget =
   new Ocsforge_widgets_tasks.task_widget
     Forum_site.message_widget
     Forum_site.thread_widget
-
+*)
 
 let _ =
   begin
@@ -129,6 +129,7 @@ let _ =
       Lwt_unix.run
         (Ocsforge_services_source.register_repository_services () >>= fun _ ->
          Lwt.return (Ocsforge_services_source.register_xml_tree_service ()))
+(*
     and _ =
       Lwt_unix.run
         (Ocsforge_services_tasks.register_xml_dump_services
@@ -138,8 +139,8 @@ let _ =
            (Ocsforge_services_tasks.register_new_project_service
               tree_widget task_widget)
            >>= fun _ -> Lwt.return ())
+*)
     in
-
     (*Ocsforge_wikiext_tasks.register_wikiext
       Wiki_syntax.wikicreole_parser
       tree_widget ;*)

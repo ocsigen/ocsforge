@@ -21,8 +21,7 @@
 
 
 
-(* bind, force and compose *)
-let (>>=) = Lwt.bind
+(* force and compose *)
 let (!!) = Lazy.force
 let (@@) f g = fun x -> f (g x)
 
@@ -36,21 +35,17 @@ module Services_ht = Ocsforge_services_hashtable
 module Params = Eliom_parameters
 module FTypes = Forum_types
 
-
+open Eliom_pervasives
 (* provides Calendar and Period module *)
 open CalendarLib
 
-(* TODO: convert
 (* CSS hook *)
-let tree_css_header = Page_site.Header.create_header
-  (fun sp ->
-     {{ [ {:
-         Eliom_duce.Xhtml.css_link
-           ( Page_site.static_file_uri sp [ "ocsforge_tasks.css" ] ) ()
-     :} ] }})
-let add_tree_css_header sp =
-  Page_site.Header.require_header tree_css_header ~sp
-*)
+let tree_css_header =
+  Page_site.Header.create_header
+    (fun () -> [Eliom_output.Html5.css_link
+		(Page_site.static_file_uri ["ocsforge_tasks.css"]) ()])
+let add_tree_css_header () =
+  Page_site.Header.require_header tree_css_header
 
 let draw_message_title ~task =
   Data.find_subject ~task (*FIXME: should not be necessary... but some function needs a string !*)

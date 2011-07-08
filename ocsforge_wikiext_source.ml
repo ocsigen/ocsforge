@@ -19,59 +19,54 @@
 
 (** @author Granarolo Jean-Henri *)
 
-let (>>=) = Lwt.bind
+open Eliom_pervasives
+open HTML5.M
 
 let wikicreole_parser = Wiki_syntax.wikicreole_parser
 let reduced_wikicreole_parser0 = Wiki_syntax.reduced_wikicreole_parser0
 let reduced_wikicreole_parser1 = Wiki_syntax.reduced_wikicreole_parser1
 let reduced_wikicreole_parser2 = Wiki_syntax.reduced_wikicreole_parser2
-let inline_wikicreole_parser = Wiki_syntax.inline_wikicreole_parser
+let phrasing_wikicreole_parser = Wiki_syntax.phrasing_wikicreole_parser
 
 let add_extension l ~name ~wiki_content f =
-  List.iter (fun wp -> 
+  List.iter (fun wp ->
                Wiki_syntax.add_extension ~wp ~name ~wiki_content (f wp)) l
 
-let register_wikiext _wp = 
+let register_wikiext _wp =
   add_extension
     [wikicreole_parser; reduced_wikicreole_parser0; reduced_wikicreole_parser1]
     ~name:"ocsforge_repository_tree" ~wiki_content:false
-    ((fun _wp bi args content ->
-      Wikicreole.Block
+    ((fun _wp _ args content ->
+      Wikicreole.Flow5
 	(Lwt.catch
 	   (fun () ->
-	     let sp = bi.Wiki_widgets_interface.bi_sp in
        	     let id = List.assoc "id" args in
-	     let file = 
+	     let file =
 	       try Some(List.assoc "file" args)
 	       with Not_found -> None
 	     in
-	     let version = 
+	     let version =
 	       let v = List.assoc "version" args in
 	       if (String.length v == 0) then
 		 None
 	       else Some(v)
 	     in
-             Ocsforge_widgets_source.add_sources_css_header sp;
+             Ocsforge_widgets_source.add_sources_css_header ();
 	     match file with
 	       | None ->
-		   Ocsforge_widgets_source.draw_repository_table ~sp ~id
-		     ~version ~dir:None
-		     >>=
-		   fun (b: {{ Xhtmltypes_duce.flows }}) ->
-		     Lwt.return b
+		 Ocsforge_widgets_source.draw_repository_table ~id
+		   ~version ~dir:None
 	       | Some f ->
-		   Ocsforge_widgets_source.draw_source_code_view ~sp ~id ~target:[f] ~version >>=
-		   fun (b: {{ Xhtmltypes_duce.flows }}) ->
-		     Lwt.return b
+		 Ocsforge_widgets_source.draw_source_code_view ~id ~target:[f] ~version
 	   )
 	   (function
-	     | Not_found | Failure _ -> 
+(*	     | Not_found | Failure _ ->
 		 let s = Wiki_syntax.string_of_extension "raw" args content in
-		 Lwt.return {{ [ <b>{: s :} ] }}
+		 Lwt.return [ b [pcdata s ] ] *)
 	     | exc ->
 		 let s = Wiki_syntax.string_of_extension "raw" args content in
-		 Lwt.return {{ [ <b>[ !{: s :} <br>[]
-		 !{: Printexc.to_string exc :} ] ] }})
+		 Lwt.return [ b [pcdata s; br ();
+				 pcdata (Printexc.to_string exc) ] ])
 	)
      ))
 
@@ -81,20 +76,19 @@ let _ =
     [wikicreole_parser; reduced_wikicreole_parser0; reduced_wikicreole_parser1]
     ~name:"code"
     ~wiki_content:false
-    (fun _wp bi args c ->
-       Wikicreole.Block (
-        let sp = bi.Wiki_widgets_interface.bi_sp in
-        Ocsforge_widgets_source.add_sources_css_header sp;
-         (match c with
-           | None -> Lwt.return {{ [] }}
-           | Some s -> 
-             let lang = 
-               try List.assoc "language" args
-               with _ -> "" 
-             in
-             let lexbuf = Lexing.from_string s in
-             Ocsforge_color.color_by_lang lexbuf lang >>= fun (_, r) -> Lwt.return r
-         ) >>= fun c ->
-         Lwt.return {{ [ <pre class="color">{: c :} ] }})
+    (fun _wp _ args c ->
+       Wikicreole.Flow5 (
+        Ocsforge_widgets_source.add_sources_css_header ();
+        lwt c = match c with
+          | None -> Lwt.return []
+          | Some s ->
+            let lang =
+              try List.assoc "language" args
+              with _ -> ""
+            in
+            let lexbuf = Lexing.from_string s in
+            lwt (_, r) = Ocsforge_color.color_by_lang lexbuf lang in Lwt.return r
+	in
+        Lwt.return [ pre ~a:[ a_class ["color"] ] c ] )
     )
 

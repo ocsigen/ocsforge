@@ -1,6 +1,6 @@
 <myocamlfind.*> : use_unix
 <**/*_sql.ml*>: pkg_calendar, pkg_pgocaml, pkg_pgocaml.syntax, warn_z
-<**/*.ml*> : pkg_threads, eliom.server, pkg_ocsimore.user, pkg_ocsimore.forum, use_swig_svn, use_svn_client, dtypes, warn_Y, warn_Z, pkg_lwt.syntax, syntax_camlp4o, pkg_ocsimore.forum_site
+<**/*.ml*> : pkg_threads, eliom.server, pkg_ocsimore.user, pkg_ocsimore.site, pkg_ocsimore.forum, use_swig_svn, use_svn_client, dtypes, warn_Y, warn_Z, pkg_lwt.syntax, syntax_camlp4o, pkg_ocsimore.forum_site, pkg_tyxml.syntax
 <sql.ml*> : pkg_calendar, pkg_pgocaml
 <**/*_client*> : pkg_eliom.client, -pkg_eliom.server
 <**/*.ml> : annot

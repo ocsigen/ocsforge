@@ -19,237 +19,236 @@
 
 (** @author Granarolo Jean-Henri *)
 
+open Eliom_pervasives
+
 let ( ** ) = Eliom_parameters.prod
-let ( >>= ) = Lwt.bind
 module Sh = Ocsforge_services_hashtable
 module Vm = Ocsforge_version_managers
 module Params = Eliom_parameters
 
 (*
 type file_tree = {{ <file_tree> [Xhtmltypes_duce.tr*]  }}
+*)
 
-let source_service ?sp path = 
+let source_service path =
   let service_path = ( (Neturl.split_path path) @ [ "sources" ; "" ] ) in
-  Eliom_predefmod.Any.register_new_service
-    ?sp
+  Eliom_output.Any.register_service
     ~path:service_path
     ~get_params:
     (Params.suffix_prod
        (Params.all_suffix "file")
        (Params.opt (
-          Params.user_type
-          Sh.string_to_kind 
-          Sh.kind_to_string
-          "view") **
+         Params.user_type
+           Sh.string_to_kind
+           Sh.kind_to_string
+           "view") **
           (Params.opt (Params.string "version") **
              (Params.opt (Params.string "to")))))
-    (fun sp (file,(view,(v1,v2))) () -> 
-      Ocsforge_widgets_source.add_sources_css_header sp;
-      let id = path in 
-      (match (file,(view,(v1,v2))) with
-        | (l,(None,(version,_))) ->
+    (fun (file,(view,(v1,v2))) () ->
+      Ocsforge_widgets_source.add_sources_css_header ();
+      let id = path in
+      lwt (title,page_content) =
+	match (file,(view,(v1,v2))) with
+          | (l,(None,(version,_))) ->
             begin match l with
-            | [] | [""] ->
-                Ocsforge_widgets_source.draw_repository_table 
-                  ~sp 
-                  ~id 
-                  ~version 
-                  ~dir:None >>= fun r ->
-                  Lwt.return (Some("Ocsforge - Repository browser"),r)
-            | _ ->
-                Lwt.catch
-                  (fun () ->
-                    Ocsforge_widgets_source.draw_repository_table 
-                      ~sp 
-                      ~id 
-                      ~version 
-                      ~dir:(Some(l)) >>= fun r ->
-                      Lwt.return (Some("Ocsforge - Repository browser"), r))
-                  (function 
-                    | Vm.Wrong_node_kind -> 
-                        Ocsforge_widgets_source.draw_source_code_view 
-                          ~sp 
-                          ~id 
-                          ~target:l 
-                          ~version >>= fun r ->
-                          Lwt.return (Some("Ocsforge - File content"), r)
-                    | e -> Lwt.fail e)
+              | [] | [""] ->
+		lwt r = Ocsforge_widgets_source.draw_repository_table
+                  ~id
+                  ~version
+                  ~dir:None in
+		Lwt.return (Some("Ocsforge - Repository browser"),r)
+              | _ ->
+		try_lwt
+	          lwt r = Ocsforge_widgets_source.draw_repository_table
+		    ~id
+		    ~version
+		    ~dir:(Some(l)) in
+		  Lwt.return (Some("Ocsforge - Repository browser"), r)
+	        with
+                  | Vm.Wrong_node_kind ->
+                    lwt r = Ocsforge_widgets_source.draw_source_code_view
+                      ~id
+                      ~target:l
+                      ~version in
+                    Lwt.return (Some("Ocsforge - File content"), r)
             end
-	| (l,(Some(`Diff),(Some(diff1),Some(diff2)))) ->
-	    Ocsforge_widgets_source.draw_diff_view 
-              ~sp 
-              ~id 
-              ~target:l 
-              ~diff1 
-              ~diff2 >>= fun r ->
-              Lwt.return (Some("Ocsforge - File diff"),r)
-        | (_,(Some(`PatchDiff),(Some(diff1),Some(diff2)))) ->
-            Ocsforge_widgets_source.draw_patchdiff
-              ~sp 
+	  | (l,(Some(`Diff),(Some(diff1),Some(diff2)))) ->
+	    lwt r = Ocsforge_widgets_source.draw_diff_view
+              ~id
+              ~target:l
+              ~diff1
+              ~diff2 in
+            Lwt.return (Some("Ocsforge - File diff"),r)
+          | (_,(Some(`PatchDiff),(Some(diff1),Some(diff2)))) ->
+            lwt r = Ocsforge_widgets_source.draw_patchdiff
               ~id
               ~diff1
-              ~diff2 >>= fun r ->
-              Lwt.return (Some("Ocsforge - Commit diff"),r)
-        | (l,(Some(`Options),(version,log_start))) -> 
-	    Ocsforge_widgets_source.draw_file_page 
-              ~sp 
-              ~id 
-              ~target:l 
-              ~version 
-              ~log_start >>= fun r ->
-              Lwt.return (Some("Ocsforge - File browser"),r)
-        | (l,(Some(`Annot),(version,_))) ->
-            Ocsforge_widgets_source.draw_annotate 
-              ~sp 
-              ~id 
-              ~target:l 
-              ~version >>= fun r ->
-              Lwt.return (Some("Ocsforge - File annotate"),r)
-        | (l,(Some(`Cat),(version,_))) ->
-	    Ocsforge_widgets_source.draw_source_code_view 
-              ~sp 
-              ~id 
-              ~target:l 
-              ~version >>= fun r ->
+              ~diff2 in
+            Lwt.return (Some("Ocsforge - Commit diff"),r)
+          | (l,(Some(`Options),(version,log_start))) ->
+	    lwt r = Ocsforge_widgets_source.draw_file_page
+              ~id
+              ~target:l
+              ~version
+              ~log_start in
+            Lwt.return (Some("Ocsforge - File browser"),r)
+          | (l,(Some(`Annot),(version,_))) ->
+            lwt r = Ocsforge_widgets_source.draw_annotate
+              ~id
+              ~target:l
+              ~version in
+            Lwt.return (Some("Ocsforge - File annotate"),r)
+          | (l,(Some(`Cat),(version,_))) ->
+	    lwt r = Ocsforge_widgets_source.draw_source_code_view
+              ~id
+              ~target:l
+              ~version in
             Lwt.return (Some("Ocsforge - File content"),r)
-        | _ -> 
-            Ocsforge_widgets_source.draw_wrong_url_page ~sp ~id >>= fun r ->
+          | _ ->
+            lwt r = Ocsforge_widgets_source.draw_wrong_url_page ~id in
             Lwt.return (Some("Ocsforge - wrong URL"),r)
-      ) >>= fun (title,page_content) ->
-      Ocsforge_data.get_area_for_page sp id >>= fun r_infos ->
-      Wiki.default_bi 
-          ~sp 
-          ~wikibox:r_infos.Ocsforge_types.r_sources_container 
-          ~rights:(Wiki_models.get_rights Wiki_site.wikicreole_model) 
-          >>= fun bi ->
+      in
+      lwt r_infos = Ocsforge_data.get_area_for_page id in
+      lwt bi = Wiki.default_bi
+        ~wikibox:r_infos.Ocsforge_types.r_sources_container
+        ~rights:(Wiki_models.get_rights Wiki_site.wikicreole_model) in
       let gen_box1 _ =
         Lwt.return (Some(None,page_content))
       in
-      let bi = { bi with 
+      let bi = { bi with
                  Wiki_widgets_interface.bi_subbox = gen_box1;
                  (*Wiki_types.bi_page = fst bi.Wiki_types.bi_page, ?? *)
                }
-      in      
-      let gen_box _ = 
-        Wiki_site.wikibox_widget#display_interactive_wikibox 
-          ~bi 
-          r_infos.Ocsforge_types.r_sources_container
-          >>= fun page_content ->
-          Lwt.return (None,
-                      {{ [page_content] }},
-                      Wiki_widgets_interface.Page_displayable,title)
       in
-      Wiki_site.wikibox_widget#display_container 
-            ~sp ~wiki:(r_infos.Ocsforge_types.r_wiki) ~menu_style:`Linear
-            ~page:((Ocsigen_lib.string_of_url_path ~encode:true file),file)
-            ~gen_box:gen_box
-      >>= fun (html, code) ->
-      Eliom_duce.Xhtml.send ~sp ~code html)
+      let gen_box _ =
+        lwt page_content = Wiki_site.wikibox_widget#display_interactive_wikibox
+          ~bi
+          r_infos.Ocsforge_types.r_sources_container
+	in
+        Lwt.return (None, page_content,
+                    Wiki_widgets_interface.Page_displayable,title)
+      in
+      lwt (html, code) =
+	Wiki_site.wikibox_widget#display_container
+          ~wiki:(r_infos.Ocsforge_types.r_wiki) ~menu_style:`Linear
+          ~page:((Url.string_of_url_path ~encode:true file),file)
+          ~gen_box:gen_box
+      in
+      Ocsimore_appl.send ~code html)
 
-
-let log_service ?sp path = 
+let log_service path =
   let service_path = ( Neturl.split_path path ) @ [ "log" ; "" ] in
-  Eliom_predefmod.Any.register_new_service
-    ?sp
+  Eliom_output.Any.register_service
     ~path:service_path
-    ~get_params: (Params.opt (Params.user_type  
-                                          Vm.string_to_range 
-				          Vm.range_to_string "range"))
-    (fun sp range () ->
-      Ocsforge_widgets_source.add_sources_css_header sp;
+    ~get_params: (Params.opt (Params.user_type
+                                Vm.string_to_range
+				Vm.range_to_string "range"))
+    (fun range () ->
+      Ocsforge_widgets_source.add_sources_css_header ();
       let id = path in
       let (start_rev,end_rev) = match range with
         | None -> (None,None)
         | Some(sr,er) -> (sr,er)
       in
-      Ocsforge_widgets_source.draw_log_page 
-        ~sp 
-        ~id 
-        ~file:None 
-        ~start_rev 
-        ~end_rev >>= fun page_content ->
-        Ocsforge_data.get_area_for_page sp id >>= fun r_infos ->
-          Wiki.default_bi 
-          ~sp 
-          ~wikibox:r_infos.Ocsforge_types.r_sources_container 
-          ~rights:(Wiki_models.get_rights Wiki_site.wikicreole_model) 
-          >>= fun bi ->
-          let gen_box1 _ =
-            Lwt.return (Some(None,page_content))
-          in
-          let bi = { bi with 
-                     Wiki_widgets_interface.bi_subbox = gen_box1;
-                     (*Wiki_types.bi_page = fst bi.Wiki_types.bi_page, ?? *)
-                   }
-          in      
-          let gen_box _ = 
-            Wiki_site.wikibox_widget#display_interactive_wikibox 
-              ~bi 
-              r_infos.Ocsforge_types.r_sources_container
-              >>= fun page_content ->
-                Lwt.return (None,{{ [page_content] }},
-                            Wiki_widgets_interface.Page_displayable,
-                            Some("Ocsforge - Repository history"))
-          in
-          Wiki_site.wikibox_widget#display_container 
-            ~sp ~wiki:(r_infos.Ocsforge_types.r_wiki) ~menu_style:`Linear
-            ~page:((Ocsigen_lib.string_of_url_path ~encode:true []),[])
-            ~gen_box:gen_box
-            >>= fun (html, code) ->
-              Eliom_duce.Xhtml.send ~sp ~code html)
- 
-
-let register_xml_tree_service () = 
-  let _ = 
-    Eliom_duce.Xml.register_new_post_coservice'
-    ~name:"ocsforge_repository_tree"
-    ~post_params: (
-          Params.opt (Params.string "dir") ** 
-          Params.opt (Params.string "version"))
-    (fun sp () (dir,version) ->
-      let (path,dir_path) = match dir with 
-      | None -> ("",[])
-      | Some(p) -> 
-          let list = Neturl.split_path p in 
-          (List.hd list,List.tl list)
+      lwt page_content = Ocsforge_widgets_source.draw_log_page
+        ~id
+        ~file:None
+        ~start_rev
+        ~end_rev in
+      lwt r_infos = Ocsforge_data.get_area_for_page id in
+      lwt bi = Wiki.default_bi
+        ~wikibox:r_infos.Ocsforge_types.r_sources_container
+        ~rights:(Wiki_models.get_rights Wiki_site.wikicreole_model) in
+      let gen_box1 _ =
+        Lwt.return (Some(None,page_content))
       in
-      match Ocsforge_services_hashtable.find_service path with
-      | None -> failwith "Project services not found"
-      | Some(ps) ->
-          let tr_list = 
-            match dir_path with
-            | [] -> 
-                Ocsforge_widgets_source.xml_table_content
-                  ~sp 
-                  ~id:path 
-                  ~version 
-                  ~dir:None
-                  ~project_services:ps
-            | l ->
-                Ocsforge_widgets_source.xml_table_content
-                  ~sp 
-                  ~id:path 
-                  ~version 
-                  ~dir:(Some(l))
-                  ~project_services:ps
-          in
-          tr_list >>= fun tr ->
-          Lwt.return ({{ <file_tree> tr }} : {{ Ocamlduce.Load.anyxml }})
-    ) in Lwt.return ()
+      let bi = { bi with
+                    Wiki_widgets_interface.bi_subbox = gen_box1;
+                    (*Wiki_types.bi_page = fst bi.Wiki_types.bi_page, ?? *) }
+      in
+      let gen_box _ =
+        lwt page_content =
+	  Wiki_site.wikibox_widget#display_interactive_wikibox
+            ~bi
+            r_infos.Ocsforge_types.r_sources_container in
+        Lwt.return (None, page_content,
+                    Wiki_widgets_interface.Page_displayable,
+                    Some("Ocsforge - Repository history"))
+      in
+      lwt (html, code) = Wiki_site.wikibox_widget#display_container
+        ~wiki:(r_infos.Ocsforge_types.r_wiki) ~menu_style:`Linear
+        ~page:((Url.string_of_url_path ~encode:true []),[])
+        ~gen_box:gen_box
+      in
+      Ocsimore_appl.send ~code html)
 
+module SourceXml =
+struct
+  module XML = XML
+  module Info =
+  struct
+    let content_type = "text/xml"
+    let version = "ocsforge"
+    let standard = Uri.uri_of_string "http://www.ocsigen.org/ocsforge/"
+    let doctype =  XML_print.compose_doctype "xml" []
+    let emptytags = [ ]
+  end
 
-let register_repository_service ?sp page =
+  type 'a elt = XML.elt
+  type doc = XML.elt
+  let toelt x = x
+  let doc_toelt x = x
+end
+
+module SourceXmlOutput =
+  Eliom_output.Make_TypedXML_Registration(XML)(SourceXml)(struct
+    type content = SourceXml.doc
+  end)
+
+let register_xml_tree_service () =
+  let _ =
+    SourceXmlOutput.register_post_coservice'
+      ~name:"ocsforge_repository_tree"
+      ~post_params: (
+        Params.opt (Params.string "dir") **
+        Params.opt (Params.string "version"))
+      (fun () (dir,version) ->
+	let (path,dir_path) = match dir with
+	  | None -> ("",[])
+	  | Some(p) ->
+            let list = Neturl.split_path p in
+            (List.hd list,List.tl list)
+	in
+	match Ocsforge_services_hashtable.find_service path with
+	  | None -> failwith "Project services not found"
+	  | Some(ps) ->
+	    lwt tr =
+              match dir_path with
+		| [] ->
+                  Ocsforge_widgets_source.xml_table_content
+                    ~id:path
+                    ~version
+                    ~dir:None
+                    ~project_services:ps
+		| l ->
+                  Ocsforge_widgets_source.xml_table_content
+                    ~id:path
+                    ~version
+                    ~dir:(Some(l))
+                    ~project_services:ps
+            in
+            Lwt.return [XML.node "file_tree" (HTML5.M.toeltl tr)]
+      ) in Lwt.return ()
+
+let register_repository_service page =
+  Printf.printf "register repository service: %s\n%!" page;
   Lwt.return (
-    Ocsforge_services_hashtable.add_service 
+    Ocsforge_services_hashtable.add_service
       page
-      { Sh.sources_service = source_service ?sp page ;
-        Sh.log_service = log_service ?sp page ; }
+      { Sh.sources_service = source_service page ;
+        Sh.log_service = log_service page ; }
   )
 
-let register_repository_services ?sp () = 
-  Ocsforge_sql.get_projects_path_list () >>= fun l ->
-  Lwt_util.iter_serial (register_repository_service ?sp) l
-
-
-  
-*)
+let register_repository_services () =
+  lwt l = Ocsforge_sql.get_projects_path_list () in
+  Lwt_util.iter_serial register_repository_service l

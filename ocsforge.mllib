@@ -10,8 +10,7 @@ Ocsforge_services_tasks
 Ocsforge_widgets_source
 Ocsforge_widgets_tasks
 Ocsforge_wikiext_source
-Ocsforge_wikiext_tasks
-Ocsforge_bootstrap
+#Ocsforge_wikiext_tasks
 Ocsforge_source_tree
 Ocsforge_source_types
 Ocsforge_version_managers
@@ -20,5 +19,11 @@ Ocsforge_color_tokens
 Ocsforge_default_lexer
 Ocaml_lexer
 Darcs_support
-Svn_support
-Ocsforge_client_calls
+#Ocsforge_client_calls
+
+#Ocsforge_load
+Ocsforge_bootstrap
+
+#Svn_support
+#Swig
+#Swig_svn

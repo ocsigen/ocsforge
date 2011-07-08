@@ -19,8 +19,6 @@
 
 (** @author Raphael Proust *)
 
-let (>>=) = Lwt.bind
-
 (** The following registering function is never called. Uncomment the
   * corresponding line in ocsforge_bootstrap.ml to make this aviable. *)
 
@@ -37,20 +35,18 @@ let register_wikiext wp (tree_widget : Ocsforge_widgets_tasks.tree_widget) =
             let sp = bi.Wiki_widgets_interface.bi_sp in
             let id = Ocsforge_types.task_of_string (List.assoc "id" args) in
 
-            (( tree_widget#display ~sp ~root_task:id )
-              : {{ Xhtmltypes_duce.flows }} Lwt.t)
+            ( tree_widget#display ~sp ~root_task:id )
            )
 
            (function
-              | Not_found | Failure _ -> 
+              | Not_found | Failure _ ->
                   let s = Wiki_syntax.string_of_extension "raw" args content in
-                  Lwt.return {{ [ <b>{: s :} ] }}
+                  Lwt.return [ b [pcdata s ] ]
               | exc ->
                   let s = Wiki_syntax.string_of_extension "raw" args content in
-                  Lwt.return {{ [ <b>[ !{: s :} <br>[]
-                                  !{: Printexc.to_string exc :} ] ] }})
+                  Lwt.return [ b [ pcdata s; br ()
+                    pcdata (Printexc.to_string exc) ] ] )
         )
-
     )
 
 

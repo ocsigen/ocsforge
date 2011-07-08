@@ -19,13 +19,12 @@
 
 (** @author Granarolo Jean-Henri *)
 
-open XHTML.M
-open Eliom_predefmod.Xhtml
+open Eliom_pervasives
 open Eliom_tools
 open Eliom_services
-open Lwt
 open Netstring_pcre
 open Ocsforge_color_tokens
+open HTML5.M
 
 (** la liste d'association (extension reconnue,fonction de lexing associée)*)
 let extList = ref []
@@ -62,190 +61,79 @@ let get_lang_lexer langName = getLexer langName langList
 
 let rec generate_lines_num nblines total_nb =
   if (nblines == 0) then
-    Lwt.return {{ [] }}
-  else generate_lines_num (nblines-1) total_nb >>= fun b ->
-    Lwt.return ({{ [!b <span class="line_num">
-      {: if (nblines != total_nb) then
-	((Int32.to_string (Int32.of_int nblines))^"\n")
-      else
-	((Int32.to_string (Int32.of_int nblines)))
-	:} ] }} : {{ [Xhtmltypes_duce.span*] }})
+    Lwt.return []
+  else
+    lwt b = generate_lines_num (nblines-1) total_nb in
+    Lwt.return (b
+		@[ span ~a:[a_class ["line_num"]]
+		     [pcdata
+			 (if (nblines != total_nb) then
+			     ((Int32.to_string (Int32.of_int nblines))^"\n")
+			  else
+			     ((Int32.to_string (Int32.of_int nblines))))]])
 
 let rec color2 lexbuf lexer = match (lexer lexbuf) with
   | Comment(c_open,text,c_close) ->
-     color2 lexbuf lexer >>= fun (a,b) ->
-       let str = (c_open^text^c_close) in
-       Lwt.try_bind
-         (fun () -> Lwt.return (Ocamlduce.Utf8.make str))
-         (fun utf8 ->
-           Lwt.return
-             ((a,{{ [<span class="color_comment">
-               {: utf8 :} !b] }})
-                : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }})))
-         (function _ ->
-           Lwt.return
-             ((a,{{ [<span class="color_comment">
-               {: str :} !b] }})
-                : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }})))
+    lwt (a,b) = color2 lexbuf lexer in
+    let str = (c_open^text^c_close) in
+    Lwt.return ( a, ( span ~a:[a_class ["color_comment"]] [pcdata str]) :: b )
   | Keyword(k) ->
-      color2 lexbuf lexer >>= fun (a,b) ->
-        Lwt.return
-          ((a,{{ [<span class="color_keyword"> {: k :} !b] }})
-             : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }}))
-          (*(XHTML.M.span
-	    ~a: [a_class ["colorKeyWord"]]
-	    [XHTML.M.pcdata k])::(color2 lexbuf lexer)*)
+    lwt (a,b) = color2 lexbuf lexer in
+    Lwt.return ( a, ( span ~a:[a_class ["color_keyword"]] [pcdata k]) :: b )
   | ITE(t) ->
-      color2 lexbuf lexer  >>= fun (a,b) ->
-        Lwt.return
-          ((a,{{ [<span class="color_test"> {: t :} !b] }})
-             : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }}))
-          (*(XHTML.M.span
-            ~a: [a_class ["colorTest"]]
-            [XHTML.M.pcdata t])::(color2 lexbuf lexer)*)
+    lwt (a,b) = color2 lexbuf lexer in
+    Lwt.return ( a, ( span ~a:[a_class ["color_test"]] [pcdata t] ) :: b )
   | Newline(_) ->
-      color2 lexbuf lexer >>= fun (a,b) ->
-        Lwt.return
-          ((a,{{ [<span> {: "\n" :} !b] }})
-             : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }}))
-          (*(XHTML.M.pcdata n)::(color2 lexbuf lexer)*)
+    lwt (a,b) = color2 lexbuf lexer in
+    Lwt.return ( a, ( span [pcdata "\n"] ) :: b )
   | Space(s) ->
-      color2 lexbuf lexer  >>= fun (a,b) ->
-        Lwt.return
-          ((a,{{ [<span> {: s :} !b] }})
-             : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }}))
-          (*(XHTML.M.pcdata " ")::(color2 lexbuf lexer)*)
+    lwt (a,b) = color2 lexbuf lexer in
+    Lwt.return ((a, ( span [pcdata s ]) :: b ))
   | Tab(_) ->
-      color2 lexbuf lexer  >>= fun (a,b) ->
-        Lwt.return
-          ((a,{{ [<span> {: "      " :} !b] }})
-             : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }}))
-          (*(XHTML.M.pcdata "      ")::(color2 lexbuf lexer)*)
+    lwt (a,b) = color2 lexbuf lexer in
+    Lwt.return (a, ( span [pcdata "      " ]) :: b )
  | Int(i) ->
-    color2 lexbuf lexer  >>= fun (a,b) ->
-      Lwt.return
-        ((a,{{ [<span class="color_int"> {: i :} !b] }})
-           : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }}))
-    (*(XHTML.M.span
-    ~a: [a_class ["colorInt"]]
-    [XHTML.M.pcdata i])::(color2 lexbuf lexer)*)
+   lwt (a,b) = color2 lexbuf lexer in
+   Lwt.return (a, ( span ~a:[a_class ["color_int"]] [ pcdata i ] ) :: b )
  | Bin(bin) ->
-    color2 lexbuf lexer  >>= fun (a,b) ->
-      Lwt.return
-        ((a,{{ [<span class="color_bin"> {: bin :} !b] }})
-           : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }}))
-    (*(XHTML.M.span
-    ~a: [a_class ["colorBin"]]
-    [XHTML.M.pcdata b])::(color2 lexbuf lexer)*)
+   lwt (a,b) = color2 lexbuf lexer in
+   Lwt.return (a, ( span ~a:[a_class ["color_bin"]] [ pcdata bin ] ) :: b)
  | Oct(o) ->
-    color2 lexbuf lexer  >>= fun (a,b) ->
-      Lwt.return
-        ((a,{{ [<span class="color_oct"> {: o :} !b] }})
-           : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }}))
-    (*(XHTML.M.span
-    ~a: [a_class ["colorOct"]]
-    [XHTML.M.pcdata o])::(color2 lexbuf lexer)*)
+   lwt (a,b) = color2 lexbuf lexer in
+   Lwt.return (a, ( span ~a:[a_class ["color_oct"]] [ pcdata o ] :: b ))
  | Hex(h) ->
-    color2 lexbuf lexer  >>= fun (a,b) ->
-      Lwt.return
-        ((a,{{ [<span class="color_hex"> {: h :} !b] }})
-           : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }}))
-    (*(XHTML.M.span
-    ~a: [a_class ["colorHex"]]
-    [XHTML.M.pcdata h])::(color2 lexbuf lexer)*)
+   lwt (a,b) = color2 lexbuf lexer in
+   Lwt.return (a, ( span ~a:[a_class ["color_hex"]] [ pcdata h ] ) :: b )
  | Operator(o) ->
-    color2 lexbuf lexer  >>= fun (a,b) ->
-      Lwt.return
-        ((a,{{ [<span> {: o :} !b] }})
-           : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }}))
-    (*(XHTML.M.pcdata o)::(color2 lexbuf lexer)*)
+   lwt (a,b) = color2 lexbuf lexer in
+   Lwt.return (a, ( span [pcdata o ]) :: b )
  | Delimiter(d) ->
-    color2 lexbuf lexer  >>= fun (a,b) ->
-      Lwt.return
-        ((a,{{ [<span class="color_delimiter"> {: d :} !b] }})
-           : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }}))
-    (*(XHTML.M.span
-    ~a: [a_class ["colorDelimiter"]]
-    [XHTML.M.pcdata d])::(color2 lexbuf lexer)*)
+   lwt (a,b) = color2 lexbuf lexer in
+   Lwt.return (a, ( span ~a:[a_class ["color_delimiter"]] [ pcdata d ] ) :: b )
  | Id(i) ->
-    color2 lexbuf lexer  >>= fun (a,b) ->
-      Lwt.return
-        ((a,{{ [<span> {: i :} !b] }})
-           : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }}))
-        (*(XHTML.M.pcdata i)::(color2 lexbuf lexer)*)
+   lwt (a,b) = color2 lexbuf lexer in
+   Lwt.return (a, ( span [pcdata i ]) :: b )
  | Char(c) ->
-     color2 lexbuf lexer >>= fun (a,b) ->
-       let char = ("\'"^c^"\'") in
-       Lwt.try_bind
-         (fun () -> Lwt.return (Ocamlduce.Utf8.make c))
-         (fun utf8 ->
-           (*print_endline utf8;*)
-           Lwt.return
-             ((a, {{ [<span class="color_char"> {: utf8 :} !b] }})
-                : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }})))
-         (function _ ->
-            Lwt.return
-             ((a, {{ [<span class="color_char"> {: char :} !b] }})
-                : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }})))
+   lwt (a,b) = color2 lexbuf lexer in
+   let char = ("\'"^c^"\'") in
+   Lwt.return (a, ( span ~a:[a_class ["color_char"]] [ pcdata char ] ) :: b )
  | String(s) ->
-    color2 lexbuf lexer  >>= fun (a,b) ->
-      let str = ("\""^s^"\"") in
-      Lwt.try_bind
-        (fun () -> Lwt.return (Ocamlduce.Utf8.make str))
-        (fun utf8 ->
-          Lwt.return
-            ((a,{{ [<span class="color_string">
-              {: utf8 :} !b] }})
-               : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }})))
-        (function _ ->
-          Lwt.return
-            ((a,{{ [<span class="color_string">
-              {: str :} !b] }})
-               : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }})))
-    (*(XHTML.M.span
-    ~a: [a_class ["colorString"]]
-    [XHTML.M.pcdata ("\""^s^"\"")])::(color2 lexbuf lexer)*)
+   lwt (a,b) = color2 lexbuf lexer in
+   let str = ("\""^s^"\"") in
+   Lwt.return (a, ( span ~a:[a_class ["color_string"]] [pcdata str] ) :: b )
  | UpperCaseID(u) ->
-    color2 lexbuf lexer  >>= fun (a,b) ->
-      Lwt.return
-        ((a,{{ [<span class="color_ucid"> {: Ocamlduce.Utf8.make u :} !b] }})
-           : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }}))
-    (*(XHTML.M.span
-    ~a: [a_class ["colorModule"]]
-    [XHTML.M.pcdata m])::(color2 lexbuf lexer)*)
+   lwt (a,b) = color2 lexbuf lexer in
+   Lwt.return (a, ( span ~a:[a_class ["color_ucid"]] [ pcdata u ] ) :: b )
  | Default_lexer_token(s) ->
-     color2 lexbuf lexer  >>= fun (a,b) ->
-       Lwt.try_bind
-         (fun () -> Lwt.return (Ocamlduce.Utf8.make s))
-         (fun utf8 ->
-           Lwt.return
-             ((a,{{ [<span>
-                      {: utf8 :} !b] }})
-                : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }})))
-         (function _ ->
-           Lwt.return
-             ((a,{{ [<span>
-                      {: s :} !b] }})
-                : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }})))
+   lwt (a,b) = color2 lexbuf lexer in
+   Lwt.return (a, ( span [pcdata s ]) :: b )
  | Unknown(c) ->
-     color2 lexbuf lexer  >>= fun (a,b) ->
-       let s = String.make 1 c in
-       Lwt.try_bind
-         (fun () -> Lwt.return (Ocamlduce.Utf8.make s))
-         (fun utf8 ->
-           Lwt.return
-             ((a,{{ [<span>
-                      {: utf8 :} !b] }})
-                : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }})))
-         (function _ ->
-           Lwt.return
-             ((a,{{ [<span>
-                      {: s :} !b] }})
-                : ({{[Xhtmltypes_duce.span*]}}*{{ [Xhtmltypes_duce.span*] }})))
-         (*(XHTML.M.pcdata (String.make 1 c))::(color2 lexbuf lexer )*)
+   lwt (a,b) = color2 lexbuf lexer in
+   let s = String.make 1 c in
+   Lwt.return (a, ( span [pcdata s ]) :: b )
  | Eof(n) ->
-     generate_lines_num (n-1) (n-1) >>= fun b ->
-       Lwt.return (b,{{ [] }})
+   lwt b = generate_lines_num (n-1) (n-1) in
+   Lwt.return (b, [] )
 
 
 
