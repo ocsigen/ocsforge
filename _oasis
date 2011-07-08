@@ -1,0 +1,68 @@
+# +-------------------------------------------------------------------+
+# | Package parameters                                                |
+# +-------------------------------------------------------------------+
+
+OASISFormat: 0.1
+OCamlVersion: >= 3.12
+Name: ocsforge
+Version: 0.1
+LicenseFile: COPYING
+License: LGPL-2.1 with ocaml linking exception
+Authors:
+  Plein de monde a mettre
+Homepage: http://ocsigen.org/ocsforge
+BuildTools: ocamlbuild
+Plugins: DevFiles (0.2), META (0.2)
+
+Synopsis: Ocsforge: a forge in Eliom
+Description:
+  A nice description
+
+# +-------------------------------------------------------------------+
+# | Libraries                                                         |
+# +-------------------------------------------------------------------+
+
+Library "ocsforge"
+  Path: src/
+  Modules:
+    Ocsforge_lang,
+    Ocsforge_types,
+    Ocsforge_sql,
+    Ocsforge_roles,
+    Ocsforge_data,
+    Ocsforge_xml_tree_dump,
+    Ocsforge_services_hashtable,
+    Ocsforge_services_source,
+    Ocsforge_services_tasks,
+    Ocsforge_widgets_source,
+    Ocsforge_widgets_tasks,
+    Ocsforge_wikiext_source,
+    Ocsforge_source_tree,
+    Ocsforge_source_types,
+    Ocsforge_version_managers,
+    Ocsforge_color,
+    Ocsforge_color_tokens,
+    Ocsforge_default_lexer,
+    Ocaml_lexer,
+    Darcs_support,
+    Ocsforge_bootstrap
+  XMETADescription: Core Ocsforge
+  CSources: swig_svn.c
+  CCLib: -lsvn_client-1
+  CCOpt: -I/usr/include/subversion-1 -I/usr/include/apr-1.0 -D_LARGEFILE64_SOURCE
+  BuildDepends:
+    camlp4,
+    lwt.syntax,
+    pgocaml.syntax,
+    eliom.server,
+    ocsimore.forum_site,
+    threads
+
+# +-------------------------------------------------------------------+
+# | Misc                                                              |
+# +-------------------------------------------------------------------+
+
+SourceRepository head
+  Type: darcs
+  Location: http://ocsigen.org/darcs/ocsforge
+  Browser: http://ocsigen.org/darcsweb/?r=ocsforge;a=summary

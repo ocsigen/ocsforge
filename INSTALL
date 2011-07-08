@@ -26,6 +26,8 @@ $ psql -U ocsimore -f ocsforge_createdb.sql
 update database with
 $ psql -U ocsimore -f updatedb-20090702.sql
 $ psql -U ocsimore -f updatedb-20090706.sql
+$ psql -U ocsimore -f updatedb-20090731.sql
+$ psql -U ocsimore -f updatedb-20090805.sql
 
 to revert these changes use
 $ psql -U ocsimore -f ocsforge_dropdb.sql

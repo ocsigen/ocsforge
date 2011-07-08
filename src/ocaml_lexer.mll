@@ -22,20 +22,20 @@
 {
  open Lexing
  open Ocsforge_color_tokens
-	
+
 let newline lexbuf =
-  lexbuf.lex_curr_p <- { 
+  lexbuf.lex_curr_p <- {
     lexbuf.lex_curr_p with
                          pos_lnum = lexbuf.lex_curr_p.pos_lnum + 1;
                          pos_bol =  lexbuf.lex_curr_p.pos_cnum;
                        }
-      
+
 }
 
 let int = ['0'-'9']+
 let hex = ("0x"| "0X") ['0'-'9' 'A'-'F' 'a'-'f']+
-let oct = ("0o"| "0O") ['0'-'7']+   
-let bin = ("0b"| "0B") ['0'-'1']+ 
+let oct = ("0o"| "0O") ['0'-'7']+
+let bin = ("0b"| "0B") ['0'-'1']+
 
 let keyword = (
    "and" | "as" | "assert" | "asr" | "begin" | "class"
@@ -46,15 +46,15 @@ let keyword = (
   | "lxor" | "match" | "method" | "mod" | "module" | "mutable"
   | "new" | "object" | "of" | "open" | "or" | "private"
   | "rec" | "sig" | "struct" | "to" | "true"
-  | "try" | "with" | "type" | "val" | "virtual" | "when" | "while" 
+  | "try" | "with" | "type" | "val" | "virtual" | "when" | "while"
   | "!="  | "#"  | "&&" | ","
   | "-."  | "->" | ".." | "::" | ":=" | ":>" | ";" | ";;"
   | "<-"  | ">]" | ">}" | "?" | "??" | "[<" | "[>"
   | "`" | "{<" | "|]" |  "~"
 )
-  
+
 let ite = ( "if" | "then" | "else")
-            
+
 let operator = (
 "<>" | "!" | "$" | "%" | "&" | "*" | "+" | "-" |  "." | "/"
 | ":"| "<" | "=" | ">" | "?" | "@" | "^" | "|" | "~"
@@ -75,32 +75,32 @@ let default = [^' ' '\n' '\r']
 let char = ['''](_ | '\\'_)?[''']
 
 rule token = parse
-  | spaces as sp 
+  | spaces as sp
       { Space(sp) }
   | newline_char
       { newline lexbuf;
 	Newline lexbuf.lex_curr_p.pos_lnum }
-  | keyword as k             
+  | keyword as k
       { Keyword k }
-  | delimiter as d 
+  | delimiter as d
       { Delimiter d }
   | ite as t
       { ITE t }
-  | int as i             
+  | int as i
       { Int i  }
-  | bin as b             
+  | bin as b
       { Bin b }
-  | oct as o             
+  | oct as o
       { Oct o }
-  | hex as h             
+  | hex as h
       { Hex h }
-  | (['_']?['A'-'Z'](alpha)) as m  
-      { UpperCaseID m } 
-  | (['_']?['a'-'z'](alpha)) as c  
+  | (['_']?['A'-'Z'](alpha)) as m
+      { UpperCaseID m }
+  | (['_']?['a'-'z'](alpha)) as c
       { Id c }
   | operator as o
       { Operator o }
-  | eof                      
+  | eof
       { Eof(lexbuf.lex_curr_p.pos_lnum) }
   | char as c
       { Char c }
@@ -114,9 +114,9 @@ rule token = parse
         let (text,c_close) = (comment comment_start (Buffer.create 10) lexbuf) in
         lexbuf.lex_start_p <- comment_start;
         Comment (c_open,text,c_close) }
-  | _ as c 
+  | _ as c
       { Unknown(c) }
-  
+
 
 
 and comment start buf = parse

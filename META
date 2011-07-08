@@ -1,9 +1,0 @@
-description = "Ocsforge"
-version = "0.1"
-archive(byte) = "ocsforge.cma"
-
-package "svn" (
-  version = "[distributed with Ocsforge]"
-  description = "SVN support for Ocsforge"
-  archive(byte) = "ocsforge_svn.cmo"
-  )
