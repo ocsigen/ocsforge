@@ -58,6 +58,9 @@ Library "ocsforge"
     ocsimore.forum_site,
     threads
   XMETARequires: pgocaml, eliom.server, threads
+  DataFiles:
+    ../static/*.css,
+    ../static/*.png ($prefix/var/www/$pkg_name)
 
 # +-------------------------------------------------------------------+
 # | Misc                                                              |
