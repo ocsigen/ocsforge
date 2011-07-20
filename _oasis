@@ -57,6 +57,7 @@ Library "ocsforge"
     eliom.server,
     ocsimore.forum_site,
     threads
+  XMETARequires: pgocaml, eliom.server, threads
 
 # +-------------------------------------------------------------------+
 # | Misc                                                              |
