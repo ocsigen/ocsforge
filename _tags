@@ -1,27 +1,3 @@
 # OASIS_START
-# DO NOT EDIT (digest: 2999ace08388233c317128e283d42300)
-# Library ocsforge
-"src": include
-"src/ocsforge.cmxs": use_ocsforge
-<src/*.ml{,i}>: oasis_library_ocsforge_ccopt
-"src/swig_svn.c": oasis_library_ocsforge_ccopt
-<src/ocsforge.{cma,cmxa}>: oasis_library_ocsforge_cclib
-"src/libocsforge.lib": oasis_library_ocsforge_cclib
-"src/dllocsforge.dll": oasis_library_ocsforge_cclib
-"src/libocsforge.a": oasis_library_ocsforge_cclib
-"src/dllocsforge.so": oasis_library_ocsforge_cclib
-<src/ocsforge.{cma,cmxa}>: use_libocsforge
-<src/*.ml{,i}>: pkg_threads
-<src/*.ml{,i}>: pkg_pgocaml.syntax
-<src/*.ml{,i}>: pkg_ocsimore.forum_site
-<src/*.ml{,i}>: pkg_lwt.syntax
-<src/*.ml{,i}>: pkg_eliom.server
-<src/*.ml{,i}>: pkg_camlp4
-"src/swig_svn.c": pkg_threads
-"src/swig_svn.c": pkg_pgocaml.syntax
-"src/swig_svn.c": pkg_ocsimore.forum_site
-"src/swig_svn.c": pkg_lwt.syntax
-"src/swig_svn.c": pkg_eliom.server
-"src/swig_svn.c": pkg_camlp4
 # OASIS_STOP
 <src/**/*.ml>: syntax_camlp4o
