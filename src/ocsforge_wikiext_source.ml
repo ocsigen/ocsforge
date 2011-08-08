@@ -30,71 +30,86 @@ let phrasing_wikicreole_parser = Wiki_syntax.phrasing_wikicreole_parser
 
 let add_extension l ~name ~wiki_content f =
   List.iter (fun wp ->
-               Wiki_syntax.add_extension ~wp ~name ~wiki_content (f wp)) l
+               Wiki_syntax.add_extension ~wp ~name ~wiki_content f) l
 
-let register_wikiext _wp =
+let f_tree _ args content =
+  Wikicreole.Flow5
+    (Lwt.catch
+       (fun () ->
+       	  let id = List.assoc "id" args in
+	  let file =
+	    try Some(List.assoc "file" args)
+	    with Not_found -> None
+	  in
+	  let version =
+	    let v = List.assoc "version" args in
+	    if (String.length v == 0) then
+	      None
+	    else Some(v)
+	  in
+          Ocsforge_widgets_source.add_sources_css_header ();
+	  match file with
+	  | None ->
+	      Ocsforge_widgets_source.draw_repository_table ~id
+		~version ~dir:None
+	  | Some f ->
+	      Ocsforge_widgets_source.draw_source_code_view ~id ~target:[f] ~version
+       )
+       (function
+	  (*	     | Not_found | Failure _ ->
+		     let s = Wiki_syntax.string_of_extension "raw" args content in
+		     Lwt.return [ b [pcdata s ] ] *)
+	| exc ->
+	    let s = Wiki_syntax.string_of_extension "raw" args content in
+	    Lwt.return [ b [pcdata s; br ();
+			    pcdata (Printexc.to_string exc) ] ])
+    )
+
+let register_wikiext () =
   add_extension
-    [wikicreole_parser; reduced_wikicreole_parser0; reduced_wikicreole_parser1]
+    [wikicreole_parser]
     ~name:"ocsforge_repository_tree" ~wiki_content:false
-    ((fun _wp _ args content ->
-      Wikicreole.Flow5
-	(Lwt.catch
-	   (fun () ->
-       	     let id = List.assoc "id" args in
-	     let file =
-	       try Some(List.assoc "file" args)
-	       with Not_found -> None
-	     in
-	     let version =
-	       let v = List.assoc "version" args in
-	       if (String.length v == 0) then
-		 None
-	       else Some(v)
-	     in
-             Ocsforge_widgets_source.add_sources_css_header ();
-	     match file with
-	       | None ->
-		 Ocsforge_widgets_source.draw_repository_table ~id
-		   ~version ~dir:None
-	       | Some f ->
-		 Ocsforge_widgets_source.draw_source_code_view ~id ~target:[f] ~version
-	   )
-	   (function
-(*	     | Not_found | Failure _ ->
-		 let s = Wiki_syntax.string_of_extension "raw" args content in
-		 Lwt.return [ b [pcdata s ] ] *)
-	     | exc ->
-		 let s = Wiki_syntax.string_of_extension "raw" args content in
-		 Lwt.return [ b [pcdata s; br ();
-				 pcdata (Printexc.to_string exc) ] ])
-	)
-     ))
+    (f_tree :> (HTML5_types.flow5 Eliom_pervasives.HTML5.M.elt list Lwt.t,
+          HTML5_types.phrasing_without_interactive
+          Eliom_pervasives.HTML5.M.elt list Lwt.t, Wiki_syntax.href)
+         Wiki_syntax.syntax_extension);
+  add_extension
+    [reduced_wikicreole_parser0; reduced_wikicreole_parser1]
+    ~name:"ocsforge_repository_tree" ~wiki_content:false
+    f_tree
 
+
+let f_code _ args c =
+  Wikicreole.Flow5 (
+    Ocsforge_widgets_source.add_sources_css_header ();
+    lwt c = match c with
+      | None -> Lwt.return []
+      | Some s ->
+          let s =
+            if String.length s >= 1 && s.[0] = '\n' then
+              String.sub s 1 (String.length s - 1)
+            else
+              s
+          in
+          let lang =
+            try List.assoc "language" args
+            with _ -> ""
+          in
+          let lexbuf = Lexing.from_string s in
+          lwt (_, r) = Ocsforge_color.color_by_lang lexbuf lang in Lwt.return r
+    in
+    Lwt.return [ pre ~a:[ a_class ["color"] ] c ] )
 
 let _ =
   add_extension
-    [wikicreole_parser; reduced_wikicreole_parser0; reduced_wikicreole_parser1]
+    [wikicreole_parser]
     ~name:"code"
     ~wiki_content:false
-    (fun _wp _ args c ->
-       Wikicreole.Flow5 (
-        Ocsforge_widgets_source.add_sources_css_header ();
-        lwt c = match c with
-          | None -> Lwt.return []
-          | Some s ->
-            let s =
-              if String.length s >= 1 && s.[0] = '\n' then
-                String.sub s 1 (String.length s - 1)
-              else
-                s
-            in
-            let lang =
-              try List.assoc "language" args
-              with _ -> ""
-            in
-            let lexbuf = Lexing.from_string s in
-            lwt (_, r) = Ocsforge_color.color_by_lang lexbuf lang in Lwt.return r
-	in
-        Lwt.return [ pre ~a:[ a_class ["color"] ] c ] )
-    )
+    f_code;
+  add_extension
+    [reduced_wikicreole_parser0; reduced_wikicreole_parser1]
+    ~name:"code"
+    ~wiki_content:false
+    f_code
+
 

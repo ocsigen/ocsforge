@@ -23,7 +23,8 @@
    on the first run it creates a dummy task
    on every run it registers services
 
- /!\ It should NOT be used for other purposes as there's no rigth verification at all. /!\*)
+   /!\ It should NOT be used for other purposes as there's no rigth
+   verification at all. /!\ *)
 
 let (>>=) = Lwt.bind
 let ($) = User_sql.Types.apply_parameterized_group
@@ -144,8 +145,7 @@ let _ =
     (*Ocsforge_wikiext_tasks.register_wikiext
       Wiki_syntax.wikicreole_parser
       tree_widget ;*)
-    Ocsforge_wikiext_source.register_wikiext
-      Wiki_syntax.wikicreole_parser ;
+    Ocsforge_wikiext_source.register_wikiext ();
   end
 
 

@@ -97,10 +97,10 @@ let generate_menu version page_kind
 let sources_page_content
     version
     ~kind
-    (title_content : HTML5_types.flow5 HTML5.M.elt)
+    (title_content : HTML5_types.flow5_without_header_footer HTML5.M.elt)
     menu_content
     main_content
-    services : HTML5_types.flow5 HTML5.M.elt list =
+    services : HTML5_types.flow5_without_header_footer HTML5.M.elt list =
   add_sources_css_header ();
   [ title_content;
     div ~a:[a_class ["sources_main_div"]]
@@ -111,7 +111,7 @@ let sources_page_content
       ]
   ]
 
-let error (message:string) : HTML5_types.flow5 HTML5.M.elt Lwt.t =
+let error (message:string) : HTML5_types.flow5_without_header_footer HTML5.M.elt Lwt.t =
   Lwt.return (
     div ~a:[a_class ["error_message"]] [
       span ~a:[ a_class ["message_title"]] [
@@ -122,7 +122,7 @@ let error (message:string) : HTML5_types.flow5 HTML5.M.elt Lwt.t =
 
 let error_l m = lwt e = error m in Lwt.return [e]
 
-let warning (message:string) : HTML5_types.flow5 HTML5.M.elt Lwt.t =
+let warning (message:string) : HTML5_types.flow5_without_header_footer HTML5.M.elt Lwt.t =
   Lwt.return (
     div ~a:[ a_class ["warning_message"]] [
       span ~a:[ a_class ["message_title"]] [

@@ -116,7 +116,10 @@ let source_service path =
         Lwt.return (Some(None,page_content))
       in
       let bi = { bi with
-                 Wiki_widgets_interface.bi_subbox = gen_box1;
+                   Wiki_widgets_interface.bi_subbox = (gen_box1 :> Wiki_widgets_interface.menu_style ->
+         (Wiki_types.wikibox option *
+          HTML5_types.flow5 Eliom_pervasives.HTML5.M.elt list)
+         option Lwt.t);
                  (*Wiki_types.bi_page = fst bi.Wiki_types.bi_page, ?? *)
                }
       in
@@ -163,7 +166,10 @@ let log_service path =
         Lwt.return (Some(None,page_content))
       in
       let bi = { bi with
-                    Wiki_widgets_interface.bi_subbox = gen_box1;
+                   Wiki_widgets_interface.bi_subbox = (gen_box1 :> Wiki_widgets_interface.menu_style ->
+         (Wiki_types.wikibox option *
+          HTML5_types.flow5 Eliom_pervasives.HTML5.M.elt list)
+         option Lwt.t);
                     (*Wiki_types.bi_page = fst bi.Wiki_types.bi_page, ?? *) }
       in
       let gen_box _ =
