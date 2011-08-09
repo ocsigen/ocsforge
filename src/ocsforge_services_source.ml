@@ -128,14 +128,14 @@ let source_service path =
           ~bi
           r_infos.Ocsforge_types.r_sources_container
 	in
-        Lwt.return (None, page_content,
+        Lwt.return (None, (page_content :> HTML5_types.flow5 HTML5.M.elt list),
                     Wiki_widgets_interface.Page_displayable,title)
       in
       lwt (html, code) =
 	Wiki_site.wikibox_widget#display_container
           ~wiki:(r_infos.Ocsforge_types.r_wiki) ~menu_style:`Linear
           ~page:((Url.string_of_url_path ~encode:true file),file)
-          ~gen_box:gen_box
+          ~gen_box
       in
       Ocsimore_appl.send ~code html)
 
@@ -177,14 +177,14 @@ let log_service path =
 	  Wiki_site.wikibox_widget#display_interactive_wikibox
             ~bi
             r_infos.Ocsforge_types.r_sources_container in
-        Lwt.return (None, page_content,
+        Lwt.return (None, (page_content :> HTML5_types.flow5 HTML5.M.elt list),
                     Wiki_widgets_interface.Page_displayable,
                     Some("Ocsforge - Repository history"))
       in
       lwt (html, code) = Wiki_site.wikibox_widget#display_container
         ~wiki:(r_infos.Ocsforge_types.r_wiki) ~menu_style:`Linear
         ~page:((Url.string_of_url_path ~encode:true []),[])
-        ~gen_box:gen_box
+        ~gen_box
       in
       Ocsimore_appl.send ~code html)
 
