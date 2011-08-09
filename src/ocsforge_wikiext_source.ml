@@ -23,6 +23,7 @@ open Eliom_pervasives
 open HTML5.M
 
 let wikicreole_parser = Wiki_syntax.wikicreole_parser
+let wikicreole_parser' = Wiki_syntax.wikicreole_parser'
 let reduced_wikicreole_parser0 = Wiki_syntax.reduced_wikicreole_parser0
 let reduced_wikicreole_parser1 = Wiki_syntax.reduced_wikicreole_parser1
 let reduced_wikicreole_parser2 = Wiki_syntax.reduced_wikicreole_parser2
@@ -74,7 +75,9 @@ let register_wikiext () =
           Eliom_pervasives.HTML5.M.elt list Lwt.t, Wiki_syntax.href)
          Wiki_syntax.syntax_extension);
   add_extension
-    [reduced_wikicreole_parser0; reduced_wikicreole_parser1]
+    [wikicreole_parser';
+     reduced_wikicreole_parser0;
+     reduced_wikicreole_parser1]
     ~name:"ocsforge_repository_tree" ~wiki_content:false
     f_tree
 
@@ -107,7 +110,9 @@ let _ =
     ~wiki_content:false
     f_code;
   add_extension
-    [reduced_wikicreole_parser0; reduced_wikicreole_parser1]
+    [wikicreole_parser';
+     reduced_wikicreole_parser0;
+     reduced_wikicreole_parser1]
     ~name:"code"
     ~wiki_content:false
     f_code
