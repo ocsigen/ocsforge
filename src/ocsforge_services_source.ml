@@ -113,12 +113,11 @@ let source_service path =
         ~wikibox:r_infos.Ocsforge_types.r_sources_container
         ~rights:(Wiki_models.get_rights Wiki_site.wikicreole_model) in
       let gen_box1 _ =
-        Lwt.return (Some(None,page_content))
+        Lwt.return (Some page_content)
       in
       let bi = { bi with
                    Wiki_widgets_interface.bi_subbox = (gen_box1 :> Wiki_widgets_interface.menu_style ->
-         (Wiki_types.wikibox option *
-          HTML5_types.flow5 Eliom_pervasives.HTML5.M.elt list)
+         (HTML5_types.flow5 Eliom_pervasives.HTML5.M.elt list)
          option Lwt.t);
                  (*Wiki_types.bi_page = fst bi.Wiki_types.bi_page, ?? *)
                }
@@ -163,12 +162,11 @@ let log_service path =
         ~wikibox:r_infos.Ocsforge_types.r_sources_container
         ~rights:(Wiki_models.get_rights Wiki_site.wikicreole_model) in
       let gen_box1 _ =
-        Lwt.return (Some(None,page_content))
+        Lwt.return (Some page_content)
       in
       let bi = { bi with
                    Wiki_widgets_interface.bi_subbox = (gen_box1 :> Wiki_widgets_interface.menu_style ->
-         (Wiki_types.wikibox option *
-          HTML5_types.flow5 Eliom_pervasives.HTML5.M.elt list)
+         (HTML5_types.flow5 Eliom_pervasives.HTML5.M.elt list)
          option Lwt.t);
                     (*Wiki_types.bi_page = fst bi.Wiki_types.bi_page, ?? *) }
       in
