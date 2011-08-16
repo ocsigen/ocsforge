@@ -82,26 +82,33 @@ let register_wikiext () =
     f_tree
 
 
+let code_content args c =
+  Ocsforge_widgets_source.add_sources_css_header ();
+  match c with
+  | None -> Lwt.return []
+  | Some s ->
+      let s =
+        if String.length s >= 1 && s.[0] = '\n' then
+          String.sub s 1 (String.length s - 1)
+        else
+          s
+      in
+      let lang =
+        try List.assoc "language" args
+        with _ -> ""
+      in
+      let lexbuf = Lexing.from_string s in
+      lwt (_, r) = Ocsforge_color.color_by_lang lexbuf lang in Lwt.return r
+
 let f_code _ args c =
   Wikicreole.Flow5 (
-    Ocsforge_widgets_source.add_sources_css_header ();
-    lwt c = match c with
-      | None -> Lwt.return []
-      | Some s ->
-          let s =
-            if String.length s >= 1 && s.[0] = '\n' then
-              String.sub s 1 (String.length s - 1)
-            else
-              s
-          in
-          let lang =
-            try List.assoc "language" args
-            with _ -> ""
-          in
-          let lexbuf = Lexing.from_string s in
-          lwt (_, r) = Ocsforge_color.color_by_lang lexbuf lang in Lwt.return r
-    in
+    lwt c = code_content args c in
     Lwt.return [ pre ~a:[ a_class ["ocsforge_color"] ] c ] )
+
+let f_code_inline _ args c =
+  Wikicreole.Phrasing_without_interactive (
+    lwt c = code_content args c in
+    Lwt.return [ span ~a:[ a_class ["ocsforge_color"] ] c ] )
 
 let _ =
   add_extension
@@ -115,6 +122,20 @@ let _ =
      reduced_wikicreole_parser1]
     ~name:"code"
     ~wiki_content:false
-    f_code
+    f_code;
+  add_extension
+    [wikicreole_parser]
+    ~name:"code-inline"
+    ~wiki_content:false
+    f_code_inline;
+  add_extension
+    [wikicreole_parser';
+     reduced_wikicreole_parser0;
+     reduced_wikicreole_parser1]
+    ~name:"code-inline"
+    ~wiki_content:false
+    f_code_inline
+
+
 
 
