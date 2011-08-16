@@ -1,5 +1,5 @@
 
-div.ocsforge_task_details {
+div.ocsforge_ocsforge_task_details {
     margin: 15px 5px 15px 5px;
     padding: 5px;
     border: 1px solid #996633;
@@ -10,7 +10,7 @@ div.ocsforge_task_details {
     -webkit-border-radius: 2px 2px 2px 2px;
 }
 
-div.ocsforge_repository_details {
+div.ocsforge_ocsforge_repository_details {
     margin: 15px 5px 15px 5px;
     padding: 5px;
     border: 1px solid #996633;
@@ -21,7 +21,7 @@ div.ocsforge_repository_details {
     -webkit-border-radius: 2px 2px 2px 2px;
 }
 
-div.ocsforge_categories_details {
+div.ocsforge_ocsforge_categories_details {
     margin: 15px 5px 15px 5px;
     padding: 5px;
     border: 1px solid #996633;
@@ -32,7 +32,7 @@ div.ocsforge_categories_details {
     -webkit-border-radius: 2px 2px 2px 2px;
 }
 
-div.ocsforge_task_message {
+div.ocsforge_ocsforge_task_message {
     margin: 15px 5px 15px 5px;
     padding: 5px;
     border: 1px solid #996633;

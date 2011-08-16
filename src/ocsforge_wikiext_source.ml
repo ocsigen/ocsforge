@@ -101,7 +101,7 @@ let f_code _ args c =
           let lexbuf = Lexing.from_string s in
           lwt (_, r) = Ocsforge_color.color_by_lang lexbuf lang in Lwt.return r
     in
-    Lwt.return [ pre ~a:[ a_class ["color"] ] c ] )
+    Lwt.return [ pre ~a:[ a_class ["ocsforge_color"] ] c ] )
 
 let _ =
   add_extension

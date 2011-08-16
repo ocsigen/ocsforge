@@ -1,6 +1,6 @@
 /* Containers */
 
-div.sources_main_div {
+div.ocsforge_sources_main_div {
     position: relative;
     border: 1px solid #BBBBBB;
     min-height: 100%;
@@ -19,13 +19,13 @@ div.sources_main_div {
     -webkit-border-radius: 0px 0px 10px 10px;
 }
 
-div.sources_main_div a {
+div.ocsforge_sources_main_div a {
     font-size: small;
     font-family: arial,sans-serif;
     text-decoration: none;
 }
 
-div.sources_main_div a img {
+div.ocsforge_sources_main_div a img {
     margin: 0px;
     background-color: #EBEAD2;
     padding: 2px;
@@ -37,11 +37,11 @@ div.sources_main_div a img {
     -webkit-border-radius: 5px;
 }
 
-div.sources_main_div a img:hover{
+div.ocsforge_sources_main_div a img:hover{
     border: 2px solid #443434;
 }
 
-div.sources_menu_div {
+div.ocsforge_sources_menu_div {
     float:left;
     text-align:center;
     font-size: small;
@@ -50,7 +50,7 @@ div.sources_menu_div {
     width: 190px;
 }
 
-div.sources_content_div {
+div.ocsforge_sources_content_div {
     padding: 0px;
     /*float: right;*/
     /*width: 590px;*/
@@ -63,7 +63,7 @@ div.sources_content_div {
 
 /* Menu */
 
-table.sources_menu {
+table.ocsforge_sources_menu {
     padding-top: 5px;
     display:block;
     margin-left: auto;
@@ -71,7 +71,7 @@ table.sources_menu {
     width: 100%;
 }
 
-table.sources_submenu {
+table.ocsforge_sources_submenu {
     padding-top: 10px;
     padding-bottom: 10px;
     display:block;
@@ -85,7 +85,7 @@ table.sources_submenu {
     -webkit-border-radius: 0px 10px 10px 0px;
 }
 
-th.submenu_title {
+th.ocsforge_submenu_title {
     font-size: 13pt;
     /*font-style: italic;*/
     font-weight: bold;
@@ -97,11 +97,11 @@ th.submenu_title {
 }
 
  
-table.sources_menu tbody {
+table.ocsforge_sources_menu tbody {
     display: block;
 }
 
-table.sources_menu tr {
+table.ocsforge_sources_menu tr {
     display: block;
     border: 2px solid white;
     border-radius: 10px;
@@ -111,21 +111,21 @@ table.sources_menu tr {
     -webkit-border-radius: 10px;
 }
 
-table.sources_menu td {
+table.ocsforge_sources_menu td {
     display:block;
 }
 
-table.sources_submenu tbody {
+table.ocsforge_sources_submenu tbody {
     display: block;
 }
 
-table.sources_submenu tr {
+table.ocsforge_sources_submenu tr {
     display: block;
     border: none;
 }
 
 
-td.sources_menu_item {
+td.ocsforge_sources_menu_item {
     display: block;
     /*background: #EBDF92 url(./sources_menu_item.png) repeat-y left top;*/
     background-color: transparent;
@@ -140,7 +140,7 @@ td.sources_menu_item {
     -webkit-border-radius: 10px;
 }
 
-td.sources_menu_current {
+td.ocsforge_sources_menu_current {
     display: block;
     color:white;
     background-color: #3D3A3E;
@@ -155,12 +155,12 @@ td.sources_menu_current {
     -webkit-border-radius: 10px;
 }
 
-td.sources_menu_item:hover {
+td.ocsforge_sources_menu_item:hover {
     background: white url(./sources_menu_item_hover.png) repeat-y left top;
     border: 1px solid black;
 }
 
-a.sources_menu_link {
+a.ocsforge_sources_menu_link {
     text-decoration: none;
     color: #3D3A3E;
     height: 100%;
@@ -173,15 +173,15 @@ a.sources_menu_link {
 }
 
 
-a.sources_menu_link:visited {
+a.ocsforge_sources_menu_link:visited {
     color: #3D3A3E;
 }
 
-p.menu_form {
+p.ocsforge_menu_form {
     width: 100%;
 }
 
-span.menu_form_title {
+span.ocsforge_menu_form_title {
     display:block;
     font-style: italic;
 }
@@ -189,7 +189,7 @@ span.menu_form_title {
 
 /* Global styles */
 
-div.error_message {
+div.ocsforge_error_message {
     float: left;
     border: 2px solid red;
     background-color: white;
@@ -208,7 +208,7 @@ div.error_message {
     -webkit-border-radius: 10px 10px 10px 10px;
 }
 
-div.warning_message {
+div.ocsforge_warning_message {
     float: left;
     border: 2px solid orange;
     background-color: white;
@@ -227,7 +227,7 @@ div.warning_message {
     -webkit-border-radius: 10px 10px 10px 10px;
 }
 
-span.message_title {
+span.ocsforge_message_title {
     display:block;
 }
 
@@ -239,7 +239,7 @@ h3 {
 
 /* Current file/directory path */
 
-div.path {
+div.ocsforge_path {
     background: #EBEAD2 url(./ocsforge_title_background.png) repeat left top;
     border: 1px solid #BBBBBB;
     width: 95%;
@@ -255,44 +255,44 @@ div.path {
     -webkit-border-radius: 10px 10px 0px 0px;
 }
 
-span.path_delimiter {
+span.ocsforge_path_delimiter {
     text-align: center;
     padding: 2px;
 }
 
-span.path_element {
+span.ocsforge_path_element {
     font-family: Lucida Console, Monospace;
     font-size:large;
     font-weight: bold;
 }
 
-span.last_path_element {
+span.ocsforge_last_path_element {
     font-family: Lucida Console, Monospace;
     font-size:large;
     font-weight: bold;
     color: #DF0043;
 }
 
-a.path {
+a.ocsforge_path {
     text-decoration: none;
     color: #6D0CA9;
 }
 
-a.path:hover {
+a.ocsforge_path:hover {
     background-color: #DED4ED;
 }
 
 
 /** Repository content informations */
 
-table.sources_table{
+table.ocsforge_sources_table{
     width: 95%;
     heigth: 100%;
     border-collapse:collapse;
     text-align:left;
 }
 
-table.log_table {
+table.ocsforge_log_table {
     width: 95%;
     heigth: 100%;
     border-collapse:collapse;
@@ -300,18 +300,18 @@ table.log_table {
 }
 
 
-table.log_table tr {
+table.ocsforge_log_table tr {
     height: 40px;
 }
 
-td.sources_table { border:1px solid #BBBBBB; }
+td.ocsforge_sources_table { border:1px solid #BBBBBB; }
 
-td.small_font {
+td.ocsforge_small_font {
     border:1px solid #BBBBBB;
     font-size: small;
 }
 
-td.small_font_center {
+td.ocsforge_small_font_center {
     border:1px solid #BBBBBB;
     font-size: small;
     text-align: center;
@@ -319,57 +319,57 @@ td.small_font_center {
     padding-right: 2px;
 }
 
-td.small_ifont {
+td.ocsforge_small_ifont {
     border:1px solid #BBBBBB;
     font-size: small;
     font-style: italic;
 }
 
-td.small_ifont_center {
+td.ocsforge_small_ifont_center {
     border:1px solid #BBBBBB;
     font-size: small;
     font-style: italic;
     text-align: center;
 }
 
-td.xsmall_font {
+td.ocsforge_xsmall_font {
     border:1px solid #BBBBBB;
     font-size: x-small;
 }
 
-th.sources_table {
+th.ocsforge_sources_table {
     border:1px solid #BBBBBB;
     color: #53185B;
     background-color:#EEE;
     text-align: center;
 }
 
-tr.folder {
+tr.ocsforge_folder {
     border: 2px solid #BBBBBB;
     background-color: #DDCAEF;
 }
 
-tr.folder:hover { background-color: #F4F4CC; }
+tr.ocsforge_folder:hover { background-color: #F4F4CC; }
 
-table.sources_table tr.odd:hover { background-color: #F4F4CC; }
+table.ocsforge_sources_table tr.ocsforge_odd:hover { background-color: #F4F4CC; }
 
-table.sources_table tr.even:hover { background-color: #F4F4CC; }
+table.ocsforge_sources_table tr.ocsforge_even:hover { background-color: #F4F4CC; }
 
-table.sources_table tr.odd { background-color: #D5EFDA; }
+table.ocsforge_sources_table tr.ocsforge_odd { background-color: #D5EFDA; }
 
-table.sources_table tr.even { background-color: #C2F0CB; }
+table.ocsforge_sources_table tr.ocsforge_even { background-color: #C2F0CB; }
 
-table.log_table tr.odd:hover { background-color: #F4F4CC; }
+table.ocsforge_log_table tr.ocsforge_odd:hover { background-color: #F4F4CC; }
 
-table.log_table tr.even:hover { background-color: #F4F4CC; }
+table.ocsforge_log_table tr.ocsforge_even:hover { background-color: #F4F4CC; }
 
-table.log_table tr.odd { background-color: #DBD6F0; }
+table.ocsforge_log_table tr.ocsforge_odd { background-color: #DBD6F0; }
 
-table.log_table tr.even { background-color: #CBC1F0; }
+table.ocsforge_log_table tr.ocsforge_even { background-color: #CBC1F0; }
 
 /* File content page */
 
-pre.left_lines {
+pre.ocsforge_left_lines {
     text-align:right;
     padding: 2px;
     background-color: #E8E8E8;
@@ -381,7 +381,7 @@ pre.left_lines {
     -webkit-border-radius: 10px 0px 0px 10px;
 }
 
-pre.right_lines {
+pre.ocsforge_right_lines {
     text-align:left;
     padding: 2px;
     background-color: #E8E8E8;
@@ -393,7 +393,7 @@ pre.right_lines {
     -webkit-border-radius: 0px 10px 10px 0px;
 }
 
-div.left_lines {
+div.ocsforge_left_lines {
     border: 1px solid #BBBBBB;
     float:  left;
     width: 6%;
@@ -405,7 +405,7 @@ div.left_lines {
     -webkit-border-radius: 10px 0px 0px 10px;
 }
 
-div.right_lines {
+div.ocsforge_right_lines {
     border: 1px solid #BBBBBB;
     float:  left;
     width: 6%;
@@ -418,9 +418,9 @@ div.right_lines {
 }
 
 
-span.line_num { font-weight: 500}
+span.ocsforge_line_num { font-weight: 500}
 
-div.source_code{
+div.ocsforge_source_code{
     border: 1px solid #BBBBBB;
     background-color: #EDF0F9; 
     width: 86%;
@@ -428,7 +428,7 @@ div.source_code{
     float:left;
 }
 
-div.source_code_container {
+div.ocsforge_source_code_container {
     width: 90%;
     overflow: auto;
     padding-bottom: 10px;
@@ -437,16 +437,16 @@ div.source_code_container {
 
 /** File options page */
 
-.version_select {
+.ocsforge_version_select {
     font-size: small;
 }
 
-.version_select select {
+.ocsforge_version_select select {
     background-color: white;
     max-width: 95%;
 }
 
-div.file_version_select{
+div.ocsforge_file_version_select{
     border: 1px solid #BBBBBB;
     width: 40%;
     height: 50px;
@@ -458,7 +458,7 @@ div.file_version_select{
     -webkit-border-radius: 10px;
 }
 
-div.file_diff_select{
+div.ocsforge_file_diff_select{
     border: 1px solid #BBBBBB;
     width: 40%;
     height: 70px;
@@ -470,7 +470,7 @@ div.file_diff_select{
 
 /** File/patch diff pages */
 
-div.diff {
+div.ocsforge_diff {
     border: 1px solid #BBBBBB;
     background-color: white;
     width: 48%;
@@ -486,7 +486,7 @@ div.diff {
 }
 
 
-div.patchdiff {
+div.ocsforge_patchdiff {
     border: 1px solid #BBBBBB;
     background-color: white;
     width: 90%;
@@ -501,7 +501,7 @@ div.patchdiff {
     -webkit-border-radius: 10px;
 }
 
-span.diff_title {
+span.ocsforge_diff_title {
     text-align: center;
     border-bottom: 1px solid;
     font-size: small;
@@ -509,22 +509,22 @@ span.diff_title {
     display: block;
 }
 
-pre.diff { 
+pre.ocsforge_diff { 
     background-color: #EDF0F9;
     overflow: auto; 
 }
 
-span.new { background-color: #5CED76 }
+span.ocsforge_new { background-color: #5CED76 }
 
-span.old { background-color: #F86565 }
+span.ocsforge_old { background-color: #F86565 }
 
-span.common { background-color: transparent }
+span.ocsforge_common { background-color: transparent }
 
-span.blank { background-color: #E4D4D4 }
+span.ocsforge_blank { background-color: #E4D4D4 }
 
 /** File annotate page */
 
-div.annot_author {
+div.ocsforge_annot_author {
     border: 1px solid #BBBBBB;
     font-size:normal;
     float:left;
@@ -538,7 +538,7 @@ div.annot_author {
     -webkit-border-radius: 10px 0px 0px 10px;
 }
 
-div.annot_content {
+div.ocsforge_annot_content {
     border: 1px solid #BBBBBB;
     font-size:normal;
     float:left;
@@ -553,25 +553,25 @@ div.annot_content {
     -webkit-border-radius: 0px 10px 10px 0px;
 }
 
-pre.annot {
+pre.ocsforge_annot {
     background-attachement:fixed;
     overflow: hidden;
 }
 
-span.annot:hover {
+span.ocsforge_annot:hover {
     font-weight:bold;
 }
 
 /** Repository log page */
 
 
-table.log_links {
+table.ocsforge_log_links {
     font-size:small;
     width: 95%;
     text-align:center;
 }
 
-table.log_links td {
+table.ocsforge_log_links td {
     border-radius: 10px 10px 0px 0px;
     -o-border-radius: 10px 10px 0px 0px;
     -khtml-border-radius: 10px 10px 0px 0px;
@@ -579,13 +579,13 @@ table.log_links td {
     -webkit-border-radius: 10px 10px 0px 0px;
 }
 
-td.middle {
+td.ocsforge_middle {
     color: white;
     background-color: #648BD8;
     width: 30%;
 }
 
-td.previous_entries_link {
+td.ocsforge_previous_entries_link {
     color: white;
     background-color: #648BD8;
     width: 10%;
@@ -596,11 +596,11 @@ td.previous_entries_link {
     -webkit-border-radius: 10px 0px 0px 0px;
 }
 
-td.previous_entries_link:hover {
+td.ocsforge_previous_entries_link:hover {
     background-color: #23296D;
 }
 
-td.no_previous_entries {
+td.ocsforge_no_previous_entries {
     color: white;
     background-color: #A49A9A;
     width: 10%;
@@ -611,7 +611,7 @@ td.no_previous_entries {
     -webkit-border-radius: 10px 0px 0px 0px;
 }
 
-td.next_entries_link {
+td.ocsforge_next_entries_link {
     color: white;
     background-color: #648BD8;
     width: 10%;
@@ -619,11 +619,11 @@ td.next_entries_link {
     -webkit-border-radius: 0px 10px 0px 0px;
 }
 
-td.next_entries_link:hover {
+td.ocsforge_next_entries_link:hover {
     background-color: #23296D;
 }
 
-td.no_next_entries {
+td.ocsforge_no_next_entries {
     color: white;
     background-color: #A49A9A;
     width: 10%;
@@ -634,7 +634,7 @@ td.no_next_entries {
     -webkit-border-radius: 0px 10px 0px 0px;
 }
 
-a.log_link {
+a.ocsforge_log_link {
     text-decoration:none;
     color:white;
     display:block;
@@ -643,30 +643,30 @@ a.log_link {
 
 /** Syntax highlighting */
 
-pre.color {
+pre.ocsforge_color {
     background-color: #EDF0F9;
     padding: 2px;
     margin: 0px;
 }
 
-span.color_comment { color: #FF7F00; }
+span.ocsforge_color_comment { color: #FF7F00; }
 
-span.color_keyword { color: #66CD00; }
+span.ocsforge_color_keyword { color: #66CD00; }
 
-span.color_test { color: #66CDAA; }
+span.ocsforge_color_test { color: #66CDAA; }
 
-span.color_string { color: #FF0033; }
+span.ocsforge_color_string { color: #FF0033; }
 
-span.color_char { color: #FF4BF6; }
+span.ocsforge_color_char { color: #FF4BF6; }
 
-span.color_ucid { color: #DAA520; }
+span.ocsforge_color_ucid { color: #DAA520; }
 
-span.color_hex { color: brown; }
+span.ocsforge_color_hex { color: brown; }
 
-span.color_oct { color: brown; }
+span.ocsforge_color_oct { color: brown; }
 
-span.color_bin { color: brown; }
+span.ocsforge_color_bin { color: brown; }
 
-span.color_int { color: brown; }
+span.ocsforge_color_int { color: brown; }
 
-span.color_delimiter { color: #9932CC; }
+span.ocsforge_color_delimiter { color: #9932CC; }
