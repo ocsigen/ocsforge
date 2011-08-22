@@ -150,11 +150,13 @@ let register_dump_tree_service tree_widget task_widget path =
                    ~root_task:( Olang.unopt ri.Types.r_root_task )
                 ))
                                                             >>= fun content ->
-              let gen_box _ = Lwt.return
+							      let
+								  gen_box ~sectioning _ = Lwt.return
                 (None, content, p_d, Some "Ocsforge - task tree")
               in
               Wiki_site.wikibox_widget#display_container
                 ~wiki:ri.Types.r_wiki
+		~sectioning:false
                 ~menu_style:`Linear
                 ~page:((Url.string_of_url_path ~encode:true []), [])
                 ~gen_box
@@ -169,7 +171,7 @@ let register_dump_tree_service tree_widget task_widget path =
                 ))   >>= fun c ->
                Data.get_area_for_task ~task          >>= fun ri1 ->
                Data.get_area_for_page ~page:path     >>= fun ri2 ->
-               let gen_box _ = Lwt.return
+		 let gen_box ~sectioning _ = Lwt.return
                  (None,
                   c,
                   (if ri1.Types.r_id = ri2.Types.r_id then p_d else e404),
@@ -177,6 +179,7 @@ let register_dump_tree_service tree_widget task_widget path =
                in
                Wiki_site.wikibox_widget#display_container
                  ~wiki:ri1.Types.r_wiki
+		 ~sectioning: false
                  ~menu_style:`Linear
                  ~page:((Url.string_of_url_path ~encode:true []), [])
                  ~gen_box

@@ -112,17 +112,19 @@ let source_service path =
       lwt bi = Wiki.default_bi
         ~wikibox:r_infos.Ocsforge_types.r_sources_container
         ~rights:(Wiki_models.get_rights Wiki_site.wikicreole_model) in
-      let gen_box1 _ =
+      let gen_box1 ~sectioning:_ _ =
         Lwt.return (Some page_content)
       in
       let bi = { bi with
-                   Wiki_widgets_interface.bi_subbox = (gen_box1 :> Wiki_widgets_interface.menu_style ->
+                   Wiki_widgets_interface.bi_subbox = (gen_box1 :>
+							 sectioning:bool
+						       -> Wiki_widgets_interface.menu_style ->
          (HTML5_types.flow5 Eliom_pervasives.HTML5.M.elt list)
          option Lwt.t);
                  (*Wiki_types.bi_page = fst bi.Wiki_types.bi_page, ?? *)
                }
       in
-      let gen_box _ =
+      let gen_box ~sectioning:_ _ =
         lwt page_content = Wiki_site.wikibox_widget#display_interactive_wikibox
           ~bi
           r_infos.Ocsforge_types.r_sources_container
@@ -132,7 +134,8 @@ let source_service path =
       in
       lwt (html, code) =
 	Wiki_site.wikibox_widget#display_container
-          ~wiki:(r_infos.Ocsforge_types.r_wiki) ~menu_style:`Linear
+          ~wiki:(r_infos.Ocsforge_types.r_wiki) ~sectioning:false
+	  ~menu_style:`Linear
           ~page:((Url.string_of_url_path ~encode:true file),file)
           ~gen_box
       in
@@ -161,16 +164,17 @@ let log_service path =
       lwt bi = Wiki.default_bi
         ~wikibox:r_infos.Ocsforge_types.r_sources_container
         ~rights:(Wiki_models.get_rights Wiki_site.wikicreole_model) in
-      let gen_box1 _ =
+      let gen_box1 ~sectioning:_ _ =
         Lwt.return (Some page_content)
       in
       let bi = { bi with
-                   Wiki_widgets_interface.bi_subbox = (gen_box1 :> Wiki_widgets_interface.menu_style ->
+                   Wiki_widgets_interface.bi_subbox = (gen_box1 :> sectioning:bool
+						       -> Wiki_widgets_interface.menu_style ->
          (HTML5_types.flow5 Eliom_pervasives.HTML5.M.elt list)
          option Lwt.t);
                     (*Wiki_types.bi_page = fst bi.Wiki_types.bi_page, ?? *) }
       in
-      let gen_box _ =
+      let gen_box ~sectioning:_ _ =
         lwt page_content =
 	  Wiki_site.wikibox_widget#display_interactive_wikibox
             ~bi
@@ -180,7 +184,7 @@ let log_service path =
                     Some("Ocsforge - Repository history"))
       in
       lwt (html, code) = Wiki_site.wikibox_widget#display_container
-        ~wiki:(r_infos.Ocsforge_types.r_wiki) ~menu_style:`Linear
+        ~wiki:(r_infos.Ocsforge_types.r_wiki) ~sectioning:false ~menu_style:`Linear
         ~page:((Url.string_of_url_path ~encode:true []),[])
         ~gen_box
       in
