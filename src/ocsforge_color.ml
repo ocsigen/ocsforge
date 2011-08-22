@@ -95,6 +95,9 @@ let rec color2 lexbuf lexer = match (lexer lexbuf) with
  | Int(i) ->
    lwt (a,b) = color2 lexbuf lexer in
    Lwt.return (a, ( span ~a:[a_class ["ocsforge_color_int"]] [ pcdata i ] ) :: b )
+ | Float(i) ->
+   lwt (a,b) = color2 lexbuf lexer in
+   Lwt.return (a, ( span ~a:[a_class ["ocsforge_color_float"]] [ pcdata i ] ) :: b )
  | Bin(bin) ->
    lwt (a,b) = color2 lexbuf lexer in
    Lwt.return (a, ( span ~a:[a_class ["ocsforge_color_bin"]] [ pcdata bin ] ) :: b)
@@ -106,13 +109,16 @@ let rec color2 lexbuf lexer = match (lexer lexbuf) with
    Lwt.return (a, ( span ~a:[a_class ["ocsforge_color_hex"]] [ pcdata h ] ) :: b )
  | Operator(o) ->
    lwt (a,b) = color2 lexbuf lexer in
-   Lwt.return (a, ( span [pcdata o ]) :: b )
+   Lwt.return (a, ( span ~a:[a_class ["ocsforge_color_operator"]] [pcdata o ]) :: b )
  | Delimiter(d) ->
    lwt (a,b) = color2 lexbuf lexer in
    Lwt.return (a, ( span ~a:[a_class ["ocsforge_color_delimiter"]] [ pcdata d ] ) :: b )
  | Id(i) ->
    lwt (a,b) = color2 lexbuf lexer in
-   Lwt.return (a, ( span [pcdata i ]) :: b )
+   Lwt.return (a, ( span ~a:[a_class ["ocsforge_color_lid"]] [pcdata i ]) :: b )
+ | Label(i) ->
+   lwt (a,b) = color2 lexbuf lexer in
+   Lwt.return (a, ( span ~a:[a_class ["ocsforge_color_label"]] [pcdata i ]) :: b )
  | Char(c) ->
    lwt (a,b) = color2 lexbuf lexer in
    let char = ("\'"^c^"\'") in
@@ -123,7 +129,7 @@ let rec color2 lexbuf lexer = match (lexer lexbuf) with
    Lwt.return (a, ( span ~a:[a_class ["ocsforge_color_string"]] [pcdata str] ) :: b )
  | UpperCaseID(u) ->
    lwt (a,b) = color2 lexbuf lexer in
-   Lwt.return (a, ( span ~a:[a_class ["ocsforge_color_ucid"]] [ pcdata u ] ) :: b )
+   Lwt.return (a, ( span ~a:[a_class ["ocsforge_color_uid"]] [ pcdata u ] ) :: b )
  | Default_lexer_token(s) ->
    lwt (a,b) = color2 lexbuf lexer in
    Lwt.return (a, ( span [pcdata s ]) :: b )

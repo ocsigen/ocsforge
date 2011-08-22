@@ -1,0 +1,483 @@
+--- ocaml/parsing/lexer.mll	2011-08-22 13:57:46.286764897 +0200
++++ src/ocaml_lexer.mll	2011-08-22 14:21:43.986661999 +0200
+@@ -16,8 +16,137 @@
+ 
+ {
+ open Lexing
+-open Misc
+-open Parser
++
++type token =
++  | AMPERAMPER
++  | AMPERSAND
++  | AND
++  | AS
++  | ASSERT
++  | BACKQUOTE
++  | BANG
++  | BAR
++  | BARBAR
++  | BARRBRACKET
++  | BEGIN
++  | CHAR of (char)
++  | CLASS
++  | COLON
++  | COLONCOLON
++  | COLONEQUAL
++  | COLONGREATER
++  | COMMA
++  | CONSTRAINT
++  | DO
++  | DONE
++  | DOT
++  | DOTDOT
++  | DOWNTO
++  | ELSE
++  | END
++  | EOF
++  | EQUAL
++  | EXCEPTION
++  | EXTERNAL
++  | FALSE
++  | FLOAT of (string)
++  | FOR
++  | FUN
++  | FUNCTION
++  | FUNCTOR
++  | GREATER
++  | GREATERRBRACE
++  | GREATERRBRACKET
++  | IF
++  | IN
++  | INCLUDE
++  | INFIXOP0 of (string)
++  | INFIXOP1 of (string)
++  | INFIXOP2 of (string)
++  | INFIXOP3 of (string)
++  | INFIXOP4 of (string)
++  | INHERIT
++  | INITIALIZER
++  | INT of (int)
++  | INT32 of (int32)
++  | INT64 of (int64)
++  | LABEL of (string)
++  | LAZY
++  | LBRACE
++  | LBRACELESS
++  | LBRACKET
++  | LBRACKETBAR
++  | LBRACKETLESS
++  | LBRACKETGREATER
++  | LESS
++  | LESSMINUS
++  | LET
++  | LIDENT of (string)
++  | LPAREN
++  | MATCH
++  | METHOD
++  | MINUS
++  | MINUSDOT
++  | MINUSGREATER
++  | MODULE
++  | MUTABLE
++  | NATIVEINT of (nativeint)
++  | NEW
++  | OBJECT
++  | OF
++  | OPEN
++  | OPTLABEL of (string)
++  | OR
++  | PLUS
++  | PLUSDOT
++  | PREFIXOP of (string)
++  | PRIVATE
++  | QUESTION
++  | QUESTIONQUESTION
++  | QUOTE
++  | RBRACE
++  | RBRACKET
++  | REC
++  | RPAREN
++  | SEMI
++  | SEMISEMI
++  | SHARP
++  | SIG
++  | STAR
++  | STRING of (string)
++  | STRUCT
++  | THEN
++  | TILDE
++  | TO
++  | TRUE
++  | TRY
++  | TYPE
++  | UIDENT of (string)
++  | UNDERSCORE
++  | VAL
++  | VIRTUAL
++  | WHEN
++  | WHILE
++  | WITH
++
++  | COMMENT of string
++  | SPACE of string
++  | NEWLINE
++  | LWT_KWD of string
++  | ELIOM of string
++
++let create_hashtable size init =
++  let tbl = Hashtbl.create size in
++  List.iter (fun (key, data) -> Hashtbl.add tbl key data) init;
++  tbl
++
++module Location = struct
++  type t = position * position
++  let none = (dummy_pos, dummy_pos)
++  let curr lexbuf = (lexbuf.lex_start_p, lexbuf.lex_curr_p)
++  let prerr_warning loc w = ()
++end
++
+ 
+ type error =
+   | Illegal_character of char
+@@ -91,7 +220,16 @@
+     "lxor", INFIXOP3("lxor");
+     "lsl", INFIXOP4("lsl");
+     "lsr", INFIXOP4("lsr");
+-    "asr", INFIXOP4("asr")
++    "asr", INFIXOP4("asr");
++
++    (* LWT keywords *)
++    "lwt", LWT_KWD("lwt");
++    "while_lwt", LWT_KWD("while_lwt");
++    "for_lwt", LWT_KWD("for_lwt");
++    "try_lwt", LWT_KWD("try_lwt");
++    "raise_lwt", LWT_KWD("raise_lwt");
++    "match_lwt", LWT_KWD("match_lwt");
++
+ ]
+ 
+ (* To buffer string literals *)
+@@ -118,6 +256,39 @@
+   string_buff := initial_string_buffer;
+   s
+ 
++(* To buffer comment literals *)
++
++let initial_comment_buffer = String.create 256
++let comment_buff = ref initial_comment_buffer
++let comment_index = ref 0
++
++let reset_comment_buffer () =
++  comment_buff := initial_comment_buffer;
++  comment_index := 0
++
++let store_comment_char c =
++  if !comment_index >= String.length (!comment_buff) then begin
++    let new_buff = String.create (String.length (!comment_buff) * 2) in
++      String.blit (!comment_buff) 0 new_buff 0 (String.length (!comment_buff));
++      comment_buff := new_buff
++  end;
++  String.unsafe_set (!comment_buff) (!comment_index) c;
++  incr comment_index
++
++let store_comment_string s =
++  if !comment_index + String.length s >= String.length (!comment_buff) then begin
++    let new_buff = String.create (String.length (!comment_buff) * 2) in
++      String.blit (!comment_buff) 0 new_buff 0 (String.length (!comment_buff));
++      comment_buff := new_buff
++  end;
++  String.blit s 0 !comment_buff !comment_index (String.length s);
++  comment_index := !comment_index + (String.length s)
++
++let get_stored_comment () =
++  let s = String.sub (!comment_buff) 0 (!comment_index) in
++  comment_buff := initial_comment_buffer;
++  s
++
+ (* To store the position of the beginning of a string and comment *)
+ let string_start_loc = ref Location.none;;
+ let comment_start_loc = ref [];;
+@@ -244,10 +415,10 @@
+ rule token = parse
+   | newline
+       { update_loc lexbuf None 1 false 0;
+-        token lexbuf
++	NEWLINE
+       }
+   | blank +
+-      { token lexbuf }
++      { SPACE (Lexing.lexeme lexbuf) }
+   | "_"
+       { UNDERSCORE }
+   | "~"
+@@ -322,18 +493,23 @@
+       }
+   | "(*"
+       { comment_start_loc := [Location.curr lexbuf];
++        reset_comment_buffer();
+         comment lexbuf;
+-        token lexbuf }
++	COMMENT (get_stored_comment ())
++      }
+   | "(*)"
+-      { let loc = Location.curr lexbuf in
+-        Location.prerr_warning loc Warnings.Comment_start;
++      {
++	(* let loc = Location.curr lexbuf in *)
++        (* Location.prerr_warning loc Warnings.Comment_start; *)
+         comment_start_loc := [Location.curr lexbuf];
++	reset_comment_buffer();
+         comment lexbuf;
+-        token lexbuf
++	COMMENT (get_stored_comment ())
+       }
+   | "*)"
+-      { let loc = Location.curr lexbuf in
+-        Location.prerr_warning loc Warnings.Comment_not_end;
++      {
++	(* let loc = Location.curr lexbuf in *)
++        (* Location.prerr_warning loc Warnings.Comment_not_end; *)
+         lexbuf.Lexing.lex_curr_pos <- lexbuf.Lexing.lex_curr_pos - 1;
+         let curpos = lexbuf.lex_curr_p in
+         lexbuf.lex_curr_p <- { curpos with pos_cnum = curpos.pos_cnum - 1 };
+@@ -402,6 +578,9 @@
+             { INFIXOP4(Lexing.lexeme lexbuf) }
+   | ['*' '/' '%'] symbolchar *
+             { INFIXOP3(Lexing.lexeme lexbuf) }
++  | "{{" | "}}" | "{shared{" | "{client{" | "{server{"
++      { ELIOM (Lexing.lexeme lexbuf)
++      }
+   | eof { EOF }
+   | _
+       { raise (Error(Illegal_character (Lexing.lexeme_char lexbuf 0),
+@@ -410,11 +589,13 @@
+ 
+ and comment = parse
+     "(*"
+-      { comment_start_loc := (Location.curr lexbuf) :: !comment_start_loc;
+-        comment lexbuf;
++      { store_comment_string (Lexing.lexeme lexbuf);
++	comment_start_loc := (Location.curr lexbuf) :: !comment_start_loc;
++        comment lexbuf
+       }
+   | "*)"
+-      { match !comment_start_loc with
++      { store_comment_string (Lexing.lexeme lexbuf);
++	match !comment_start_loc with
+         | [] -> assert false
+         | [x] -> comment_start_loc := [];
+         | _ :: l -> comment_start_loc := l;
+@@ -430,22 +611,31 @@
+           | loc :: _ -> comment_start_loc := [];
+                         raise (Error (Unterminated_string_in_comment, loc))
+         end;
++	store_comment_char '\"';
++	store_comment_string (String.escaped (get_stored_string ()));
++	store_comment_char '\"';
+         reset_string_buffer ();
+         comment lexbuf }
+   | "''"
+-      { comment lexbuf }
++      { store_comment_string (Lexing.lexeme lexbuf);
++	comment lexbuf }
+   | "'" newline "'"
+-      { update_loc lexbuf None 1 false 1;
++      { store_comment_string (Lexing.lexeme lexbuf);
++	update_loc lexbuf None 1 false 1;
+         comment lexbuf
+       }
+   | "'" [^ '\\' '\'' '\010' '\013' ] "'"
+-      { comment lexbuf }
++      { store_comment_string (Lexing.lexeme lexbuf);
++	comment lexbuf }
+   | "'\\" ['\\' '"' '\'' 'n' 't' 'b' 'r' ' '] "'"
+-      { comment lexbuf }
++      { store_comment_string (Lexing.lexeme lexbuf);
++	comment lexbuf }
+   | "'\\" ['0'-'9'] ['0'-'9'] ['0'-'9'] "'"
+-      { comment lexbuf }
++      { store_comment_string (Lexing.lexeme lexbuf);
++	comment lexbuf }
+   | "'\\" 'x' ['0'-'9' 'a'-'f' 'A'-'F'] ['0'-'9' 'a'-'f' 'A'-'F'] "'"
+-      { comment lexbuf }
++      { store_comment_string (Lexing.lexeme lexbuf);
++	comment lexbuf }
+   | eof
+       { match !comment_start_loc with
+         | [] -> assert false
+@@ -453,11 +643,14 @@
+                       raise (Error (Unterminated_comment, loc))
+       }
+   | newline
+-      { update_loc lexbuf None 1 false 0;
++      { store_comment_string (Lexing.lexeme lexbuf);
++	update_loc lexbuf None 1 false 0;
+         comment lexbuf
+       }
++
+   | _
+-      { comment lexbuf }
++      { store_comment_string (Lexing.lexeme lexbuf);
++	comment lexbuf }
+ 
+ and string = parse
+     '"'
+@@ -483,16 +676,17 @@
+           raise (Error (Illegal_escape (Lexing.lexeme lexbuf),
+                         Location.curr lexbuf))
+ *)
+-          let loc = Location.curr lexbuf in
+-          Location.prerr_warning loc Warnings.Illegal_backslash;
++          (* let loc = Location.curr lexbuf in *)
++          (* Location.prerr_warning loc Warnings.Illegal_backslash; *)
+           store_string_char (Lexing.lexeme_char lexbuf 0);
+           store_string_char (Lexing.lexeme_char lexbuf 1);
+           string lexbuf
+         end
+       }
+   | newline
+-      { if not (in_comment ()) then
+-          Location.prerr_warning (Location.curr lexbuf) Warnings.Eol_in_string;
++      {
++	(* if not (in_comment ()) then *)
++          (* Location.prerr_warning (Location.curr lexbuf) Warnings.Eol_in_string; *)
+         update_loc lexbuf None 1 false 0;
+         let s = Lexing.lexeme lexbuf in
+         for i = 0 to String.length s - 1 do
+@@ -512,3 +706,135 @@
+   | "#!" [^ '\n']* '\n'
+        { update_loc lexbuf None 1 false 0 }
+   | "" { () }
++
++{
++
++open Ocsforge_color_tokens
++
++let token lexbuf = match token lexbuf with
++  | AMPERAMPER -> Operator "&&"
++  | AMPERSAND -> Delimiter "&"
++  | AND -> Keyword "and"
++  | AS -> Keyword "as"
++  | ASSERT -> Keyword "assert"
++  | BACKQUOTE -> Delimiter "`"
++  | BANG -> Operator "!"
++  | BAR -> Delimiter "|"
++  | BARBAR -> Operator "||"
++  | BARRBRACKET -> Delimiter "|]"
++  | BEGIN -> Keyword "begin"
++  | CHAR c -> Char (Char.escaped c)
++  | CLASS -> Keyword "class"
++  | COLON -> Delimiter ":"
++  | COLONCOLON -> Operator "::"
++  | COLONEQUAL -> Keyword ":="
++  | COLONGREATER -> Delimiter ":>"
++  | COMMA -> Delimiter ","
++  | CONSTRAINT -> Keyword "constraint"
++  | DO -> Keyword "do"
++  | DONE -> Keyword "done"
++  | DOT -> Delimiter "."
++  | DOTDOT -> Delimiter ".."
++  | DOWNTO -> Keyword "downto"
++  | ELSE -> Keyword "else"
++  | END -> Keyword "end"
++  | EOF -> Eof (lexbuf.lex_curr_p.pos_lnum)
++  | EQUAL -> Delimiter "="
++  | EXCEPTION -> Keyword "exception"
++  | EXTERNAL -> Keyword "external"
++  | FALSE -> Keyword "false"
++  | FLOAT s -> Float s
++  | FOR -> Keyword "for"
++  | FUN -> Keyword "fun"
++  | FUNCTION -> Keyword "function"
++  | FUNCTOR -> Keyword "functor"
++  | GREATER -> Operator ">"
++  | GREATERRBRACE -> Delimiter ">}"
++  | GREATERRBRACKET -> Delimiter ">]"
++  | IF -> Keyword "if"
++  | IN -> Keyword "in"
++  | INCLUDE -> Keyword "include"
++  | INFIXOP0 s
++  | INFIXOP1 s
++  | INFIXOP2 s
++  | INFIXOP3 s
++  | INFIXOP4 s -> Operator s
++  | INHERIT -> Keyword "inherit"
++  | INITIALIZER -> Keyword "initializer"
++  | INT i -> Int (string_of_int i)
++  | INT32 i -> Int (Int32.to_string i)
++  | INT64 i -> Int (Int64.to_string i)
++  | LABEL s -> Label ("~"^s^":")
++  | LAZY -> Keyword "lazy"
++  | LBRACE -> Delimiter "{"
++  | LBRACELESS -> Delimiter "{<"
++  | LBRACKET -> Delimiter "["
++  | LBRACKETBAR -> Delimiter "[|"
++  | LBRACKETLESS -> Delimiter "[<"
++  | LBRACKETGREATER -> Delimiter "[>"
++  | LESS -> Operator "<"
++  | LESSMINUS -> Delimiter "<-"
++  | LET -> Keyword "let"
++  | LIDENT s -> Id s
++  | LPAREN -> Delimiter "("
++  | MATCH -> Keyword "match"
++  | METHOD -> Keyword "method"
++  | MINUS -> Operator "-"
++  | MINUSDOT -> Operator "-."
++  | MINUSGREATER -> Delimiter "->"
++  | MODULE -> Keyword "module"
++  | MUTABLE -> Keyword "mutable"
++  | NATIVEINT n -> Int (Nativeint.to_string n)
++  | NEW -> Keyword "new"
++  | OBJECT -> Keyword "object"
++  | OF -> Keyword "of"
++  | OPEN -> Keyword "open"
++  | OPTLABEL s -> Label ("?"^s^":")
++  | OR -> Keyword "or"
++  | PLUS -> Operator "+"
++  | PLUSDOT -> Operator "+."
++  | PREFIXOP s -> Operator "+"
++  | PRIVATE -> Keyword "private"
++  | QUESTION -> Delimiter "?"
++  | QUESTIONQUESTION -> Delimiter "??"
++  | QUOTE -> Delimiter "'"
++  | RBRACE -> Delimiter "}"
++  | RBRACKET -> Delimiter "]"
++  | REC -> Keyword "rec"
++  | RPAREN -> Delimiter ")"
++  | SEMI -> Delimiter ";"
++  | SEMISEMI -> Delimiter ";;"
++  | SHARP -> Delimiter "#"
++  | SIG -> Keyword "sig"
++  | STAR -> Operator "*"
++  | STRING s -> String s
++  | STRUCT -> Keyword "struct"
++  | THEN -> Keyword "then"
++  | TILDE -> Operator "~"
++  | TO -> Keyword "to"
++  | TRUE -> Keyword "true"
++  | TRY -> Keyword "try"
++  | TYPE -> Keyword "type"
++  | UIDENT s -> UpperCaseID s
++  | UNDERSCORE -> Delimiter "_"
++  | VAL -> Keyword "val"
++  | VIRTUAL -> Keyword "virtual"
++  | WHEN -> Keyword "when"
++  | WHILE -> Keyword "while"
++  | WITH -> Keyword "with"
++
++  | COMMENT c -> Comment ("(*",c,"*)")
++  | NEWLINE -> Newline 1
++  | SPACE s -> Space s
++  | LWT_KWD s -> Keyword s
++  | ELIOM s -> Delimiter s
++
++let _ =
++  Ocsforge_color.register_ext "ml" token;
++  Ocsforge_color.register_ext "mli" token;
++  Ocsforge_color.register_ext "mll" token;
++  Ocsforge_color.register_ext "mly" token;
++  Ocsforge_color.register_lang "caml" token;
++  Ocsforge_color.register_lang "ocaml" token
++}
++

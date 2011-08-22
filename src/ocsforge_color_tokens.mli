@@ -25,6 +25,7 @@ type lexemes =
   | Space of string
   | Tab of int
   | Int of string
+  | Float of string
   | Bin of string
   | Oct of string
   | Hex of string
@@ -37,3 +38,4 @@ type lexemes =
   | Eof of int
   | Default_lexer_token of string
   | Unknown of char
+  | Label of string

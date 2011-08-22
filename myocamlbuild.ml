@@ -24,4 +24,23 @@ let () =
   set_var_option "pghost" "PGHOST";
   set_var_option "pg_socket_domain_dir" "UNIX_SOCKET_DOMAIN_DIR"
 
-let () = Ocamlbuild_plugin.dispatch dispatch_default;;
+open Ocamlbuild_plugin
+
+let patch_lexer _ _ =
+  Cmd (S [ A "patch";
+	   A "-o"; P "src/ocaml_lexer.mll";
+	   P "ocaml/parsing/lexer.mll";
+	   P "src/ocaml_lexer.patch" ])
+
+let () =
+  dispatch
+    (fun hook ->
+       dispatch_default hook;
+       match hook with
+	 | After_rules ->
+	   rule "patch-lexer"
+	     ~prod:"src/ocaml_lexer.mll"
+	     ~deps:["src/ocaml_lexer.patch"; "ocaml/parsing/lexer.mll"]
+	     patch_lexer
+	 | _ -> ()
+    )
