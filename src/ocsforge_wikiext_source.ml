@@ -29,12 +29,8 @@ let reduced_wikicreole_parser1 = Wiki_syntax.reduced_wikicreole_parser1
 let reduced_wikicreole_parser2 = Wiki_syntax.reduced_wikicreole_parser2
 let phrasing_wikicreole_parser = Wiki_syntax.phrasing_wikicreole_parser
 
-let add_extension l ~name ~wiki_content f =
-  List.iter (fun wp ->
-               Wiki_syntax.add_extension ~wp ~name ~wiki_content f) l
-
 let f_tree _ args content =
-  Wikicreole.Flow5
+  `Flow5
     (Lwt.catch
        (fun () ->
        	  let id = List.assoc "id" args in
@@ -67,20 +63,7 @@ let f_tree _ args content =
     )
 
 let register_wikiext () =
-  add_extension
-    [wikicreole_parser]
-    ~name:"ocsforge_repository_tree" ~wiki_content:false
-    (f_tree :> (HTML5_types.flow5 Eliom_pervasives.HTML5.M.elt list Lwt.t,
-          HTML5_types.flow5_without_interactive Eliom_pervasives.HTML5.M.elt list Lwt.t,
-          HTML5_types.phrasing_without_interactive
-          Eliom_pervasives.HTML5.M.elt list Lwt.t, Wiki_syntax.href)
-         Wiki_syntax.syntax_extension);
-  add_extension
-    [wikicreole_parser_without_header_footer;
-     reduced_wikicreole_parser0;
-     reduced_wikicreole_parser1]
-    ~name:"ocsforge_repository_tree" ~wiki_content:false
-    f_tree
+  Wiki_syntax.register_interactive_simple_flow_extension ~name:"tree" f_tree
 
 
 let code_content args c =
@@ -102,41 +85,17 @@ let code_content args c =
       lwt (_, r) = Ocsforge_color.color_by_lang lexbuf lang in Lwt.return r
 
 let f_code _ args c =
-  Wikicreole.Flow5 (
+  `Flow5 (
     lwt c = code_content args c in
     Lwt.return [ pre ~a:[ a_class ["ocsforge_color"] ] c ] )
 
 let f_code_inline _ args c =
-  Wikicreole.Phrasing_without_interactive (
+  `Phrasing_without_interactive (
     lwt c = code_content args c in
     Lwt.return [ span ~a:[ a_class ["ocsforge_color"] ] c ] )
 
 let _ =
-  add_extension
-    [wikicreole_parser]
-    ~name:"code"
-    ~wiki_content:false
-    f_code;
-  add_extension
-    [wikicreole_parser_without_header_footer;
-     reduced_wikicreole_parser0;
-     reduced_wikicreole_parser1]
-    ~name:"code"
-    ~wiki_content:false
-    f_code;
-  add_extension
-    [wikicreole_parser]
-    ~name:"code-inline"
-    ~wiki_content:false
-    f_code_inline;
-  add_extension
-    [wikicreole_parser_without_header_footer;
-     reduced_wikicreole_parser0;
-     reduced_wikicreole_parser1]
-    ~name:"code-inline"
-    ~wiki_content:false
-    f_code_inline
-
-
+  Wiki_syntax.register_simple_flow_extension ~name:"code" f_code;
+  Wiki_syntax.register_simple_phrasing_extension ~name:"code-inline" f_code_inline
 
 

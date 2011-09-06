@@ -99,7 +99,7 @@ let sources_page_content
     ~kind
     (title_content : HTML5_types.flow5_without_header_footer HTML5.M.elt)
     menu_content
-    main_content
+    (main_content : HTML5_types.div_content_fun HTML5.M.elt list)
     services : HTML5_types.flow5_without_header_footer HTML5.M.elt list =
   add_sources_css_header ();
   [ title_content;
@@ -1144,7 +1144,7 @@ let draw_repository_table ~id ~version ~dir =
                     ~kind:None
                     title_content
                     menu_content
-                    [b]
+                    ([b] :> HTML5_types.div_content_fun Eliom_pervasives.HTML5.M.elt list)
                     ps)
 
 let draw_source_code_view ~id ~target ~version =
@@ -1196,7 +1196,8 @@ let draw_source_code_view ~id ~target ~version =
       Lwt.return (sources_page_content
                     version
                     ~kind:(Some(`Cat))
-                    title_content menu_content [b] ps)
+                    title_content menu_content
+		    ([b] :> HTML5_types.div_content_fun Eliom_pervasives.HTML5.M.elt list) ps)
 
 let draw_log_page ~id ~file ~start_rev ~end_rev =
   match Sh.find_service id with
@@ -1211,7 +1212,9 @@ let draw_log_page ~id ~file ~start_rev ~end_rev =
     Lwt.return (sources_page_content
 		  None
                   ~kind:(Some(`Log))
-                  title_content menu_content page_content ps)
+                  title_content menu_content
+		  (page_content :> HTML5_types.div_content_fun Eliom_pervasives.HTML5.M.elt list)
+		  ps)
 
 let draw_diff_view ~id ~target ~diff1 ~diff2 =
   let file = Url.string_of_url_path ~encode:false target in
@@ -1273,7 +1276,7 @@ let draw_diff_view ~id ~target ~diff1 ~diff2 =
           ~kind:(Some(`Diff))
           title_content
           [ menu_content ]
-          b
+          (b :> HTML5_types.div_content_fun Eliom_pervasives.HTML5.M.elt list)
           ps)
 
 let draw_patchdiff ~id ~diff1 ~diff2 = match Sh.find_service id with
@@ -1305,7 +1308,7 @@ let draw_patchdiff ~id ~diff1 ~diff2 = match Sh.find_service id with
         ~kind:(Some(`PatchDiff))
         title_content
         [ menu_content ]
-        page_content
+        (page_content :> HTML5_types.div_content_fun Eliom_pervasives.HTML5.M.elt list)
         ps )
 
 (* TODO ¿ cas ou target est un répertoire ? *)
@@ -1341,7 +1344,7 @@ let draw_file_page ~id ~target ~version ~log_start =
           ~kind:(Some(`Options))
           title_content
           menu_content
-          page_content
+          (page_content :> HTML5_types.div_content_fun Eliom_pervasives.HTML5.M.elt list)
           ps )
 
 let draw_annotate ~id ~target ~version =
@@ -1409,7 +1412,7 @@ let draw_annotate ~id ~target ~version =
           ~kind:(Some(`Annot))
           title_content
           [menu_content]
-          b
+          (b :> HTML5_types.div_content_fun Eliom_pervasives.HTML5.M.elt list)
           ps )
 
 let draw_wrong_url_page ~id = match Sh.find_service id with
@@ -1426,5 +1429,5 @@ let draw_wrong_url_page ~id = match Sh.find_service id with
         ~kind:(Some(`Error))
         title_content
         menu_content
-        [ b ]
+        ([ b ] :> HTML5_types.div_content_fun Eliom_pervasives.HTML5.M.elt list)
         ps )
