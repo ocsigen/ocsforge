@@ -33,6 +33,7 @@ type file_tree = {{ <file_tree> [Xhtmltypes_duce.tr*]  }}
 let source_service path =
   let service_path = ( (Neturl.split_path path) @ [ "sources" ; "" ] ) in
   Eliom_output.Any.register_service
+    ~priority:200
     ~path:service_path
     ~get_params:
     (Params.suffix_prod
