@@ -1,5 +1,5 @@
---- ocaml/parsing/lexer.mll	2011-08-22 13:57:46.286764897 +0200
-+++ src/ocaml_lexer.mll	2011-08-22 14:21:43.986661999 +0200
+--- ocaml/parsing/lexer.mll	2011-10-03 15:41:43.152534202 +0200
++++ src/ocaml_lexer.mll	2011-10-06 18:19:41.997805437 +0200
 @@ -16,8 +16,137 @@
  
  {
@@ -191,7 +191,7 @@
 +  comment_index := !comment_index + (String.length s)
 +
 +let get_stored_comment () =
-+  let s = String.sub (!comment_buff) 0 (!comment_index) in
++  let s = String.sub (!comment_buff) 0 (!comment_index - 2) in
 +  comment_buff := initial_comment_buffer;
 +  s
 +
