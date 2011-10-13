@@ -197,6 +197,8 @@ struct
   module Info =
   struct
     let content_type = "text/xml"
+    let alternative_content_types = []
+    let namespace = ""
     let version = "ocsforge"
     let standard = Uri.uri_of_string "http://www.ocsigen.org/ocsforge/"
     let doctype =  XML_print.compose_doctype "xml" []
