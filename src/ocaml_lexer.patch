@@ -436,7 +436,7 @@
 +  | OR -> Keyword "or"
 +  | PLUS -> Operator "+"
 +  | PLUSDOT -> Operator "+."
-+  | PREFIXOP s -> Operator "+"
++  | PREFIXOP s -> Operator s
 +  | PRIVATE -> Keyword "private"
 +  | QUESTION -> Delimiter "?"
 +  | QUESTIONQUESTION -> Delimiter "??"
