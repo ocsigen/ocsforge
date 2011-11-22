@@ -71,12 +71,7 @@ let code_content args c =
   match c with
   | None -> Lwt.return []
   | Some s ->
-      let s =
-        if String.length s >= 1 && s.[0] = '\n' then
-          String.sub s 1 (String.length s - 1)
-        else
-          s
-      in
+      let s = Ocsimore_lib.remove_spaces s in
       let lang =
         try List.assoc "language" args
         with _ -> ""
