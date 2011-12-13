@@ -55,6 +55,9 @@ Library "ocsforge"
     lwt.syntax,
     pgocaml.syntax,
     eliom.server,
+    ocsimore,
+    ocsimore.wiki,
+    ocsimore.forum,
     ocsimore.forum_site,
     threads
   XMETARequires: pgocaml, eliom.server, threads
