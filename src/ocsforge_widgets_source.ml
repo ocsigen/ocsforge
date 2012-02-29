@@ -100,9 +100,10 @@ let sources_page_content
     (title_content : HTML5_types.flow5_without_header_footer HTML5.M.elt)
     menu_content
     (main_content : HTML5_types.div_content_fun HTML5.M.elt list)
-    services : HTML5_types.flow5_without_header_footer HTML5.M.elt list =
-  add_sources_css_header ();
-  [ title_content;
+    services : HTML5_types.flow5_without_header_footer HTML5.M.elt list Lwt.t =
+  lwt () = add_sources_css_header () in
+  Lwt.return [
+    title_content;
     div ~a:[a_class ["ocsforge_sources_main_div"]]
       [
 	div ~a:[a_class ["ocsforge_sources_menu_div"]]
@@ -1139,13 +1140,13 @@ let draw_repository_table ~id ~version ~dir =
           (a @ [ span ~a:[a_class ["ocsforge_last_path_element"]] [pcdata current_dir];
 		 utf8_span None title ])
       in
-      Lwt.return (sources_page_content
-                    version
-                    ~kind:None
-                    title_content
-                    menu_content
-                    ([b] :> HTML5_types.div_content_fun Eliom_pervasives.HTML5.M.elt list)
-                    ps)
+      sources_page_content
+        version
+        ~kind:None
+        title_content
+        menu_content
+        ([b] :> HTML5_types.div_content_fun Eliom_pervasives.HTML5.M.elt list)
+        ps
 
 let draw_source_code_view ~id ~target ~version =
   let file = Url.string_of_url_path ~encode:false target in
@@ -1193,11 +1194,11 @@ let draw_source_code_view ~id ~target ~version =
                                      [span ~a:[a_class ["ocsforge_last_path_element"]] [ pcdata current_dir ];
 				      utf8_span None dir_version])
       in
-      Lwt.return (sources_page_content
-                    version
-                    ~kind:(Some(`Cat))
-                    title_content menu_content
-		    ([b] :> HTML5_types.div_content_fun Eliom_pervasives.HTML5.M.elt list) ps)
+      sources_page_content
+        version
+        ~kind:(Some(`Cat))
+        title_content menu_content
+        ([b] :> HTML5_types.div_content_fun Eliom_pervasives.HTML5.M.elt list) ps
 
 let draw_log_page ~id ~file ~start_rev ~end_rev =
   match Sh.find_service id with
@@ -1209,12 +1210,12 @@ let draw_log_page ~id ~file ~start_rev ~end_rev =
       ~range:(Some(start_rev,end_rev))
       ~project_services:ps in
     let title_content = div ~a:[a_class ["ocsforge_path"]] [pcdata "Repository history"] in
-    Lwt.return (sources_page_content
-		  None
-                  ~kind:(Some(`Log))
-                  title_content menu_content
-		  (page_content :> HTML5_types.div_content_fun Eliom_pervasives.HTML5.M.elt list)
-		  ps)
+    sources_page_content
+      None
+      ~kind:(Some(`Log))
+      title_content menu_content
+      (page_content :> HTML5_types.div_content_fun Eliom_pervasives.HTML5.M.elt list)
+      ps
 
 let draw_diff_view ~id ~target ~diff1 ~diff2 =
   let file = Url.string_of_url_path ~encode:false target in
@@ -1270,14 +1271,13 @@ let draw_diff_view ~id ~target ~diff1 ~diff2 =
         div ~a:[a_class ["ocsforge_path"]]
 	  (a @ [ span ~a:[a_class ["ocsforge_last_path_element"]] [pcdata current_dir]])
       in
-      Lwt.return (
-	sources_page_content
-          None
-          ~kind:(Some(`Diff))
-          title_content
-          [ menu_content ]
-          (b :> HTML5_types.div_content_fun Eliom_pervasives.HTML5.M.elt list)
-          ps)
+      sources_page_content
+        None
+        ~kind:(Some(`Diff))
+        title_content
+        [ menu_content ]
+        (b :> HTML5_types.div_content_fun Eliom_pervasives.HTML5.M.elt list)
+        ps
 
 let draw_patchdiff ~id ~diff1 ~diff2 = match Sh.find_service id with
   | None -> failwith "Project services not found"
@@ -1302,14 +1302,13 @@ let draw_patchdiff ~id ~diff1 ~diff2 = match Sh.find_service id with
         [ pcdata ("Commit diff "^diff1^" - "^diff2) ]
     in
     lwt page_content = create_patchdiff ~id ~diff1 ~diff2 in
-    Lwt.return (
-      sources_page_content
-        None
-        ~kind:(Some(`PatchDiff))
-        title_content
-        [ menu_content ]
-        (page_content :> HTML5_types.div_content_fun Eliom_pervasives.HTML5.M.elt list)
-        ps )
+    sources_page_content
+      None
+      ~kind:(Some(`PatchDiff))
+      title_content
+      [ menu_content ]
+      (page_content :> HTML5_types.div_content_fun Eliom_pervasives.HTML5.M.elt list)
+      ps
 
 (* TODO ¿ cas ou target est un répertoire ? *)
 let draw_file_page ~id ~target ~version ~log_start =
@@ -1338,14 +1337,13 @@ let draw_file_page ~id ~target ~version ~log_start =
 	      [ span ~a:[a_class ["ocsforge_last_path_element"]] [pcdata current_dir];
 		utf8_span None str_version ] )
       in
-      Lwt.return (
-	sources_page_content
-          version
-          ~kind:(Some(`Options))
-          title_content
-          menu_content
-          (page_content :> HTML5_types.div_content_fun Eliom_pervasives.HTML5.M.elt list)
-          ps )
+      sources_page_content
+        version
+        ~kind:(Some(`Options))
+        title_content
+        menu_content
+        (page_content :> HTML5_types.div_content_fun Eliom_pervasives.HTML5.M.elt list)
+        ps
 
 let draw_annotate ~id ~target ~version =
   let file_version = match version with
@@ -1406,14 +1404,13 @@ let draw_annotate ~id ~target ~version =
                     [pcdata current_dir ];
                   utf8_span None file_version ] )
       in
-      Lwt.return (
-        sources_page_content
-          version
-          ~kind:(Some(`Annot))
-          title_content
-          [menu_content]
-          (b :> HTML5_types.div_content_fun Eliom_pervasives.HTML5.M.elt list)
-          ps )
+      sources_page_content
+        version
+        ~kind:(Some(`Annot))
+        title_content
+        [menu_content]
+        (b :> HTML5_types.div_content_fun Eliom_pervasives.HTML5.M.elt list)
+        ps
 
 let draw_wrong_url_page ~id = match Sh.find_service id with
   | None -> failwith "Project services not found"
@@ -1423,11 +1420,10 @@ let draw_wrong_url_page ~id = match Sh.find_service id with
       div ~a:[a_class ["ocsforge_path"]] [span [pcdata "Error - malformed URL"]]
     in
     lwt b = warning "Wrong URL parameters" in
-    Lwt.return (
-      sources_page_content
-        None
-        ~kind:(Some(`Error))
-        title_content
-        menu_content
-        ([ b ] :> HTML5_types.div_content_fun Eliom_pervasives.HTML5.M.elt list)
-        ps )
+    sources_page_content
+      None
+      ~kind:(Some(`Error))
+      title_content
+      menu_content
+      ([ b ] :> HTML5_types.div_content_fun Eliom_pervasives.HTML5.M.elt list)
+      ps

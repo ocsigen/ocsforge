@@ -20,6 +20,7 @@
 (** @author Granarolo Jean-Henri *)
 
 open Eliom_pervasives
+open Ocsimore_lib.Lwt_ops
 
 let ( ** ) = Eliom_parameters.prod
 module Sh = Ocsforge_services_hashtable
@@ -46,7 +47,7 @@ let source_service path =
           (Params.opt (Params.string "version") **
              (Params.opt (Params.string "to")))))
     (fun (file,(view,(v1,v2))) () ->
-      Ocsforge_widgets_source.add_sources_css_header ();
+      lwt () = Ocsforge_widgets_source.add_sources_css_header () in
       let id = path in
       lwt (title,page_content) =
 	match (file,(view,(v1,v2))) with
@@ -110,9 +111,10 @@ let source_service path =
             Lwt.return (Some("Ocsforge - wrong URL"),r)
       in
       lwt r_infos = Ocsforge_data.get_area_for_page id in
+      lwt rights = Wiki_models.get_rights Wiki_site.wikicreole_model in
       lwt bi = Wiki.default_bi
         ~wikibox:r_infos.Ocsforge_types.r_sources_container
-        ~rights:(Wiki_models.get_rights Wiki_site.wikicreole_model) in
+        ~rights in
       let gen_box1 ~sectioning:_ _ =
         Lwt.return (Some page_content)
       in
@@ -150,7 +152,7 @@ let log_service path =
                                 Vm.string_to_range
 				Vm.range_to_string "range"))
     (fun range () ->
-      Ocsforge_widgets_source.add_sources_css_header ();
+      lwt () = Ocsforge_widgets_source.add_sources_css_header () in
       let id = path in
       let (start_rev,end_rev) = match range with
         | None -> (None,None)
@@ -162,9 +164,10 @@ let log_service path =
         ~start_rev
         ~end_rev in
       lwt r_infos = Ocsforge_data.get_area_for_page id in
+      lwt rights = Wiki_models.get_rights Wiki_site.wikicreole_model in
       lwt bi = Wiki.default_bi
         ~wikibox:r_infos.Ocsforge_types.r_sources_container
-        ~rights:(Wiki_models.get_rights Wiki_site.wikicreole_model) in
+        ~rights in
       let gen_box1 ~sectioning:_ _ =
         Lwt.return (Some page_content)
       in

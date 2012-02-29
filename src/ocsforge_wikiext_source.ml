@@ -44,7 +44,7 @@ let f_tree _ args content =
 	      None
 	    else Some(v)
 	  in
-          Ocsforge_widgets_source.add_sources_css_header ();
+          lwt () = Ocsforge_widgets_source.add_sources_css_header () in
 	  match file with
 	  | None ->
 	      Ocsforge_widgets_source.draw_repository_table ~id
@@ -67,7 +67,7 @@ let register_wikiext () =
 
 
 let code_content args c =
-  Ocsforge_widgets_source.add_sources_css_header ();
+  lwt () = Ocsforge_widgets_source.add_sources_css_header () in
   match c with
   | None -> Lwt.return []
   | Some s ->

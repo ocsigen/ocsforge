@@ -26,14 +26,14 @@
    /!\ It should NOT be used for other purposes as there's no rigth
    verification at all. /!\ *)
 
-let (>>=) = Lwt.bind
+open Ocsimore_lib.Lwt_ops
 let ($) = User_sql.Types.apply_parameterized_group
 
 let add_message ~forum () =
   Forum_sql.get_forum ~forum () >>= fun f ->
   let wiki = f.Forum_types.f_messages_wiki in
   Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
-  let content_type =
+  lwt content_type =
     Wiki_models.get_default_content_type wiki_info.Wiki_types.wiki_model
   in
   let title_syntax = f.Forum_types.f_title_syntax in
@@ -60,16 +60,15 @@ let first_task () =
         ~title:"ocsforge_task_wiki" ~descr:"" ~pages:(Some "ocsforge") (*FIXME: unhardwire the "ocsforge" name*)
         ~boxrights:false ~staticdir:None ~author:User.admin
         ~container_text:Wiki.default_container_page
-        ~model:Wiki_site.wikicreole_model ()
-                                                          >>= fun (wiki,_) ->
+        ~model:Wiki_site.wikicreole_model ()              >>= fun (wiki,_) ->
       Wiki_sql.get_wiki_info_by_id wiki                   >>= fun wi ->
+      lwt content_type = Wiki_models.get_default_content_type Wiki_site.wikicreole_model in
       Wiki_sql.new_wikibox
           ~wiki
           ~author:User.admin
           ~comment:("ocsforge first task wikibox")
           ~content:"<<content>>"
-          ~content_type:
-          (Wiki_models.get_default_content_type Wiki_site.wikicreole_model)
+          ~content_type
           ()
           >>= fun wikibox ->
       Ocsforge_sql.new_area

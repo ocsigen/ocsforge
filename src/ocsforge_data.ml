@@ -33,7 +33,8 @@ module FTypes = Forum_types
 module FRoles = Forum
 (*Can't compile without *) open Sql
 
-let (>>=) = Lwt.bind
+open Ocsimore_lib.Lwt_ops
+
 let (!!) = Lazy.force
 let ($) = User_sql.Types.apply_parameterized_group
 
@@ -130,12 +131,11 @@ let new_project
 
          (* TODO : give the real model *)
 
+         lwt rights = Wiki_models.get_rights Wiki_site.wikicreole_model in
+         lwt content_type = Wiki_models.get_default_content_type Wiki_site.wikicreole_model in
          Wiki_data.new_wikitextbox
-
-            ~rights:( Wiki_models.get_rights Wiki_site.wikicreole_model )
-            ~content_type:(
-              Wiki_models.get_default_content_type Wiki_site.wikicreole_model
-            )
+            ~rights
+            ~content_type
             ~wiki
             ~author
             ~comment:( "ocsforge subcontainer for " ^ name )
@@ -493,7 +493,7 @@ let make_project ~task ?repository_kind ?repository_path () =
           Forum_sql.get_forum ~forum:ai.Types.r_forum ()      >>= fun fi ->
           Wiki_sql.get_wiki_info_by_id fi.Forum_types.f_messages_wiki
                                                               >>= fun wi ->
-          let rights = Wiki_models.get_rights wi.Wiki_types.wiki_model in
+          lwt rights = Wiki_models.get_rights wi.Wiki_types.wiki_model in
             (* getting the wikibox *)
           Forum_sql.get_message ~message_id:ti.Types.t_message ()
                                                           >>= fun mi ->
@@ -515,11 +515,11 @@ let make_project ~task ?repository_kind ?repository_path () =
                                                            >>= fun wiki ->
                (* TODO : give the real model *)
 
+          lwt rights = Wiki_models.get_rights Wiki_site.wikicreole_model in
+          lwt content_type = Wiki_models.get_default_content_type Wiki_site.wikicreole_model in
           Wiki_data.new_wikitextbox
-
-             ~rights:(Wiki_models.get_rights Wiki_site.wikicreole_model)
-             ~content_type:
-               (Wiki_models.get_default_content_type Wiki_site.wikicreole_model)
+             ~rights
+             ~content_type
              ~wiki:wiki
              ~author
              ~comment:("ocsforge subcontainer for "^name)
