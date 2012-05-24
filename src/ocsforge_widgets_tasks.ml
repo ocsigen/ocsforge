@@ -32,17 +32,17 @@ module Types = Ocsforge_types
 module Data  = Ocsforge_data
 module Services_ht = Ocsforge_services_hashtable
 
-module Params = Eliom_parameters
+module Params = Eliom_parameter
 module FTypes = Forum_types
 
-open Eliom_pervasives
+open Eliom_content
 (* provides Calendar and Period module *)
 open CalendarLib
 
 (* CSS hook *)
 let tree_css_header =
   Page_site.Header.create_header
-    (fun () -> [Eliom_output.Html5.css_link
+    (fun () -> [Html5.D.css_link
 		(Page_site.static_file_uri ["ocsforge_tasks.css"]) ()])
 let add_tree_css_header () =
   Page_site.Header.require_header tree_css_header

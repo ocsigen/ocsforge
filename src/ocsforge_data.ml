@@ -33,7 +33,7 @@ module FTypes = Forum_types
 module FRoles = Forum
 (*Can't compile without *) open Sql
 
-open Ocsimore_lib.Lwt_ops
+open Eliom_lib.Lwt_ops
 
 let (!!) = Lazy.force
 let ($) = User_sql.Types.apply_parameterized_group

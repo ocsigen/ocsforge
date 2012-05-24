@@ -19,8 +19,8 @@
 
 (** @author Granarolo Jean-Henri *)
 
-open Eliom_pervasives
-open HTML5.M
+open Eliom_content
+open Html5.F
 
 let wikicreole_parser = Wiki_syntax.wikicreole_parser
 let wikicreole_parser_without_header_footer = Wiki_syntax.wikicreole_parser_without_header_footer

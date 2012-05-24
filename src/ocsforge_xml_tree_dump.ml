@@ -24,10 +24,11 @@ module Types = Ocsforge_types
 module Tree = Ocsforge_lang.Tree
 module Olang = Ocsforge_lang
 module Roles = Ocsforge_roles
-open Eliom_pervasives
+open Eliom_lib.Lwt_ops
+open Eliom_content
 let (@@) f g = fun x -> f (g x)
 
-open XML
+open Xml
 
 let rec xml_of_tree ~task ?depth ?with_deleted () =
   let s_of_i32_opt = Olang.string_of_t_opt Int32.to_string in

@@ -19,13 +19,14 @@
 
 (** @author Granarolo Jean-Henri *)
 
-open Eliom_pervasives
-open Ocsimore_lib.Lwt_ops
+open Eliom_content
+open Eliom_lib
+open Eliom_lib.Lwt_ops
 
-let ( ** ) = Eliom_parameters.prod
+let ( ** ) = Eliom_parameter.prod
 module Sh = Ocsforge_services_hashtable
 module Vm = Ocsforge_version_managers
-module Params = Eliom_parameters
+module Params = Eliom_parameter
 
 (*
 type file_tree = {{ <file_tree> [Xhtmltypes_duce.tr*]  }}
@@ -122,7 +123,7 @@ let source_service path =
                    Wiki_widgets_interface.bi_subbox = (gen_box1 :>
 							 sectioning:bool
 						       -> Wiki_widgets_interface.menu_style ->
-         (HTML5_types.flow5 Eliom_pervasives.HTML5.M.elt list)
+         (Html5_types.flow5 Html5.F.elt list)
          option Lwt.t);
                  (*Wiki_types.bi_page = fst bi.Wiki_types.bi_page, ?? *)
                }
@@ -132,7 +133,7 @@ let source_service path =
           ~bi
           r_infos.Ocsforge_types.r_sources_container
 	in
-        Lwt.return (None, (page_content :> HTML5_types.flow5 HTML5.M.elt list),
+        Lwt.return (None, (page_content :> Html5_types.flow5 Html5.F.elt list),
                     Wiki_widgets_interface.Page_displayable,title)
       in
       lwt (html, code) =
@@ -174,7 +175,7 @@ let log_service path =
       let bi = { bi with
                    Wiki_widgets_interface.bi_subbox = (gen_box1 :> sectioning:bool
 						       -> Wiki_widgets_interface.menu_style ->
-         (HTML5_types.flow5 Eliom_pervasives.HTML5.M.elt list)
+         (Html5_types.flow5 Html5.F.elt list)
          option Lwt.t);
                     (*Wiki_types.bi_page = fst bi.Wiki_types.bi_page, ?? *) }
       in
@@ -183,7 +184,7 @@ let log_service path =
 	  Wiki_site.wikibox_widget#display_interactive_wikibox
             ~bi
             r_infos.Ocsforge_types.r_sources_container in
-        Lwt.return (None, (page_content :> HTML5_types.flow5 HTML5.M.elt list),
+        Lwt.return (None, (page_content :> Html5_types.flow5 Html5.F.elt list),
                     Wiki_widgets_interface.Page_displayable,
                     Some("Ocsforge - Repository history"))
       in
@@ -196,7 +197,7 @@ let log_service path =
 
 module SourceXml =
 struct
-  module XML = XML
+  module Xml = Xml
   module Info =
   struct
     let content_type = "text/xml"
@@ -204,18 +205,18 @@ struct
     let namespace = ""
     let version = "ocsforge"
     let standard = "http://www.ocsigen.org/ocsforge/"
-    let doctype =  XML_print.compose_doctype "xml" []
+    let doctype =  Xml_print.compose_doctype "xml" []
     let emptytags = [ ]
   end
 
-  type 'a elt = XML.elt
-  type doc = XML.elt
+  type 'a elt = Xml.elt
+  type doc = Xml.elt
   let toelt x = x
   let doc_toelt x = x
 end
 
 module SourceXmlOutput =
-  Eliom_output.Make_TypedXML_Registration(XML)(SourceXml)(struct
+  Eliom_output.Make_typed_xml_registration(Xml)(SourceXml)(struct
     type content = SourceXml.doc
   end)
 
@@ -251,7 +252,7 @@ let register_xml_tree_service () =
                     ~dir:(Some(l))
                     ~project_services:ps
             in
-            Lwt.return [XML.node "file_tree" (HTML5.M.toeltl tr)]
+            Lwt.return [Xml.node "file_tree" (Html5.F.toeltl tr)]
       ) in Lwt.return ()
 
 let register_repository_service page =

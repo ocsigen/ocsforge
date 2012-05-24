@@ -26,7 +26,8 @@
    /!\ It should NOT be used for other purposes as there's no rigth
    verification at all. /!\ *)
 
-open Ocsimore_lib.Lwt_ops
+open Eliom_lib
+open Eliom_lib.Lwt_ops
 let ($) = User_sql.Types.apply_parameterized_group
 
 let add_message ~forum () =

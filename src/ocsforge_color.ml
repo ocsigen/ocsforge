@@ -19,12 +19,11 @@
 
 (** @author Granarolo Jean-Henri *)
 
-open Eliom_pervasives
+open Eliom_content
+open Html5.F
 open Eliom_tools
-open Eliom_services
 open Netstring_pcre
 open Ocsforge_color_tokens
-open HTML5.M
 
 (** la liste d'association (extension reconnue,fonction de lexing associée)*)
 let extList = ref []

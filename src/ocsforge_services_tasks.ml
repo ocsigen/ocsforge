@@ -19,16 +19,18 @@
 
 (** @author Raphael Proust *)
 
-let ( ** ) = Eliom_parameters.prod
+let ( ** ) = Eliom_parameter.prod
 let ( @@ ) f g = fun x -> f (g x)
 
-module Params = Eliom_parameters
+module Params = Eliom_parameter
 module Data = Ocsforge_data
 module Types = Ocsforge_types
 module Olang = Ocsforge_lang
 
 open CalendarLib
-open Eliom_pervasives
+open Eliom_content
+open Eliom_lib
+open Eliom_lib.Lwt_ops
 
 
 (** Task edition : set values for fields. *)

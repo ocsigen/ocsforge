@@ -25,13 +25,14 @@ module Types = Ocsforge_types
 module STypes = Ocsforge_source_types
 module Vm = Ocsforge_version_managers
 module Sh = Ocsforge_services_hashtable
-open Eliom_pervasives
+open Eliom_content
+open Eliom_lib
 
 let _PAGE_SIZE = 100
 
 let sources_css_header =
   Page_site.Header.create_header
-    (fun () -> [Eliom_output.Html5.css_link
+    (fun () -> [Html5.D.css_link
 		(Page_site.static_file_uri ["ocsforge_sources.css"]) ()])
 
 
@@ -44,11 +45,11 @@ let generate_css_style id css_class =
     (css_class^"_odd")
   else (css_class^"_even")
 
-open HTML5.M
+open Html5.F
 
 let generate_menu version page_kind
-    (content : HTML5_types.tr HTML5.M.elt list )
-    services : HTML5_types.table HTML5.M.elt =
+    (content : Html5_types.tr Html5.F.elt list )
+    services : Html5_types.table Html5.F.elt =
   table ~a:[a_class ["ocsforge_sources_menu"]]
     (tr [
       td [
@@ -67,7 +68,7 @@ let generate_menu version page_kind
 		    [pcdata "Latest repository version "]
 		| _ ->
 		  td ~a:[a_class ["ocsforge_sources_menu_item"]]
-		    [Eliom_output.Html5.a
+		    [Html5.D.a
 			~a:[ a_title "Browse the repository";
 			     a_class ["ocsforge_sources_menu_link"]]
 			~service:services.Sh.sources_service
@@ -83,7 +84,7 @@ let generate_menu version page_kind
 		| _ ->
 		  td ~a:[a_class ["ocsforge_sources_menu_item"]]
 		    [
-		      Eliom_output.Html5.a
+		      Html5.D.a
 			~a:[ a_title "View log";
 			     a_class ["ocsforge_sources_menu_link"]]
 			~service:services.Sh.log_service
@@ -97,10 +98,10 @@ let generate_menu version page_kind
 let sources_page_content
     version
     ~kind
-    (title_content : HTML5_types.flow5_without_header_footer HTML5.M.elt)
+    (title_content : Html5_types.flow5_without_header_footer Html5.F.elt)
     menu_content
-    (main_content : HTML5_types.div_content_fun HTML5.M.elt list)
-    services : HTML5_types.flow5_without_header_footer HTML5.M.elt list Lwt.t =
+    (main_content : Html5_types.div_content_fun Html5.F.elt list)
+    services : Html5_types.flow5_without_header_footer Html5.F.elt list Lwt.t =
   lwt () = add_sources_css_header () in
   Lwt.return [
     title_content;
@@ -112,7 +113,7 @@ let sources_page_content
       ]
   ]
 
-let error (message:string) : HTML5_types.flow5_without_header_footer HTML5.M.elt Lwt.t =
+let error (message:string) : Html5_types.flow5_without_header_footer Html5.F.elt Lwt.t =
   Lwt.return (
     div ~a:[a_class ["ocsforge_error_message"]] [
       span ~a:[ a_class ["ocsforge_message_title"]] [
@@ -123,7 +124,7 @@ let error (message:string) : HTML5_types.flow5_without_header_footer HTML5.M.elt
 
 let error_l m = lwt e = error m in Lwt.return [e]
 
-let warning (message:string) : HTML5_types.flow5_without_header_footer HTML5.M.elt Lwt.t =
+let warning (message:string) : Html5_types.flow5_without_header_footer Html5.F.elt Lwt.t =
   Lwt.return (
     div ~a:[ a_class ["ocsforge_warning_message"]] [
       span ~a:[ a_class ["ocsforge_message_title"]] [
@@ -144,18 +145,18 @@ let cut_author_mail aut =
   else
     aut
 
-let utf8_span (spanclass:(string option)) s : [> HTML5_types.span ] HTML5.M.elt =
+let utf8_span (spanclass:(string option)) s : [> Html5_types.span ] Html5.F.elt =
   match spanclass with
     | None -> span [pcdata s]
     | Some(sc) -> span ~a:[ a_class [sc] ] [pcdata s]
 
-let rec utf8_lines l : [< HTML5_types.phrasing ] HTML5.M.elt list = match l with
+let rec utf8_lines l : [< Html5_types.phrasing ] Html5.F.elt list = match l with
   | [] -> []
   | h::t ->
     let b = utf8_lines t in
     (utf8_span None h)::(br ())::b
 
-let utf8_td content (tdclass:string) : [> HTML5_types.td ] HTML5.M.elt Lwt.t =
+let utf8_td content (tdclass:string) : [> Html5_types.td ] Html5.F.elt Lwt.t =
   try_lwt
     let s = Netstring_pcre.split (Netstring_pcre.regexp "\n") content in
     Lwt.return
@@ -172,7 +173,7 @@ let rec path_title ~path ~version ~title ~ps = match path with
     | [] ->
       [span [pcdata title];
        span ~a:[ a_class ["ocsforge_path_element"]]
-         [ Eliom_output.Html5.a
+         [ Html5.D.a
                   ~a:[a_class ["ocsforge_path"]]
                   ~service:ps.Sh.sources_service
                   [pcdata "root"]
@@ -182,7 +183,7 @@ let rec path_title ~path ~version ~title ~ps = match path with
         let b = path_title ~path:t ~version ~title ~ps in
         (b@
 	   [span ~a:[ a_class ["ocsforge_path_element"]]
-               [ Eliom_output.Html5.a
+               [ Html5.D.a
 		   ~a:[a_class ["ocsforge_path"]]
 		   ~service:ps.Sh.sources_service
 		   [pcdata h]
@@ -205,7 +206,7 @@ let log_table_header =
 let rec string_soption_list_of_list l =
   List.map
     (fun h ->
-      (Eliom_output.Html5.Option ([],
+      (Html5.D.Option ([],
                                   fst h,
 			          Some(pcdata (snd h)),
                                   false))) l
@@ -229,14 +230,14 @@ let rec build_content dir_l ps cpt version tree depth = match tree with
 	end
 	]]
 	  [ td ~a:[ a_class ["ocsforge_sources_table"]]
-	      [ Eliom_output.Html5.a
+	      [ Html5.D.a
 		  ~a:[a_title "File history"]
 		  ~service:ps.Sh.sources_service
 		  [img ~alt:"file"
                       ~src:(Page_site.static_file_uri
                               ~path:["file_history.png"]) ()]
                   (file_path,(Some(`Options),(version,None)));
-                Eliom_output.Html5.a
+                Html5.D.a
                   ~a:[a_title "View content"]
 		  ~service:ps.Sh.sources_service
 		  [pcdata f]
@@ -245,7 +246,7 @@ let rec build_content dir_l ps cpt version tree depth = match tree with
 
 	    td ~a:[ a_class ["ocsforge_small_font_center"]] [pcdata aut];
 	    td ~a:[ a_class ["ocsforge_small_ifont_center"]]
-	      [ Eliom_output.Html5.a
+	      [ Html5.D.a
                   ~a:[a_title "Browse the repository"]
 		  ~service:ps.Sh.sources_service
 		  [pcdata (cut_string rev_name 200)]
@@ -272,7 +273,7 @@ let rec build_content dir_l ps cpt version tree depth = match tree with
 	    [ td [img ~alt:"folder"
 		     ~src:(Page_site.static_file_uri
                              ~path:["source_folder.png"]) ();
-		  Eliom_output.Html5.a
+		  Html5.D.a
 		    ~a:[a_title "Browse directory"]
 		    ~service:ps.Sh.sources_service
 		    [pcdata (" "^(d))]
@@ -350,7 +351,7 @@ let create_repository_table_content ~id ~version ~dir ~project_services=
 		      | Some(d) ->
 			[tr ~a:[ a_class ["ocsforge_folder"]] [
 			  td
-			    [Eliom_output.Html5.a
+			    [Html5.D.a
 				~service:ps.Sh.sources_service
 				[img ~alt:"parent_directory"
 				    ~src:(Page_site.static_file_uri
@@ -499,7 +500,7 @@ let create_log_links ~log_service ~log_select ~start_rev ~end_rev =
                           [pcdata "(no previous entries)"]
                       | _ ->
 			td ~a:[ a_class ["ocsforge_previous_entries_link"]]
-                          [Eliom_output.Html5.a
+                          [Html5.D.a
 			      ~a:[a_class ["ocsforge_log_link"]]
 			      ~service:log_service
 			      [pcdata "< previous"]
@@ -510,7 +511,7 @@ let create_log_links ~log_service ~log_select ~start_rev ~end_rev =
 			td ~a:[ a_class ["ocsforge_no_next_entries"]] [pcdata "(no next entries)"]
                       | _ ->
 			td ~a:[ a_class ["ocsforge_next_entries_link"]]
-                          [Eliom_output.Html5.a
+                          [Html5.D.a
 			      ~a:[a_class ["ocsforge_log_link"]]
 			      ~service:log_service
 			      [pcdata "next >"]
@@ -546,7 +547,7 @@ let log_table_content ~kind ~path ~log ~ps ~start_rev ~end_rev =
                   [
                     if (kind = "file") then
                       span
-                        [Eliom_output.Html5.a
+                        [Html5.D.a
                             ~a:[a_title "View this version"]
                             ~service: ps.Sh.sources_service
                             [img ~alt:"file content"
@@ -558,7 +559,7 @@ let log_table_content ~kind ~path ~log ~ps ~start_rev ~end_rev =
                     else (match t with
                       | [] -> span []
                       | previous::_ ->
-                        span [Eliom_output.Html5.a
+                        span [Html5.D.a
                                  ~a:[a_title "Diff to previous"]
                                  ~service: ps.Sh.sources_service
                                  [img ~alt:"diff"
@@ -569,7 +570,7 @@ let log_table_content ~kind ~path ~log ~ps ~start_rev ~end_rev =
                                    (Some(!(previous.STypes.id)),
                                     Some(!(p.STypes.id)))))]);
 
-                    Eliom_output.Html5.a
+                    Html5.D.a
                       ~a:[a_title "Browse the repository"]
                       ~service: ps.Sh.sources_service
                       [pcdata (cut_string !(p.STypes.name) 50)]
@@ -628,14 +629,14 @@ let create_log_page_content ~id ~file ~range ~project_services =
 	      let select_list = string_soption_list_of_list assoc_list in
 	      let commit_diff_form
 		  ((file,(kind,(diff1,diff2))) :
-		      ([`One of string list] Eliom_parameters.param_name *
-			  ([ `One of Sh.src_page_kind ] Eliom_parameters.param_name *
-			      ([ `One of string ] Eliom_parameters.param_name *
-				  ([ `One of string ] Eliom_parameters.param_name))))) =
+		      ([`One of string list] Eliom_parameter.param_name *
+			  ([ `One of Sh.src_page_kind ] Eliom_parameter.param_name *
+			      ([ `One of string ] Eliom_parameter.param_name *
+				  ([ `One of string ] Eliom_parameter.param_name))))) =
 
 		[p ~a:[ a_class ["ocsforge_menu_form"]] [
 		  span ~a:[ a_class ["ocsforge_menu_form_title"]] [pcdata "Commit diff"];
-		  Eliom_output.Html5.user_type_input
+		  Html5.D.user_type_input
 		    (Url.string_of_url_path
 		       ~encode:false)
 		    ~input_type: `Hidden
@@ -645,7 +646,7 @@ let create_log_page_content ~id ~file ~range ~project_services =
 		  br ();
 		  pcdata "From";
 		  br ();
-		  Eliom_output.Html5.string_select
+		  Html5.D.string_select
 		    ~a:[a_class ["ocsforge_version_select"]]
 		    ~name: diff1
 		    (List.hd select_list)
@@ -653,13 +654,13 @@ let create_log_page_content ~id ~file ~range ~project_services =
 		  br ();
 		  pcdata "To";
 		  br ();
-		  Eliom_output.Html5.string_select
+		  Html5.D.string_select
 		    ~a:[a_class ["ocsforge_version_select"]]
 		    ~name: diff2
 		    (List.hd select_list)
 		    (List.tl select_list);
 		  br ();
-		  Eliom_output.Html5.user_type_button
+		  Html5.D.user_type_button
 		    Sh.kind_to_string
 		    ~name: kind
 		    ~value: `PatchDiff
@@ -682,7 +683,7 @@ let create_log_page_content ~id ~file ~range ~project_services =
                       ])
 		      [ tr [
                         td ~a:[a_class ["ocsforge_sources_menu_item"]]
-			  [ Eliom_output.Html5.get_form
+			  [ Html5.D.get_form
                               ~a:[a_class ["ocsforge_version_select"]]
 			      ~service: ps.Sh.sources_service
 			      (commit_diff_form)
@@ -837,7 +838,7 @@ let create_file_log_links
                [pcdata "(no previous entries)"]
            | Some(_) ->
              td ~a:[a_class ["ocsforge_previous_entries_link"]]
-               [Eliom_output.Html5.a
+               [Html5.D.a
 		   ~a:[a_class ["ocsforge_log_link"]]
 		   ~service:ps.Sh.sources_service
 		   [pcdata "First page"]
@@ -845,7 +846,7 @@ let create_file_log_links
          middle;
          (if (List.length log_result > _PAGE_SIZE) then
              td ~a:[a_class ["ocsforge_next_entries_link"]]
-               [Eliom_output.Html5.a
+               [Html5.D.a
 		   ~a:[a_class ["ocsforge_log_link"]]
 		   ~service:ps.Sh.sources_service
 		   [pcdata "Next log entries"]
@@ -884,16 +885,16 @@ let create_file_page ~id ~target ~version ~log_start ~project_services =
 	    let select_list = string_soption_list_of_list v_list in
 	    let file_version_select_form
 		((file,(kind,(version,_))) :
-                    ([`One of string list] Eliom_parameters.param_name *
-			([ `One of Sh.src_page_kind ] Eliom_parameters.param_name *
-			    ([ `One of string ] Eliom_parameters.param_name *
-				([ `One of string ] Eliom_parameters.param_name))))) =
+                    ([`One of string list] Eliom_parameter.param_name *
+			([ `One of Sh.src_page_kind ] Eliom_parameter.param_name *
+			    ([ `One of string ] Eliom_parameter.param_name *
+				([ `One of string ] Eliom_parameter.param_name))))) =
 	      [ p ~a:[a_class ["ocsforge_menu_form"]]
 		  ([
 		    span ~a:[a_class ["ocsforge_menu_form_title"]]
 		      [pcdata "Content viewing"];
 		    br ();
-		    ( Eliom_output.Html5.user_type_input
+		    ( Html5.D.user_type_input
 			(Url.string_of_url_path
 			   ~encode:false)
 			~input_type: `Hidden
@@ -903,17 +904,17 @@ let create_file_page ~id ~target ~version ~log_start ~project_services =
 		    pcdata "Select a version  "; ]
 		   @ (match select_list with
 		     | [] -> []
-		     | _ -> [Eliom_output.Html5.string_select
+		     | _ -> [Html5.D.string_select
 			       ~a:[a_class ["ocsforge_version_select"]]
 			       ~name: version
 			       (List.hd select_list)
 			       (List.tl select_list)])
-		   @ [(Eliom_output.Html5.user_type_button
+		   @ [(Html5.D.user_type_button
 			 Sh.kind_to_string
 			 ~name: kind
 			 ~value:`Cat
 			 [pcdata "View code"]);
-		      (Eliom_output.Html5.user_type_button
+		      (Html5.D.user_type_button
 			 Sh.kind_to_string
 			 ~name: kind
 			 ~value: `Annot
@@ -922,34 +923,34 @@ let create_file_page ~id ~target ~version ~log_start ~project_services =
 	    in
 	    let file_diff_form
 		((file,(kind,(diff1,diff2))) :
-                    ([`One of string list] Eliom_parameters.param_name *
-			([ `One of Sh.src_page_kind ] Eliom_parameters.param_name *
-			    ([ `One of string ] Eliom_parameters.param_name *
-				([ `One of string ] Eliom_parameters.param_name))))) =
+                    ([`One of string list] Eliom_parameter.param_name *
+			([ `One of Sh.src_page_kind ] Eliom_parameter.param_name *
+			    ([ `One of string ] Eliom_parameter.param_name *
+				([ `One of string ] Eliom_parameter.param_name))))) =
 	      [p ~a:[a_class ["ocsforge_menu_form"]] [
 		span ~a:[a_class ["ocsforge_menu_form_title"]] [pcdata "Content diff"];
 		br ();
-		(Eliom_output.Html5.user_type_input
+		(Html5.D.user_type_input
 		   (Url.string_of_url_path ~encode:false)
 		   ~input_type: `Hidden
 		   ~name: file
 		   ~value: target
 		   ());
 		pcdata "From"; br ();
-		(Eliom_output.Html5.string_select
+		(Html5.D.string_select
 		   ~a:[a_class ["ocsforge_version_select"]]
 		   ~name: diff1
 		   (List.hd select_list)
                    (List.tl select_list));
 		br ();
 		pcdata "To"; br ();
-		(Eliom_output.Html5.string_select
+		(Html5.D.string_select
 		   ~a:[a_class ["ocsforge_version_select"]]
 		   ~name: diff2
 		   (List.hd select_list)
                    (List.tl select_list));
 		br ();
-		Eliom_output.Html5.user_type_button
+		Html5.D.user_type_button
                   Sh.kind_to_string
                   ~name: kind
 		  ~value: `Diff
@@ -974,7 +975,7 @@ let create_file_page ~id ~target ~version ~log_start ~project_services =
 		      ])
 		      [tr [
                         td ~a:[a_class ["ocsforge_sources_menu_item"]]
-                          [ Eliom_output.Html5.a
+                          [ Html5.D.a
 			      ~a:[a_class ["ocsforge_sources_menu_link"];
                                   a_title "Latest content"]
 			      ~service:ps.Sh.sources_service
@@ -986,7 +987,7 @@ let create_file_page ~id ~target ~version ~log_start ~project_services =
                            [pcdata "File history"]];
 		       tr [
                          td ~a:[a_class ["ocsforge_sources_menu_item"]]
-                           [ Eliom_output.Html5.a
+                           [ Html5.D.a
 			       ~a:[a_class ["ocsforge_sources_menu_link"];
                                    a_title "Latest content"]
 			       ~service:ps.Sh.sources_service
@@ -1003,7 +1004,7 @@ let create_file_page ~id ~target ~version ~log_start ~project_services =
 		      ])
 		      ((tr [
                         td ~a:[a_class ["ocsforge_sources_menu_item"]]
-			  [ Eliom_output.Html5.get_form
+			  [ Html5.D.get_form
 			      ~a:[a_class ["ocsforge_version_select"]]
 			      ~service: ps.Sh.sources_service
 			      (file_version_select_form)
@@ -1014,7 +1015,7 @@ let create_file_page ~id ~target ~version ~log_start ~project_services =
                          | _ ->
                            [tr ~a:[a_class ["ocsforge_sources_menu"]] [
 			     td ~a:[a_class ["ocsforge_sources_menu_item"]]
-			       [ Eliom_output.Html5.get_form
+			       [ Html5.D.get_form
                                    ~a:[a_class ["ocsforge_version_select"]]
 				   ~service: ps.Sh.sources_service
 				   file_diff_form ]
@@ -1145,7 +1146,7 @@ let draw_repository_table ~id ~version ~dir =
         ~kind:None
         title_content
         menu_content
-        ([b] :> HTML5_types.div_content_fun Eliom_pervasives.HTML5.M.elt list)
+        ([b] :> Html5_types.div_content_fun Html5.F.elt list)
         ps
 
 let draw_source_code_view ~id ~target ~version =
@@ -1172,14 +1173,14 @@ let draw_source_code_view ~id ~target ~version =
 		td ~a:[a_class ["ocsforge_sources_menu_current"]] [pcdata "View content"]];
 	       tr [
 		 td ~a:[a_class ["ocsforge_sources_menu_item"]]
-	           [Eliom_output.Html5.a
+	           [Html5.D.a
 		       ~service:ps.Sh.sources_service
                        ~a:[a_class ["ocsforge_sources_menu_link"]]
 		       [pcdata "File history"]
 		       (target,(Some(`Options),(None,None)))]];
 	       tr [
 		 td ~a:[a_class ["ocsforge_sources_menu_item"]]
-                   [Eliom_output.Html5.a
+                   [Html5.D.a
                        ~a:[a_class ["ocsforge_sources_menu_link"]]
 		       ~service:ps.Sh.sources_service
 		       [pcdata "Annotate"]
@@ -1198,7 +1199,7 @@ let draw_source_code_view ~id ~target ~version =
         version
         ~kind:(Some(`Cat))
         title_content menu_content
-        ([b] :> HTML5_types.div_content_fun Eliom_pervasives.HTML5.M.elt list) ps
+        ([b] :> Html5_types.div_content_fun Html5.F.elt list) ps
 
 let draw_log_page ~id ~file ~start_rev ~end_rev =
   match Sh.find_service id with
@@ -1214,7 +1215,7 @@ let draw_log_page ~id ~file ~start_rev ~end_rev =
       None
       ~kind:(Some(`Log))
       title_content menu_content
-      (page_content :> HTML5_types.div_content_fun Eliom_pervasives.HTML5.M.elt list)
+      (page_content :> Html5_types.div_content_fun Html5.F.elt list)
       ps
 
 let draw_diff_view ~id ~target ~diff1 ~diff2 =
@@ -1239,7 +1240,7 @@ let draw_diff_view ~id ~target ~diff1 ~diff2 =
 	      [
 		tr [
 		  td ~a:[a_class ["ocsforge_sources_menu_item"]]
-		    [ Eliom_output.Html5.a
+		    [ Html5.D.a
 			~a:[a_class ["ocsforge_sources_menu_link"]]
 			~service:ps.Sh.sources_service
 			[pcdata "View content"]
@@ -1247,7 +1248,7 @@ let draw_diff_view ~id ~target ~diff1 ~diff2 =
 		];
 		tr [
 		  td ~a:[a_class ["ocsforge_sources_menu_item"]]
-		    [ Eliom_output.Html5.a
+		    [ Html5.D.a
 			~a:[a_class ["ocsforge_sources_menu_link"]]
 			~service:ps.Sh.sources_service
 			[pcdata "File history"]
@@ -1255,7 +1256,7 @@ let draw_diff_view ~id ~target ~diff1 ~diff2 =
 		];
 		tr [
 		  td ~a:[a_class ["ocsforge_sources_menu_item"]]
-		    [ Eliom_output.Html5.a
+		    [ Html5.D.a
 			~a:[a_class ["ocsforge_sources_menu_link"]]
 			~service:ps.Sh.sources_service
 			[pcdata "Annotate"]
@@ -1276,7 +1277,7 @@ let draw_diff_view ~id ~target ~diff1 ~diff2 =
         ~kind:(Some(`Diff))
         title_content
         [ menu_content ]
-        (b :> HTML5_types.div_content_fun Eliom_pervasives.HTML5.M.elt list)
+        (b :> Html5_types.div_content_fun Html5.F.elt list)
         ps
 
 let draw_patchdiff ~id ~diff1 ~diff2 = match Sh.find_service id with
@@ -1307,7 +1308,7 @@ let draw_patchdiff ~id ~diff1 ~diff2 = match Sh.find_service id with
       ~kind:(Some(`PatchDiff))
       title_content
       [ menu_content ]
-      (page_content :> HTML5_types.div_content_fun Eliom_pervasives.HTML5.M.elt list)
+      (page_content :> Html5_types.div_content_fun Html5.F.elt list)
       ps
 
 (* TODO ¿ cas ou target est un répertoire ? *)
@@ -1342,7 +1343,7 @@ let draw_file_page ~id ~target ~version ~log_start =
         ~kind:(Some(`Options))
         title_content
         menu_content
-        (page_content :> HTML5_types.div_content_fun Eliom_pervasives.HTML5.M.elt list)
+        (page_content :> Html5_types.div_content_fun Html5.F.elt list)
         ps
 
 let draw_annotate ~id ~target ~version =
@@ -1377,7 +1378,7 @@ let draw_annotate ~id ~target ~version =
               [
 		tr [
 		  td ~a:[a_class ["ocsforge_sources_menu_item"]]
-		    [ Eliom_output.Html5.a
+		    [ Html5.D.a
 			~a:[a_class ["ocsforge_sources_menu_link"]]
 			~service:ps.Sh.sources_service
 			[pcdata "View content"]
@@ -1385,7 +1386,7 @@ let draw_annotate ~id ~target ~version =
 		];
 		tr [
 		  td ~a:[a_class ["ocsforge_sources_menu_item"]]
-		    [ Eliom_output.Html5.a
+		    [ Html5.D.a
 			~a:[a_class ["ocsforge_sources_menu_link"]]
 			~service:ps.Sh.sources_service
 			[pcdata "File history"]
@@ -1409,7 +1410,7 @@ let draw_annotate ~id ~target ~version =
         ~kind:(Some(`Annot))
         title_content
         [menu_content]
-        (b :> HTML5_types.div_content_fun Eliom_pervasives.HTML5.M.elt list)
+        (b :> Html5_types.div_content_fun Html5.F.elt list)
         ps
 
 let draw_wrong_url_page ~id = match Sh.find_service id with
@@ -1425,5 +1426,5 @@ let draw_wrong_url_page ~id = match Sh.find_service id with
       ~kind:(Some(`Error))
       title_content
       menu_content
-      ([ b ] :> HTML5_types.div_content_fun Eliom_pervasives.HTML5.M.elt list)
+      ([ b ] :> Html5_types.div_content_fun Html5.F.elt list)
       ps
