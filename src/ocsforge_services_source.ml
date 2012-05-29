@@ -34,7 +34,7 @@ type file_tree = {{ <file_tree> [Xhtmltypes_duce.tr*]  }}
 
 let source_service path =
   let service_path = ( (Neturl.split_path path) @ [ "sources" ; "" ] ) in
-  Eliom_output.Any.register_service
+  Eliom_registration.Any.register_service
     ~priority:200
     ~path:service_path
     ~get_params:
@@ -147,7 +147,7 @@ let source_service path =
 
 let log_service path =
   let service_path = ( Neturl.split_path path ) @ [ "log" ; "" ] in
-  Eliom_output.Any.register_service
+  Eliom_registration.Any.register_service
     ~path:service_path
     ~get_params: (Params.opt (Params.user_type
                                 Vm.string_to_range
@@ -216,7 +216,7 @@ struct
 end
 
 module SourceXmlOutput =
-  Eliom_output.Make_typed_xml_registration(Xml)(SourceXml)(struct
+  Eliom_registration.Make_typed_xml_registration(Xml)(SourceXml)(struct
     type content = SourceXml.doc
   end)
 

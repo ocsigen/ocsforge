@@ -36,7 +36,7 @@ open Eliom_lib.Lwt_ops
 (** Task edition : set values for fields. *)
 
 let set_length_service =
-  Eliom_output.Action.register_post_coservice'
+  Eliom_registration.Action.register_post_coservice'
     ~name:"ocsforge_set_length"
     ~options:`NoReload
     ~post_params:(
@@ -50,7 +50,7 @@ let set_length_service =
        Data.edit_task ~task ~length () )
 
 let set_progress_service =
-  Eliom_output.Action.register_post_coservice'
+  Eliom_registration.Action.register_post_coservice'
     ~name:"ocsforge_set_progress"
     ~options:`NoReload
     ~post_params:(
@@ -64,7 +64,7 @@ let set_progress_service =
        Data.edit_task ~task ~progress ())
 
 let set_importance_service =
-  Eliom_output.Action.register_post_coservice'
+  Eliom_registration.Action.register_post_coservice'
     ~name:"ocsforge_set_importance"
     ~options:`NoReload
     ~post_params:(
@@ -78,7 +78,7 @@ let set_importance_service =
        Data.edit_task ~task ~importance ())
 
 let set_kind_service =
-  Eliom_output.Action.register_post_coservice'
+  Eliom_registration.Action.register_post_coservice'
     ~name:"ocsforge_set_kind"
     ~options:`NoReload
     ~post_params:(
@@ -95,7 +95,7 @@ let set_kind_service =
 
 (** Add a new task with the specified attributes. *)
 let new_task_service =
-  Eliom_output.Action.register_post_coservice'
+  Eliom_registration.Action.register_post_coservice'
     ~name:"ocsforge_add_task"
     ~options:`NoReload
     ~post_params:(
@@ -137,7 +137,7 @@ let new_task_service =
 (** Services used by client to get info. *)
 let register_dump_tree_service tree_widget task_widget path =
   let _ =
-  Eliom_output.Html5.register_service
+  Eliom_registration.Html5.register_service
     ~path:( Neturl.split_path path @ [ "tasks" ; "" ])
     ~get_params:(Params.opt (Params.int32 "id"))
     (fun id () ->
@@ -225,7 +225,7 @@ let register_xml_dump_services tree_widget task_widget =
  * "id" fields are task ids because areas are server side only. *)
 
 let set_repository_path_service =
-  Eliom_output.Action.register_post_coservice'
+  Eliom_registration.Action.register_post_coservice'
     ~name:"ocsforge_set_repository_path"
     ~options:`NoReload
     ~post_params:(
@@ -240,7 +240,7 @@ let set_repository_path_service =
        Data.edit_area ~area ~repository_path ())
 
 let set_repository_kind_service =
-  Eliom_output.Action.register_post_coservice'
+  Eliom_registration.Action.register_post_coservice'
     ~name:"ocsforge_set_repository_kind"
     ~options:`NoReload
     ~post_params:(
@@ -255,7 +255,7 @@ let set_repository_kind_service =
        Data.edit_area ~area ~repository_kind ())
 
 let set_version_service =
-  Eliom_output.Action.register_post_coservice'
+  Eliom_registration.Action.register_post_coservice'
     ~name:"ocsforge_set_version"
     ~options:`NoReload
     ~post_params:(
@@ -268,7 +268,7 @@ let set_version_service =
 
 (** Changing the aviable category of a project. *)
 let add_area_kind_service =
-  Eliom_output.Action.register_post_coservice'
+  Eliom_registration.Action.register_post_coservice'
     ~name:"ocsforge_add_kinds"
     ~options:`NoReload
     ~post_params:(
@@ -279,7 +279,7 @@ let add_area_kind_service =
        Data.get_area_for_task ~task >>= fun { Types.r_id = area } ->
        Data.add_kinds ~area ~kinds:[ kind ])
 let del_area_kind_service =
-  Eliom_output.Action.register_post_coservice'
+  Eliom_registration.Action.register_post_coservice'
     ~name:"ocsforge_del_kinds"
     ~options:`NoReload
     ~post_params:(
@@ -290,7 +290,7 @@ let del_area_kind_service =
        Data.get_area_for_task ~task >>= fun { Types.r_id = area } ->
        Data.del_kinds ~area ~kinds:[ kind, None ])
 let swap_area_kind_service =
-  Eliom_output.Action.register_post_coservice'
+  Eliom_registration.Action.register_post_coservice'
     ~name:"ocsforge_swap_kinds"
     ~options:`NoReload
     ~post_params:(
@@ -306,7 +306,7 @@ let swap_area_kind_service =
 
 (* The service to create a project. *)
 let register_project_service tree_widget task_widget =
-  Eliom_output.Action.register_post_coservice'
+  Eliom_registration.Action.register_post_coservice'
     ~name:"ocsforge_add_project"
     ~options:`NoReload
     ~post_params:(
@@ -363,7 +363,7 @@ let register_project_service tree_widget task_widget =
 (** Separators services *)
 (* To get separators, one can use xml tree dumping *)
 let insert_separator_service =
-  Eliom_output.Action.register_post_coservice'
+  Eliom_registration.Action.register_post_coservice'
     ~name:"ocsforge_insert_separator"
     ~options:`NoReload
     ~post_params:(
@@ -372,7 +372,7 @@ let insert_separator_service =
      )
     (fun () (after, content) -> Data.insert_separator ~after ~content)
 let set_separator_content_service =
-  Eliom_output.Action.register_post_coservice'
+  Eliom_registration.Action.register_post_coservice'
     ~name:"ocsforge_set_separator_content"
     ~options:`NoReload
     ~post_params:(
@@ -385,7 +385,7 @@ let set_separator_content_service =
     (fun () (separator, content) ->
        Data.set_separator_content ~separator ~content)
 let move_separator_service =
-  Eliom_output.Action.register_post_coservice'
+  Eliom_registration.Action.register_post_coservice'
     ~name:"ocsforge_move_separator"
     ~options:`NoReload
     ~post_params:(
