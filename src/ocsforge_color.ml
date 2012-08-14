@@ -124,7 +124,7 @@ let rec color2 lexbuf lexer = match (lexer lexbuf) with
    Lwt.return (a, ( span ~a:[a_class ["ocsforge_color_char"]] [ pcdata char ] ) :: b )
  | String(s) ->
    lwt (a,b) = color2 lexbuf lexer in
-   let str = ("\""^s^"\"") in
+   let str = Printf.sprintf "%S" s in
    Lwt.return (a, ( span ~a:[a_class ["ocsforge_color_string"]] [pcdata str] ) :: b )
  | UpperCaseID(u) ->
    lwt (a,b) = color2 lexbuf lexer in
