@@ -31,14 +31,14 @@ module Olang = Ocsforge_lang
 
 module FTypes = Forum_types
 module FRoles = Forum
-(*Can't compile without *) open Sql
+(*Can't compile without *) open Ocsi_sql
 
 open Eliom_lib.Lwt_ops
 
 let (!!) = Lazy.force
 let ($) = User_sql.Types.apply_parameterized_group
 
-let do_sql f = Lwt_pool.use Sql.pool f
+let do_sql f = Lwt_pool.use Ocsi_sql.pool f
 
 (** Local functions *)
 
@@ -58,7 +58,7 @@ let new_task
   !!(role.Roles.task_creator)                             >>= fun b ->
   if b
   then
-    Sql.full_transaction_block
+    Ocsi_sql.full_transaction_block
       (fun db ->
          Ocsforge_sql.get_area_by_id ~area_id:area db       >>= fun ainfo ->
            Forum_data.new_message
@@ -90,7 +90,7 @@ let new_project
   then
     Lwt.fail Ocsimore_common.Permission_denied
   else
-    Sql.full_transaction_block
+    Ocsi_sql.full_transaction_block
       (fun db ->
 
          (* get area code *)
@@ -306,12 +306,12 @@ let get_tree ~root ?with_deleted ?depth () = (*TODO: use depth for sql transacti
     }
 
 let get_sub_tasks ~parent =
-  Sql.full_transaction_block (Ocsforge_sql.get_tasks_by_parent ~parent)
+  Ocsi_sql.full_transaction_block (Ocsforge_sql.get_tasks_by_parent ~parent)
   >>= filter_task_list_for_reading
 
 
 let get_tasks_edited_by ~editor =
-  Sql.full_transaction_block (Ocsforge_sql.get_tasks_by_editor ~editor ())
+  Ocsi_sql.full_transaction_block (Ocsforge_sql.get_tasks_by_editor ~editor ())
   >>= filter_task_list_for_reading
 
 
@@ -331,7 +331,7 @@ let edit_task ~task
       then
         Lwt.fail Ocsimore_common.Permission_denied
       else
-        Sql.full_transaction_block (
+        Ocsi_sql.full_transaction_block (
           (fun db ->
             let task_id = task in
             User.get_user_id () >>= fun author ->
@@ -366,7 +366,7 @@ let move_task ~task ~parent = (* For this function to work, the "move forum mess
 
   then
     (* adapt to the new parent inheritance : for a task *)
-    Sql.full_transaction_block
+    Ocsi_sql.full_transaction_block
       (fun db ->
         (*checking rights*)
         Ocsforge_sql.get_area_for_task ~task_id:parent db >>= fun area_new ->
@@ -393,7 +393,7 @@ let move_task ~task ~parent = (* For this function to work, the "move forum mess
 
   else
     (* keep in the same area : for a project *)
-    Sql.full_transaction_block
+    Ocsi_sql.full_transaction_block
       (fun db ->
         (*checking rights*)
         Ocsforge_sql.get_area_for_task ~task_id:task db  >>= fun area ->
@@ -444,7 +444,7 @@ let edit_area ~area ?repository_path ?repository_kind ?version () =
             (match version with
                | None -> Lwt.return ()
                | Some v -> Ocsforge_sql.set_version ~area_id:area ~version:v db)
-          in Sql.full_transaction_block f
+          in Ocsi_sql.full_transaction_block f
         end
     end
 
@@ -452,7 +452,7 @@ let edit_area ~area ?repository_path ?repository_kind ?version () =
 let make_project ~task ?repository_kind ?repository_path () =
 
   (* creating a new area and getting rights right *)
-    Sql.full_transaction_block
+    Ocsi_sql.full_transaction_block
       (fun db ->
 
          (* checking rights *)
@@ -622,7 +622,7 @@ let make_project ~task ?repository_kind ?repository_path () =
 (** Tampering with kinds *)
 
 let get_kinds ~area =
-  Sql.full_transaction_block
+  Ocsi_sql.full_transaction_block
   (Ocsforge_sql.get_kinds_for_area ~area_id:area)
 
 let add_kinds ~area ~kinds =
@@ -630,7 +630,7 @@ let add_kinds ~area ~kinds =
   !!(role.Roles.kinds_setter)  >>= fun b ->
   if b
   then
-    Sql.full_transaction_block
+    Ocsi_sql.full_transaction_block
       (Ocsforge_sql.add_kinds_for_area ~area_id:area ~kinds)
   else Lwt.fail Ocsimore_common.Permission_denied
 
@@ -639,7 +639,7 @@ let del_kinds ~area ~kinds =
   !!(role.Roles.kinds_setter)  >>= fun b ->
   if b
   then
-    Sql.full_transaction_block
+    Ocsi_sql.full_transaction_block
       (Ocsforge_sql.del_kinds_for_area ~area_id:area ~kinds)
   else Lwt.fail Ocsimore_common.Permission_denied
 
@@ -648,7 +648,7 @@ let set_kinds ~area ~kinds =
   !!(role.Roles.kinds_setter)  >>= fun b ->
   if b
   then
-    Sql.full_transaction_block
+    Ocsi_sql.full_transaction_block
       (Ocsforge_sql.set_kinds_for_area ~area_id:area ~kinds)
   else Lwt.fail Ocsimore_common.Permission_denied
 
@@ -657,7 +657,7 @@ let swap_kinds ~area ~kinds =
   !!(role.Roles.kinds_setter)  >>= fun b ->
   if b
   then
-    Sql.full_transaction_block
+    Ocsi_sql.full_transaction_block
       (Ocsforge_sql.swap_kinds_for_area ~area_id:area ~kinds)
   else Lwt.fail Ocsimore_common.Permission_denied
 
@@ -686,7 +686,7 @@ let insert_separator ~after ~content =
   !!(role.Roles.task_creator)                             >>= fun b ->
     if b
     then (
-      Sql.full_transaction_block
+      Ocsi_sql.full_transaction_block
         (fun db ->
            Ocsforge_sql.get_task_by_id ~task_id:after db
            >>= fun { Types.t_tree_max = after } ->
@@ -713,7 +713,7 @@ let move_separator ~separator ~after =
   !!( na_role.Roles.task_mover_to )                              >>= fun b2 ->
     if b1 && b2
     then (
-      Sql.full_transaction_block
+      Ocsi_sql.full_transaction_block
         (fun db ->
            Ocsforge_sql.get_task_by_id ~task_id:after db
            >>= fun { Types.t_tree_max = after } ->

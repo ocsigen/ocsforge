@@ -23,7 +23,7 @@ let (>>=) = Lwt.bind
 module Types = Ocsforge_types
 module Olang = Ocsforge_lang
 
-(*Can't compile w/o *) open Sql
+(*Can't compile w/o *) open Ocsi_sql
 
 
 (** {2 Database statement and queries.} *)
@@ -42,7 +42,7 @@ let new_task
   let creator_id  = User_sql.Types.sql_from_userid creator in
   let area_id     = Types.sql_of_right_area area in
   let now         = CalendarLib.Calendar.now () in
-    Sql.full_transaction_block
+    Ocsi_sql.full_transaction_block
       (fun db ->
          PGSQL(db)
            "SELECT tree_min, tree_max
@@ -67,7 +67,7 @@ let new_task
                 VALUES ($parent_id, $message_id, $creator_id, $now, $version, \
                         $?length, $?progress, $?importance, $?kind, \
                         $area_id, $area_root, $tmax, ($tmax + 1))")
-       >>= fun () -> Sql.PGOCaml.serial4 db "ocsforge_tasks_id_seq"
+       >>= fun () -> Ocsi_sql.PGOCaml.serial4 db "ocsforge_tasks_id_seq"
        >>= fun i -> Lwt.return (Types.task_of_sql i))
 
 
@@ -81,7 +81,7 @@ let new_area ?id ~forum ?(version = "0.0") ?repository_kind ?repository_path
   in
   let wiki = Wiki_types.sql_of_wiki wiki in
   let wikibox = Wiki_types.sql_of_wikibox wikibox in 
-  Sql.full_transaction_block
+  Ocsi_sql.full_transaction_block
     (fun db ->
       (match id with
         | None ->
@@ -644,7 +644,7 @@ let adapt_to_project_spawn ~spawning ~new_area ~old_area =
 
 let find_subject_content ~task =
   let task = Types.sql_of_task task in
-  Sql.full_transaction_block
+  Ocsi_sql.full_transaction_block
     (fun db ->
        PGSQL(db)
          "SELECT content
@@ -661,7 +661,7 @@ let find_subject_content ~task =
 
 
 let bootstrap_task ~area ~message =
-  Sql.full_transaction_block
+  Ocsi_sql.full_transaction_block
     (fun db ->
        next_task_id db >>= fun id_ ->
        let id      = Types.sql_of_task id_ in
@@ -688,7 +688,7 @@ let bootstrap_task ~area ~message =
 
 let get_task_count () =
   (*TODO: when tree management is bugproof, use tree_max & tree_min *)
-  Sql.full_transaction_block
+  Ocsi_sql.full_transaction_block
     (fun db ->
        PGSQL(db)
          "SELECT COUNT('id') FROM ocsforge_tasks"
@@ -698,7 +698,7 @@ let get_task_count () =
                  | [Some i] -> Lwt.return (Int64.to_int i)))
 
 let get_root_task () =
-  Sql.full_transaction_block
+  Ocsi_sql.full_transaction_block
     (fun db ->
        PGSQL(db)
        "SELECT id, parent, message, \
@@ -721,7 +721,7 @@ let is_area_root ~task =
              Lwt.return))
 
 let get_projects_path_list () =
-  Sql.full_transaction_block
+  Ocsi_sql.full_transaction_block
   (fun db ->
      (PGSQL(db)
         "SELECT pages FROM ocsforge_right_areas, wikis
@@ -731,7 +731,7 @@ let get_projects_path_list () =
 
 let get_project_path ~area () =
   let area = Types.sql_of_right_area area in
-  Sql.full_transaction_block
+  Ocsi_sql.full_transaction_block
     (fun db ->
        (PGSQL(db)
           "SELECT pages
@@ -749,7 +749,7 @@ let first_message ~forum ~wiki ~creator ~title_syntax ~text ~content_type =
   let moderated = false in
   let creator_id' = User_sql.Types.sql_from_userid creator in
   let forum_id = Forum_types.sql_of_forum forum in
-  Sql.full_transaction_block
+  Ocsi_sql.full_transaction_block
     (fun db ->
 
        (*setting the wikibox for the core of the message*)
@@ -779,7 +779,7 @@ let first_message ~forum ~wiki ~creator ~title_syntax ~text ~content_type =
                    (Failure
                       "Forum_sql.new_message: error in nextval(id) in table forums_messages"))
        ) >>= fun () -> 
-      Sql.PGOCaml.serial4 db "forums_messages_id_seq" >>= fun s ->
+      Ocsi_sql.PGOCaml.serial4 db "forums_messages_id_seq" >>= fun s ->
       Lwt.return (Forum_types.message_of_sql s)
     )
 
