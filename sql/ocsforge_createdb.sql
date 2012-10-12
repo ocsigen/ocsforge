@@ -19,53 +19,55 @@
 
 
 CREATE TABLE ocsforge_right_areas (
-	id serial NOT NULL primary key,
-	forum_id integer NOT NULL REFERENCES forums(id),
-	version text NOT NULL,
-	inheritance integer NOT NULL REFERENCES ocsforge_right_areas(id)
+    id serial NOT NULL primary key,
+    forum_id integer NOT NULL REFERENCES forums(id),
+    version text NOT NULL,
+    repository_kind text,
+    repository_path text,
+    wiki integer DEFAULT 1 references wikis(id) NOT NULL,
+    wiki_container integer REFERENCES wikiboxindex(uid),
+    root_task int,
+    sources_container int NOT NULL
 );
 
 ALTER TABLE ocsforge_right_areas OWNER TO ocsimore;
 
 CREATE TABLE ocsforge_task_kinds (
-	right_area integer NOT NULL REFERENCES ocsforge_right_areas(id),
-	kind text NOT NULL
+    right_area integer NOT NULL REFERENCES ocsforge_right_areas(id),
+    kind text NOT NULL
 );
 
 ALTER TABLE ocsforge_task_kinds OWNER TO ocsimore;
 
 CREATE TABLE ocsforge_tasks (
-
     id serial NOT NULL primary key,
     parent integer NOT NULL REFERENCES ocsforge_tasks(id),
 
     message integer NOT NULL REFERENCES forums_messages(id),
-    
+
     edit_author integer NOT NULL REFERENCES users(id),
     edit_time timestamp DEFAULT (now())::timestamp NOT NULL,
     edit_version text NOT NULL,
 
     length interval,
-    progress integer DEFAULT NULL CHECK (progress >= 0 AND 100 >= progress), 
-    importance integer DEFAULT NULL CHECK (importance >= 0 AND 100 >= importance), 
-    deadline_time timestamp,
-    deadline_version text,
+    progress integer DEFAULT NULL CHECK (progress >= 0 AND 100 >= progress),
+    importance integer DEFAULT NULL CHECK (importance >= 0 AND 100 >= importance),
     kind text,
 
     area integer NOT NULL REFERENCES ocsforge_right_areas(id),
 
-    repository_kind text,
-    repository_path text, 
-    
     tree_min integer DEFAULT 0 NOT NULL,
-    tree_max integer DEFAULT 1 NOT NULL
+    tree_max integer DEFAULT 1 NOT NULL,
+
+    deleted boolean DEFAULT false NOT NULL,
+
+    area_root boolean NOT NULL
 );
 
 
 ALTER TABLE public.ocsforge_tasks OWNER TO ocsimore;
 
 CREATE TABLE ocsforge_tasks_history (
-
     id integer NOT NULL,
     parent integer NOT NULL REFERENCES ocsforge_tasks(id),
 
@@ -80,8 +82,17 @@ CREATE TABLE ocsforge_tasks_history (
     deadline_version text,
     kind text,
 
-    area integer NOT NULL REFERENCES ocsforge_right_areas(id)
+    area integer NOT NULL REFERENCES ocsforge_right_areas(id),
+
+    deleted boolean DEFAULT false NOT NULL
 );
 
 ALTER TABLE ocsforge_tasks_history OWNER TO ocsimore;
 
+CREATE TABLE ocsforge_tasks_separators (
+    id serial NOT NULL primary key,
+    after integer NOT NULL REFERENCES ocsforge_tasks(id),
+    content text NOT NULL
+);
+
+ALTER TABLE ocsforge_tasks_separators OWNER TO ocsimore;
