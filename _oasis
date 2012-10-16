@@ -49,7 +49,7 @@ Library "ocsforge"
   XMETADescription: Core Ocsforge
   CSources: swig_svn.c
   CCLib: -lsvn_client-1
-  CCOpt: -I/usr/include/subversion-1 -I/usr/include/apr-1.0 -D_LARGEFILE64_SOURCE
+  CCOpt: -I/usr/include/subversion-1 "`pkg-config --cflags apr-1`" -D_LARGEFILE64_SOURCE
   BuildDepends:
     camlp4,
     lwt.syntax,
