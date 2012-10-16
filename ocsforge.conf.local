@@ -34,7 +34,7 @@
 
 
     <extension findlib-package="eliom.server"/>
-    <extension findlib-package="pgocaml"/>
+    <extension findlib-package="macaque"/>
     <extension findlib-package="ocsimore">
       <database name="ocsimore" />
       <passwordfile name="./etc/ocsigen/ocsimorepassword" />
@@ -68,14 +68,6 @@
 	  <notsecure/> <!-- accept login with http or https (DANGEROUS!)
                             If you do not want that option,
 			    you need to configure HTTPS. -->
-
-	  <!-- For PAM authentication; Create your service file in /etc/pam.d -->
-	  <!--pam service="ocsimore" /-->
-	  <!-- Otherwise you can use NIS -->
-	  <!-- <nis /> -->
-
-	  <!-- To create Ocsimore users: -->
-	  <!-- <basicusercreation registration_mail_from="Ocsimore" registration_mail_addr="ocsimore@somewhere.nowhere.com" registration_mail_subject="Ocsimore registration" groups="users"/> -->
 	</eliom>
 
 	<eliom findlib-package="ocsimore.forum_site" />

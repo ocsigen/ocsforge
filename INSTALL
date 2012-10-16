@@ -15,22 +15,12 @@ be sure to have these requirements installed
 install ocsimore...
 
 run
-$ sh configure <pwd>
-where <pwd> is Ocsimore's database's password
+$ sh configure
 
 Adapt Makefile.config if needed
 
 create database using
 $ psql -U ocsimore -f ocsforge_createdb.sql
-
-update database with
-$ psql -U ocsimore -f updatedb-20090702.sql
-$ psql -U ocsimore -f updatedb-20090706.sql
-$ psql -U ocsimore -f updatedb-20090731.sql
-$ psql -U ocsimore -f updatedb-20090805.sql
-
-to revert these changes use
-$ psql -U ocsimore -f ocsforge_dropdb.sql
 
 compile with
 $ make

@@ -5741,41 +5741,4 @@ let setup () = BaseSetup.setup setup_t;;
 
 # 5745 "setup.ml"
 (* OASIS_STOP *)
-
-let add_option (desc,name,value) =
-  BaseEnv.var_define
-    ~hide:false
-    ~dump:true
-    ~cli:BaseEnv.CLIAuto
-    ~arg_help:desc
-    name
-    (fun () -> value)
-
-let _ =
-  List.map add_option
-    [ "database host address (none meaning using local unix socket)",
-      "pghost",
-      "none";
-
-      "database port",
-      "pgport",
-      "5432";
-
-      "database name",
-      "pgdatabase",
-      "ocsimore";
-
-      "database user",
-      "pguser",
-      "ocsimore";
-
-      "database password",
-      "pgpassword",
-      "ocsimore";
-
-      "database unix socket domain directory (default to none)",
-      "pg_socket_domain_dir",
-      "none" ]
-
-
 let () = setup ();;
