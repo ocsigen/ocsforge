@@ -153,7 +153,6 @@ let new_project
               User.add_to_group ~user:(ar $ c) ~group:(fr $ cwiki)
            )
            [
-            (Roles.task_comment_sticky_setter, FRoles.message_sticky_makers     ) ;
             (Roles.task_comment_reader,        FRoles.moderated_message_readers ) ;
             (Roles.task_comment_moderator,     FRoles.message_moderators        ) ;
             (Roles.task_comment_deletor,       FRoles.message_deletors          ) ;
