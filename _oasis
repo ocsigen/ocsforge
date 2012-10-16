@@ -53,7 +53,7 @@ Library "ocsforge"
   BuildDepends:
     camlp4,
     lwt.syntax,
-    pgocaml.syntax,
+    macaque,
     eliom.server,
     ocsimore,
     ocsimore.wiki,

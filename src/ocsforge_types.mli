@@ -58,8 +58,28 @@ val string_of_right_area : right_area -> string
 val right_area_of_string : string -> right_area
 
 (* NOT TO BE USED BUT IN ocsforge_sql *)
-type raw_right_area_info = int32 * int32 * string * string option *
-                           string option * int32 option * int32 option * int32 * int32
+type raw_right_area_info =
+  < forum_id : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t >
+    Sql.t;
+  id : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+  repository_kind : < get : unit; nul : Sql.nullable;
+  t : Sql.string_t >
+    Sql.t;
+  repository_path : < get : unit; nul : Sql.nullable;
+  t : Sql.string_t >
+    Sql.t;
+  root_task : < get : unit; nul : Sql.nullable; t : Sql.int32_t >
+    Sql.t;
+  sources_container : < get : unit; nul : Sql.non_nullable;
+  t : Sql.int32_t >
+    Sql.t;
+  version : < get : unit; nul : Sql.non_nullable; t : Sql.string_t >
+    Sql.t;
+  wiki : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t >
+    Sql.t;
+  wiki_container : < get : unit; nul : Sql.nullable;
+  t : Sql.int32_t >
+    Sql.t >
 val get_right_area_info : raw_right_area_info -> right_area_info
 
 
@@ -96,10 +116,38 @@ val task_of_int : int -> task
 
 (* NOT TO BE USED BUT IN ocsforge_sql *)
 type raw_task_info =
-    int32 * int32 * int32 * int32 * CalendarLib.Calendar.t * string *
-    CalendarLib.Calendar.Period.t option * int32 option
-    * int32 option * string option * int32 *
-    int32 * int32 * bool * bool
+  < area : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t >
+    Sql.t;
+  area_root : < get : unit; nul : Sql.non_nullable; t : Sql.bool_t >
+    Sql.t;
+  deleted : < get : unit; nul : Sql.non_nullable; t : Sql.bool_t >
+    Sql.t;
+  edit_author : < get : unit; nul : Sql.non_nullable;
+  t : Sql.int32_t >
+    Sql.t;
+  edit_time : < get : unit; nul : Sql.non_nullable;
+  t : Sql.timestamp_t >
+    Sql.t;
+  edit_version : < get : unit; nul : Sql.non_nullable;
+  t : Sql.string_t >
+    Sql.t;
+  id : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+  importance : < get : unit; nul : Sql.nullable; t : Sql.int32_t >
+    Sql.t;
+  kind : < get : unit; nul : Sql.nullable; t : Sql.string_t > Sql.t;
+  length : < get : unit; nul : Sql.nullable; t : Sql.interval_t >
+    Sql.t;
+  message : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t >
+    Sql.t;
+  parent : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t >
+    Sql.t;
+  progress : < get : unit; nul : Sql.nullable; t : Sql.int32_t >
+    Sql.t;
+  tree_max : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t >
+    Sql.t;
+  tree_min : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t >
+    Sql.t >
+
 val get_task_info : raw_task_info -> task_info
 
 (** {2 For task history marks...} *)
@@ -129,9 +177,27 @@ val task_history_of_string : string -> task
 
 (* NOT TO BE USED BUT IN ocsforge_sql *)
 type raw_task_history_info =
-    int32 * int32 * int32 * CalendarLib.Calendar.t * string *
-    CalendarLib.Calendar.Period.t option * int32 option * int32 option *
-    string option * int32
+  < area : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t >
+    Sql.t;
+  edit_author : < get : unit; nul : Sql.non_nullable;
+  t : Sql.int32_t >
+    Sql.t;
+  edit_time : < get : unit; nul : Sql.non_nullable;
+  t : Sql.timestamp_t >
+    Sql.t;
+  edit_version : < get : unit; nul : Sql.non_nullable;
+  t : Sql.string_t >
+    Sql.t;
+  id : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+  importance : < get : unit; nul : Sql.nullable; t : Sql.int32_t >
+    Sql.t;
+  kind : < get : unit; nul : Sql.nullable; t : Sql.string_t > Sql.t;
+  length : < get : unit; nul : Sql.nullable; t : Sql.interval_t >
+    Sql.t;
+  parent : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t >
+    Sql.t;
+  progress : < get : unit; nul : Sql.nullable; t : Sql.int32_t >
+    Sql.t >
 val get_task_history_info : raw_task_history_info -> task_history_info
 
 (** {3 for separators tampering} *)
@@ -142,5 +208,10 @@ val sql_of_separator : separator -> int32
 val string_of_separator : separator -> string
 val separator_of_string : string -> separator
 
-type raw_separator_info = int32 * int32 * string
+type raw_separator_info =
+  < after : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t >
+    Sql.t;
+  content : < get : unit; nul : Sql.non_nullable; t : Sql.string_t >
+    Sql.t;
+  id : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t >
 val get_separator_info : raw_separator_info -> separator_info

@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 9b697511738c51cd484563d231fdf07c)
+# DO NOT EDIT (digest: 07a5bfa044fb4d5e5a4d80555b74f1f7)
 # Ignore VCS directories, you can use the same kind of rule outside 
 # OASIS_START/STOP if you want to exclude directories that contains 
 # useless stuff for the build process
@@ -25,7 +25,7 @@
 <src/ocsforge.{cma,cmxa}>: use_libocsforge_stubs
 <src/*.ml{,i}>: pkg_camlp4
 <src/*.ml{,i}>: pkg_lwt.syntax
-<src/*.ml{,i}>: pkg_pgocaml.syntax
+<src/*.ml{,i}>: pkg_macaque
 <src/*.ml{,i}>: pkg_eliom.server
 <src/*.ml{,i}>: pkg_ocsimore
 <src/*.ml{,i}>: pkg_ocsimore.wiki
@@ -34,7 +34,7 @@
 <src/*.ml{,i}>: pkg_threads
 "src/swig_svn.c": pkg_camlp4
 "src/swig_svn.c": pkg_lwt.syntax
-"src/swig_svn.c": pkg_pgocaml.syntax
+"src/swig_svn.c": pkg_macaque
 "src/swig_svn.c": pkg_eliom.server
 "src/swig_svn.c": pkg_ocsimore
 "src/swig_svn.c": pkg_ocsimore.wiki
@@ -43,3 +43,4 @@
 "src/swig_svn.c": pkg_threads
 # OASIS_STOP
 <src/**/*.ml>: syntax_camlp4o
+"src/ocsforge_sql.ml": pkg_macaque.syntax

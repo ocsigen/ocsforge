@@ -61,10 +61,38 @@ let string_of_right_area i = Int32.to_string (sql_of_right_area i)
 let right_area_of_string s = (Opaque.int32_t (Int32.of_string s) : right_area)
 
 type raw_right_area_info =
-    (int32 * int32 * string *
-     string option * string option * int32 option * int32 option * int32 * int32)
+  < forum_id : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t >
+    Sql.t;
+  id : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+  repository_kind : < get : unit; nul : Sql.nullable;
+  t : Sql.string_t >
+    Sql.t;
+  repository_path : < get : unit; nul : Sql.nullable;
+  t : Sql.string_t >
+    Sql.t;
+  root_task : < get : unit; nul : Sql.nullable; t : Sql.int32_t >
+    Sql.t;
+  sources_container : < get : unit; nul : Sql.non_nullable;
+  t : Sql.int32_t >
+    Sql.t;
+  version : < get : unit; nul : Sql.non_nullable; t : Sql.string_t >
+    Sql.t;
+  wiki : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t >
+    Sql.t;
+  wiki_container : < get : unit; nul : Sql.nullable;
+  t : Sql.int32_t >
+    Sql.t >
 
-let get_right_area_info (id, forum_id, ver, kind, path, task, cont, wik, wikibox) =
+let get_right_area_info sql_data =
+  let id = Sql.get sql_data#id
+  and forum_id = Sql.get sql_data#forum_id
+  and ver = Sql.get sql_data#version
+  and kind = Sql.getn sql_data#repository_kind
+  and path = Sql.getn sql_data#repository_path
+  and task = Sql.getn sql_data#root_task
+  and cont = Sql.getn sql_data#wiki_container
+  and wik = Sql.get sql_data#wiki
+  and wikibox = Sql.get sql_data#sources_container in
   {
     r_id                   = right_area_of_sql id ;
     r_forum                = Forum_types.forum_of_sql forum_id ;
@@ -119,19 +147,54 @@ let string_of_task i = Int32.to_string (sql_of_task i)
 let task_of_string s = (Opaque.int32_t (Int32.of_string s) : task)
 
 type raw_task_info =
-    (int32 * int32 *
-     int32 *
-     int32 * Calendar.t * string *
-     Calendar.Period.t option * int32 option * int32 option * string option *
-     int32 * int32 * int32 * bool * bool)
+  < area : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t >
+    Sql.t;
+  area_root : < get : unit; nul : Sql.non_nullable; t : Sql.bool_t >
+    Sql.t;
+  deleted : < get : unit; nul : Sql.non_nullable; t : Sql.bool_t >
+    Sql.t;
+  edit_author : < get : unit; nul : Sql.non_nullable;
+  t : Sql.int32_t >
+    Sql.t;
+  edit_time : < get : unit; nul : Sql.non_nullable;
+  t : Sql.timestamp_t >
+    Sql.t;
+  edit_version : < get : unit; nul : Sql.non_nullable;
+  t : Sql.string_t >
+    Sql.t;
+  id : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+  importance : < get : unit; nul : Sql.nullable; t : Sql.int32_t >
+    Sql.t;
+  kind : < get : unit; nul : Sql.nullable; t : Sql.string_t > Sql.t;
+  length : < get : unit; nul : Sql.nullable; t : Sql.interval_t >
+    Sql.t;
+  message : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t >
+    Sql.t;
+  parent : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t >
+    Sql.t;
+  progress : < get : unit; nul : Sql.nullable; t : Sql.int32_t >
+    Sql.t;
+  tree_max : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t >
+    Sql.t;
+  tree_min : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t >
+    Sql.t >
 
-let get_task_info
-      (id,  parent_id,
-       message,
-       edit_author, edit_time, edit_version,
-       length,  progress,  importance, kind,
-       area, tmin, tmax, deleted, root)
-      = 
+let get_task_info sql_data =
+  let id = Sql.get sql_data#id
+  and parent_id = Sql.get sql_data#parent
+  and message = Sql.get sql_data#message
+  and edit_author = Sql.get sql_data#edit_author
+  and edit_time = Sql.get sql_data#edit_time
+  and edit_version = Sql.get sql_data#edit_version
+  and length = Sql.getn sql_data#length
+  and progress = Sql.getn sql_data#progress
+  and importance = Sql.getn sql_data#importance
+  and kind = Sql.getn sql_data#kind
+  and area = Sql.get sql_data#area
+  and tmin = Sql.get sql_data#tree_min
+  and tmax = Sql.get sql_data#tree_max
+  and deleted = Sql.get sql_data#deleted
+  and root = Sql.get sql_data#area_root in
   {
     t_id     = task_of_sql id ;
     t_parent = task_of_sql parent_id ;
@@ -186,16 +249,39 @@ let string_of_task_history i = Int32.to_string (sql_of_task i)
 let task_history_of_string s = (Opaque.int32_t (Int32.of_string s) : task)
 
 type raw_task_history_info =
-    (int32 * int32 *
-     int32 * Calendar.t * string *
-     Calendar.Period.t option * int32 option * int32 option * string option *
-     int32)
+  < area : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t >
+    Sql.t;
+  edit_author : < get : unit; nul : Sql.non_nullable;
+  t : Sql.int32_t >
+    Sql.t;
+  edit_time : < get : unit; nul : Sql.non_nullable;
+  t : Sql.timestamp_t >
+    Sql.t;
+  edit_version : < get : unit; nul : Sql.non_nullable;
+  t : Sql.string_t >
+    Sql.t;
+  id : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+  importance : < get : unit; nul : Sql.nullable; t : Sql.int32_t >
+    Sql.t;
+  kind : < get : unit; nul : Sql.nullable; t : Sql.string_t > Sql.t;
+  length : < get : unit; nul : Sql.nullable; t : Sql.interval_t >
+    Sql.t;
+  parent : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t >
+    Sql.t;
+  progress : < get : unit; nul : Sql.nullable; t : Sql.int32_t >
+    Sql.t >
 
-let get_task_history_info
-      (id, parent,
-       editor, time, edit_version,
-       length, progress, importance, kind, 
-       right_zone) =
+let get_task_history_info sql_data =
+  let id = Sql.get sql_data#id
+  and parent = Sql.get sql_data#parent
+  and editor = Sql.get sql_data#edit_author
+  and time = Sql.get sql_data#edit_time
+  and edit_version = Sql.get sql_data#edit_version
+  and length = Sql.getn sql_data#length
+  and progress = Sql.getn sql_data#progress
+  and importance = Sql.getn sql_data#importance
+  and kind = Sql.getn sql_data#kind
+  and right_zone = Sql.get sql_data#area in
   {
     th_id     = task_history_of_sql id ;
     th_parent = task_of_sql parent ;
@@ -220,8 +306,16 @@ let sql_of_separator ( u : separator ) = ( Opaque.t_int32 u : int32 )
 let string_of_separator s = Int32.to_string (sql_of_separator s)
 let separator_of_string s = separator_of_sql (Int32.of_string s)
 
-type raw_separator_info = int32 * int32 * string
-let get_separator_info (id, after, content) =
+type raw_separator_info =
+  < after : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t >
+    Sql.t;
+  content : < get : unit; nul : Sql.non_nullable; t : Sql.string_t >
+    Sql.t;
+  id : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t >
+let get_separator_info sql_data =
+  let id = Sql.get sql_data#id
+  and content = Sql.get sql_data#content
+  and after = Sql.get sql_data#after in
   {
     s_id = separator_of_sql id ;
     s_content = content ;
