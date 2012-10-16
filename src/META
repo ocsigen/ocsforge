@@ -1,0 +1,12 @@
+# OASIS_START
+# DO NOT EDIT (digest: 51f804563b14d32ae9eefeebb1d99227)
+version = "0.1"
+description = "Core Ocsforge"
+requires = "pgocaml eliom.server threads"
+archive(byte) = "ocsforge.cma"
+archive(byte, plugin) = "ocsforge.cma"
+archive(native) = "ocsforge.cmxa"
+archive(native, plugin) = "ocsforge.cmxs"
+exists_if = "ocsforge.cma"
+# OASIS_STOP
+

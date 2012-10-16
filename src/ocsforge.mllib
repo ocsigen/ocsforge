@@ -1,0 +1,24 @@
+# OASIS_START
+# DO NOT EDIT (digest: 80ef17c4cc3a606e0ed312ff14a616f5)
+Ocsforge_lang
+Ocsforge_types
+Ocsforge_sql
+Ocsforge_roles
+Ocsforge_data
+Ocsforge_xml_tree_dump
+Ocsforge_services_hashtable
+Ocsforge_services_source
+Ocsforge_services_tasks
+Ocsforge_widgets_source
+Ocsforge_widgets_tasks
+Ocsforge_wikiext_source
+Ocsforge_source_tree
+Ocsforge_source_types
+Ocsforge_version_managers
+Ocsforge_color
+Ocsforge_color_tokens
+Ocsforge_default_lexer
+Ocaml_lexer
+Darcs_support
+Ocsforge_bootstrap
+# OASIS_STOP
