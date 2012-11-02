@@ -19,6 +19,7 @@
 
 (** @author Raphael Proust *)
 
+open Eliom_lib
 let (>>=) = Lwt.bind
 let (>|=) = Lwt.(>|=)
 module Types = Ocsforge_types
