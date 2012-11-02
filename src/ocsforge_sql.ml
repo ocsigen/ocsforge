@@ -146,7 +146,7 @@ let forums_messages = (<:table< forums_messages (
 
 (** {5 make task } *)
 
-let new_task 
+let new_task
       ~parent ~message ~creator ~version
       ?length ?progress ?importance ?kind
       ~area ?(area_root = false)
@@ -202,7 +202,7 @@ let new_area ?id ~forum ?(version = "0.0") ?repository_kind ?repository_path
                          Wiki_types.sql_of_wikibox wiki_container
   in
   let wiki = Wiki_types.sql_of_wiki wiki in
-  let wikibox = Wiki_types.sql_of_wikibox wikibox in 
+  let wikibox = Wiki_types.sql_of_wikibox wikibox in
   Ocsi_sql.full_transaction_block
     (fun db ->
       (match id with
@@ -995,3 +995,11 @@ let first_message ~forum ~wiki ~creator ~title_syntax ~text ~content_type =
       Lwt.return (Forum_types.message_of_sql s)
     )
 
+let get_right_area_ids () =
+  Ocsi_sql.full_transaction_block
+    (fun db ->
+      Lwt_Query.view db (<:view< {
+        r.id;
+        title = null;
+      } | r in $ocsforge_right_areas$ >>)
+    )

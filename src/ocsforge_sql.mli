@@ -311,6 +311,7 @@ val first_message :
   text:string ->
   content_type:'b Wiki_types.content_type -> Forum_types.message Lwt.t
 
-
-
-
+val get_right_area_ids : unit ->
+  < id : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+ title : < get : unit; nul : Sql.nullable; t : Sql.string_t > Sql.t >
+   list Lwt.t

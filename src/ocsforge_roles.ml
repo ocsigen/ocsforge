@@ -37,6 +37,7 @@ let ($) = UTypes.apply_parameterized_group
 (* XXX find better description *)
 let param_right_area_arg = {
   User_sql.Types.param_description = "ocsforge right_area_arg";
+  param_get = Ocsforge_sql.get_right_area_ids;
   param_display = None;
   find_param_functions = None;
 }
@@ -93,7 +94,7 @@ let task_comment_writer_not_moderated
   aux_grp "task_comment_writer_not_moderated"
     "Can write comments for tasks in the area, ignoring moderation"
 
-(*reading*) 
+(*reading*)
 
 let task_comment_reader
       : Types.right_area_arg UTypes.parameterized_group =
@@ -254,7 +255,7 @@ let get_role ~area =
             then { ... many  tests ... }
             else { ... a few tests ... }
        else { ... no ... }
-       
+
        possible optimisation : test for admin ?
      *)
   if read
@@ -263,7 +264,7 @@ let get_role ~area =
       User.in_group
         ~group:(task_comment_reader $ area) ()
       >>= fun readc ->
-       if readc 
+       if readc
        then Lwt.return
        {
          task_reader         = yes ;
@@ -387,6 +388,3 @@ let get_area_session_data () =
 let get_area_role k =
   let area_sd = get_area_session_data () in
   area_sd k
-
-
-
