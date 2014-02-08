@@ -55,7 +55,7 @@ let ocsforge_tasks = (<:table< ocsforge_tasks (
   message integer NOT NULL,
 
   edit_author integer NOT NULL,
-  edit_time timestamp NOT NULL DEFAULT(current_timestamp),
+  edit_time timestamp NOT NULL DEFAULT(localtimestamp ()),
   edit_version text NOT NULL,
 
   length interval,
@@ -78,7 +78,7 @@ let ocsforge_tasks_history = (<:table< ocsforge_tasks_history (
   parent integer NOT NULL,
 
   edit_author integer NOT NULL,
-  edit_time timestamp NOT NULL DEFAULT(current_timestamp),
+  edit_time timestamp NOT NULL DEFAULT(localtimestamp ()),
   edit_version text NOT NULL,
 
   length interval,
@@ -128,7 +128,7 @@ let forums_messages_id_seq = (<:sequence< serial "forums_messages_id_seq" >>)
 let forums_messages = (<:table< forums_messages (
   id integer NOT NULL DEFAULT(nextval $forums_messages_id_seq$),
   creator_id integer NOT NULL,
-  datetime timestamp NOT NULL DEFAULT(current_timestamp),
+  datetime timestamp NOT NULL DEFAULT(localtimestamp ()),
   parent_id integer,
   root_id integer NOT NULL,
   forum_id integer NOT NULL,
