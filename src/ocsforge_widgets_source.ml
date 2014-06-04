@@ -53,14 +53,11 @@ let generate_menu version page_kind
   table ~a:[a_class ["ocsforge_sources_menu"]]
     (tr [
       td [
-	table ~a:[a_class ["ocsforge_sources_submenu"]]
-	  (
+	table ~a:[a_class ["ocsforge_sources_submenu"]] [
 	    tr [
 	      th ~a:[a_class ["ocsforge_submenu_title"]]
 		[ pcdata "Repository" ]
-	    ]
-	  )
-	  [
+	    ];
 	    tr [
 	      match (page_kind,version) with
 		| (None,None) ->
@@ -92,8 +89,8 @@ let generate_menu version page_kind
 	    ]
 	  ]
       ]
-    ])
-    content
+    ]
+    :: content)
 
 let sources_page_content
     version
@@ -345,7 +342,7 @@ let create_repository_table_content ~id ~version ~dir ~project_services=
 	      lwt b = build_content dir ps cpt version tree 0 in
 	      Lwt.return
 		(table ~a:[ a_class ["ocsforge_sources_table"]]
-		    (repository_table_header)
+		    (repository_table_header ::
 		    ((match dir with
 		      | None -> []
 		      | Some(d) ->
@@ -363,7 +360,7 @@ let create_repository_table_content ~id ~version ~dir ~project_services=
 				 (None,(version,None)))];
 			  td [];
 			  td []]])@
-			b)))
+			b))))
 	    (function
 	      | Vm.Node_not_found -> error "File or directory not found"
 	      | Vm.Revision_not_found -> error "Revision not found"
@@ -493,7 +490,7 @@ let create_log_links ~log_service ~log_select ~start_rev ~end_rev =
   let start_name = find_name log_select (fst b) in
   (utf8_td ("Entries range: "^end_name^"  -  "^start_name) "middle") >>= fun middle ->
   Lwt.return (table ~a:[ a_class ["ocsforge_log_links"]]
-                (tr [
+                [tr [
                     (match a with
                       | ("",_) ->
 			td ~a:[ a_class ["ocsforge_no_previous_entries"]]
@@ -517,7 +514,7 @@ let create_log_links ~log_service ~log_select ~start_rev ~end_rev =
 			      [pcdata "next >"]
 			      (Some(Some(fst c),Some(snd c)))])
 		  ]
-		) [])
+		])
 
 
 let log_table_content ~kind ~path ~log ~ps ~start_rev ~end_rev =
@@ -676,12 +673,12 @@ let create_log_page_content ~id ~file ~range ~project_services =
 	      Lwt.return
 		([ tr [
 		  td [
-		    table ~a:[a_class ["ocsforge_sources_submenu"]]
-		      (tr [
+		    table ~a:[a_class ["ocsforge_sources_submenu"]] [
+                      tr [
                         th ~a:[a_class ["ocsforge_submenu_title"]]
-                          [ pcdata "Log" ]
-                      ])
-		      [ tr [
+                          [ pcdata "Log" ];
+                      ];
+		      tr [
                         td ~a:[a_class ["ocsforge_sources_menu_item"]]
 			  [ Html5.D.get_form
                               ~a:[a_class ["ocsforge_version_select"]]
@@ -691,8 +688,8 @@ let create_log_page_content ~id ~file ~range ~project_services =
                       ]]]]],
                  [
                    linktable;
-                   table ~a:[a_class ["ocsforge_log_table"]]
-		     log_table_header b] ))
+                   table ~a:[a_class ["ocsforge_log_table"]] (log_table_header::b)
+                 ] ))
             (fun exn ->
                 let error_content = match exn with
                 | Vm.Node_not_found -> error "File or directory not found"
@@ -831,7 +828,7 @@ let create_file_log_links
   lwt middle = utf8_td range "middle" in
   Lwt.return
     (table ~a:[a_class ["ocsforge_log_links"]]
-       (tr [
+       [tr [
          (match log_start with
            | None ->
              td ~a:[a_class ["ocsforge_no_previous_entries"]]
@@ -854,7 +851,7 @@ let create_file_log_links
           else
              td ~a:[a_class ["ocsforge_no_next_entries"]]
                [pcdata "(no next entries)"]);
-       ]) [])
+       ]])
 
 
 let create_file_page ~id ~target ~version ~log_start ~project_services =
@@ -968,12 +965,12 @@ let create_file_page ~id ~target ~version ~log_start ~project_services =
 	      Lwt.return (( [
                 tr [
                   td [
-		    table ~a:[a_class ["ocsforge_sources_submenu"]]
-		      (tr [
+		    table ~a:[a_class ["ocsforge_sources_submenu"]] [
+		      tr [
                         th ~a:[a_class ["ocsforge_submenu_title"]]
                           [pcdata "File"]
-		      ])
-		      [tr [
+		      ];
+		      tr [
                         td ~a:[a_class ["ocsforge_sources_menu_item"]]
                           [ Html5.D.a
 			      ~a:[a_class ["ocsforge_sources_menu_link"];
@@ -997,12 +994,12 @@ let create_file_page ~id ~target ~version ~log_start ~project_services =
 		      ]]];
                 tr [
                   td [
-		    table ~a:[a_class ["ocsforge_sources_submenu"]]
+		    table ~a:[a_class ["ocsforge_sources_submenu"]] (
 		      (tr [
                         th ~a:[a_class ["ocsforge_submenu_title"]]
                           [pcdata "History browsing"]
 		      ])
-		      ((tr [
+		      ::(tr [
                         td ~a:[a_class ["ocsforge_sources_menu_item"]]
 			  [ Html5.D.get_form
 			      ~a:[a_class ["ocsforge_version_select"]]
@@ -1023,7 +1020,7 @@ let create_file_page ~id ~target ~version ~log_start ~project_services =
                   ]]],
 			    [log_links;
 			     table ~a:[a_class ["ocsforge_log_table"]]
-			       log_table_header log ] )
+			       (log_table_header:: log) ] )
 	      )
 	    with _ ->
 	      lwt c = error "File not found" in
@@ -1164,12 +1161,12 @@ let draw_source_code_view ~id ~target ~version =
       let menu_content =
         [tr [
           td [
-            table ~a:[a_class ["ocsforge_sources_submenu"]]
-              (tr [
+            table ~a:[a_class ["ocsforge_sources_submenu"]] [
+              tr [
 		th ~a:[a_class ["ocsforge_submenu_title"]]
                   [pcdata "File"]
-              ])
-              [tr [
+              ];
+              tr [
 		td ~a:[a_class ["ocsforge_sources_menu_current"]] [pcdata "View content"]];
 	       tr [
 		 td ~a:[a_class ["ocsforge_sources_menu_item"]]
@@ -1235,9 +1232,8 @@ let draw_diff_view ~id ~target ~diff1 ~diff2 =
       let menu_content =
         tr [
           td [
-            table ~a:[a_class ["ocsforge_sources_submenu"]]
-              (tr [th ~a:[a_class ["ocsforge_submenu_title"]] [pcdata "File"]])
-	      [
+            table ~a:[a_class ["ocsforge_sources_submenu"]] [
+                tr [th ~a:[a_class ["ocsforge_submenu_title"]] [pcdata "File"]];
 		tr [
 		  td ~a:[a_class ["ocsforge_sources_menu_item"]]
 		    [ Html5.D.a
@@ -1286,12 +1282,12 @@ let draw_patchdiff ~id ~diff1 ~diff2 = match Sh.find_service id with
     let menu_content =
       tr [
         td [
-          table ~a:[a_class ["ocsforge_sources_submenu"]]
-            (tr [
+          table ~a:[a_class ["ocsforge_sources_submenu"]] [
+            tr [
               th ~a:[a_class ["ocsforge_submenu_title"]]
                 [pcdata "Log"]
-            ])
-	    [tr [
+            ];
+	    tr [
               td ~a:[a_class ["ocsforge_sources_menu_current"]] [pcdata "Commit diff" ]
              ]
           ]
@@ -1370,12 +1366,11 @@ let draw_annotate ~id ~target ~version =
       let menu_content =
 	tr [
           td [
-            table ~a:[a_class ["ocsforge_sources_submenu"]]
-              (tr [
-		th ~a:[a_class ["ocsforge_submenu_title"]]
-                  [pcdata "File" ]
-              ])
-              [
+            table ~a:[a_class ["ocsforge_sources_submenu"]] [
+                tr [
+		  th ~a:[a_class ["ocsforge_submenu_title"]]
+                    [pcdata "File" ]
+                ];
 		tr [
 		  td ~a:[a_class ["ocsforge_sources_menu_item"]]
 		    [ Html5.D.a
