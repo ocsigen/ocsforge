@@ -117,8 +117,7 @@ let find_log_service id =
     Eliom_service.service
    :>
     ((string option * string option) option, unit,
-     [> `Attached of
-         (Eliom_service.attached_service_kind, [ `Get ]) Eliom_service.a_s ],
+     [`Get], Eliom_service.attached_kind, Eliom_service.service_kind,
      [> `WithoutSuffix ],
      [ `One of string option * string option ] Eliom_parameter.param_name,
      unit, [> `Registrable ], Eliom_registration.appl_service)
