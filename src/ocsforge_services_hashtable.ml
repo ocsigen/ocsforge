@@ -97,8 +97,7 @@ let find_sources_service id =
     Eliom_service.service :>
     (string list * (src_page_kind option * (string option * string option)),
      unit,
-     [> `Attached of
-         (Eliom_service.attached_service_kind, [ `Get ]) Eliom_service.a_s ],
+     [`Get], Eliom_service.attached_kind, Eliom_service.service_kind,
      [> `WithSuffix ],
      [ `One of string list ] Eliom_parameter.param_name *
      ([ `One of src_page_kind ] Eliom_parameter.param_name *
