@@ -54,9 +54,7 @@ let string_to_kind = function
 type project_services =
     { sources_service:
 	(string list * (src_page_kind option * (string option * string option))
-           , unit,
-         [ `Attached of
-             (Eliom_service.attached_service_kind, [ `Get ]) Eliom_service.a_s ],
+           , unit, [`Get], Eliom_service.attached_kind, Eliom_service.service_kind,
          [ `WithSuffix ],
          ([`One of string list] Eliom_parameter.param_name *
 	    ([ `One of src_page_kind ] Eliom_parameter.param_name *
@@ -66,9 +64,8 @@ type project_services =
          [ `Registrable ], Eliom_registration.appl_service)
 	Eliom_service.service;
       log_service:
-	((string option * string option) option, unit,
-	 [ `Attached of
-             (Eliom_service.attached_service_kind, [ `Get ]) Eliom_service.a_s ],
+	      ((string option * string option) option, unit,
+        [`Get],Eliom_service.attached_kind, Eliom_service.service_kind,
 	 [ `WithoutSuffix ],
 	 ([ `One of (string option * string option)] Eliom_parameter.param_name),
           unit,[ `Registrable ], Eliom_registration.appl_service)
@@ -90,9 +87,7 @@ let find_service id =
 let find_sources_service id =
   ((Hashtbl.find repos_services_table id).sources_service
      :    (string list * (src_page_kind option * (string option * string option)),
-     unit,
-     [ `Attached of
-         (Eliom_service.attached_service_kind, [ `Get ]) Eliom_service.a_s ],
+     unit,[`Get], Eliom_service.attached_kind, Eliom_service.service_kind,
      [ `WithSuffix ],
      [ `One of string list ] Eliom_parameter.param_name *
      ([ `One of src_page_kind ] Eliom_parameter.param_name *
@@ -114,9 +109,8 @@ let find_sources_service id =
 
 let find_log_service id =
   ((Hashtbl.find repos_services_table id).log_service
-     :     ((string option * string option) option, unit,
-     [ `Attached of
-         (Eliom_service.attached_service_kind, [ `Get ]) Eliom_service.a_s ],
+   :     ((string option * string option) option, unit,
+          [`Get], Eliom_service.attached_kind, Eliom_service.service_kind,
      [ `WithoutSuffix ],
      [ `One of string option * string option ] Eliom_parameter.param_name,
      unit, [ `Registrable ], Eliom_registration.appl_service)
@@ -129,5 +123,3 @@ let find_log_service id =
      [ `One of string option * string option ] Eliom_parameter.param_name,
      unit, [> `Registrable ], Eliom_registration.appl_service)
     Eliom_service.service)
-
-
