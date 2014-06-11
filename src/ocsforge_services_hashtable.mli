@@ -19,9 +19,7 @@ val string_to_kind :
 type project_services = {
   sources_service :
     (string list * (src_page_kind option * (string option * string option)),
-     unit,
-     [ `Attached of
-         (Eliom_service.attached_service_kind, [ `Get ]) Eliom_service.a_s ],
+     unit,[`Get], Eliom_service.attached_kind, Eliom_service.service_kind,
      [ `WithSuffix ],
      [ `One of string list ] Eliom_parameter.param_name *
      ([ `One of src_page_kind ] Eliom_parameter.param_name *
@@ -43,9 +41,7 @@ val add_service : string -> project_services -> unit
 val find_service : string -> project_services option
 val find_sources_service : string ->
     (string list * (src_page_kind option * (string option * string option)),
-     unit,
-     [> `Attached of
-         (Eliom_service.attached_service_kind, [ `Get ]) Eliom_service.a_s ],
+     unit,[`Get], Eliom_service.attached_kind, Eliom_service.service_kind,
      [> `WithSuffix ],
      [ `One of string list ] Eliom_parameter.param_name *
      ([ `One of src_page_kind ] Eliom_parameter.param_name *
@@ -54,9 +50,8 @@ val find_sources_service : string ->
      unit, [> `Registrable ], Eliom_registration.appl_service)
     Eliom_service.service
 val find_log_service : string ->
-    ((string option * string option) option, unit,
-     [> `Attached of
-         (Eliom_service.attached_service_kind, [ `Get ]) Eliom_service.a_s ],
+  ((string option * string option) option, unit,
+   [`Get], Eliom_service.attached_kind, Eliom_service.service_kind,
      [> `WithoutSuffix ],
      [ `One of string option * string option ] Eliom_parameter.param_name,
      unit, [> `Registrable ], Eliom_registration.appl_service)
