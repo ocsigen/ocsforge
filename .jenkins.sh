@@ -9,6 +9,7 @@ opam install --verbose ocsforge
 
 do_build_doc () {
   # Nothing yet
+  echo "No documentation!"
 }
 
 do_remove () {
