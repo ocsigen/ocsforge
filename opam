@@ -14,6 +14,4 @@ depends: [
   "ocsimore" { = "dev" }
   "oasis" { >= "0.4.4" }
 ]
-conflicts: [
-  "batteries" {="2.3.0"}
-]
+
