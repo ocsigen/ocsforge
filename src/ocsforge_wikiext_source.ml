@@ -82,7 +82,7 @@ let code_content args c =
 let f_code _ args c =
   `Flow5 (
     let args = try
-        let clas, r = Ocsigen_lib.List.assoc_remove "class" attribs in
+        let clas, r = Ocsigen_lib.List.assoc_remove "class" args in
         let clas = "ocsforge_color "^clas in
         ("class", clas)::r
       with Not_found -> ("class", "ocsforge_color")::args
