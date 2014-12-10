@@ -81,16 +81,28 @@ let code_content args c =
 
 let f_code _ args c =
   `Flow5 (
+    let args = try
+        let clas, r = Ocsigen_lib.List.assoc_remove "class" attribs in
+        let clas = "ocsforge_color "^clas in
+        ("class", clas)::r
+      with Not_found -> ("class", "ocsforge_color")::args
+    in
+    let atts = Wiki_syntax.parse_common_attribs args in
     lwt c = code_content args c in
-    Lwt.return [ pre ~a:[ a_class ["ocsforge_color"] ] c ] )
+    Lwt.return [ pre ~a:atts c ] )
 
 let f_code_inline _ args c =
   `Phrasing_without_interactive (
+    let args = try
+        let clas, r = Ocsigen_lib.List.assoc_remove "class" args in
+        let clas = "ocsforge_color "^clas in
+        ("class", clas)::r
+      with Not_found -> ("class", "ocsforge_color")::args
+    in
+    let atts = Wiki_syntax.parse_common_attribs args in
     lwt c = code_content args c in
-    Lwt.return [ span ~a:[ a_class ["ocsforge_color"] ] c ] )
+    Lwt.return [ span ~a:atts c ] )
 
 let _ =
   Wiki_syntax.register_simple_flow_extension ~name:"code" f_code;
   Wiki_syntax.register_simple_phrasing_extension ~name:"code-inline" f_code_inline
-
-
